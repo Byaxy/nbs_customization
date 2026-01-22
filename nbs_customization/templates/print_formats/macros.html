@@ -1,0 +1,168 @@
+{% macro pdf_header(doc) %} {% set company_doc = frappe.get_doc("Company", doc.company) %}
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; color: #002060">
+	<tr>
+		<td style="width: 25%; text-align: center; vertical-align: top; padding: 0; margin: 0">
+			<img
+				src="{{ company_doc.custom_pdf_water_mark or company_doc.company_logo or '' }}"
+				style="width: 140px; height: 120px; display: block; margin: 0 auto"
+			/>
+			<div style="font-size: 11px; color: #002060">Legacy of Quality Par Excellence</div>
+		</td>
+		<td style="width: 75%; vertical-align: bottom">
+			<div
+				style="
+					font-size: 25px;
+					font-weight: bold;
+					text-transform: uppercase;
+					color: #002060;
+					margin-bottom: 3px;
+				"
+			>
+				{{ company_doc.company_name }}
+			</div>
+			<div style="font-size: 14px; color: #002060; line-height: 1.4">
+				{{ company_doc.custom_address_line_1 }}
+			</div>
+			<div style="font-size: 14px; color: #002060; line-height: 1.4">
+				{{ company_doc.custom_address_line_2 }}
+			</div>
+			<div style="font-size: 14px; color: #002060; line-height: 1.4">
+				{{ company_doc.phone_no }} | {{ company_doc.custom_phone_no_2 }}
+			</div>
+			<div style="font-size: 14px; color: #002060; line-height: 1.4">
+				{{ company_doc.email }}
+			</div>
+			<div style="font-size: 14px; color: #002060; line-height: 1.4">
+				{{ company_doc.website }}
+			</div>
+		</td>
+	</tr>
+</table>
+{% endmacro %} {% macro pdf_footer() %}
+<table
+	style="
+		width: 100%;
+		border-collapse: collapse;
+		margin-top: 10px;
+		background-color: #819ac2;
+		color: #000;
+	"
+>
+	<tr>
+		<td style="width: 40%; padding: 8px 10px; vertical-align: top">
+			<div style="font-weight: bold; margin-bottom: 2px; font-size: 13px">
+				Products Solutions:
+			</div>
+			<div style="padding-left: 15px">
+				<div style="font-size: 10px">Medical laboratory Equipment & Consumables</div>
+				<div style="font-size: 10px">Medical Imaging Equipment & Consumables</div>
+				<div style="font-size: 10px">Medical Equipment & Consumables</div>
+				<div style="font-size: 10px">Dental Equipment & Consumables</div>
+				<div style="font-size: 10px">Veterinary Equipment & Consumables</div>
+				<div style="font-size: 10px">Research & Teaching Equipment & Consumables</div>
+			</div>
+		</td>
+		<td style="width: 30%; padding: 8px 10px; vertical-align: top">
+			<div style="font-weight: bold; margin-bottom: 2px; font-size: 13px">
+				Service Solutions:
+			</div>
+			<div style="padding-left: 15px">
+				<div style="font-size: 10px">Consultancy Services</div>
+				<div style="font-size: 10px">Training Services</div>
+				<div style="font-size: 10px">QC/QA Services</div>
+				<div style="font-size: 10px">OEM production</div>
+				<div style="font-size: 10px">Contract manufacturing</div>
+			</div>
+		</td>
+		<td style="width: 30%; padding: 8px 10px; vertical-align: top">
+			<div style="font-weight: bold; margin-bottom: 2px; font-size: 13px">
+				Support Solutions:
+			</div>
+			<div style="padding-left: 15px">
+				<div style="font-size: 10px">Equipment Placement supports</div>
+				<div style="font-size: 10px">Partnership (PPP/PPP)</div>
+				<div style="font-size: 10px">Installations</div>
+				<div style="font-size: 10px">Maintenance Support</div>
+			</div>
+		</td>
+	</tr>
+</table>
+{% endmacro %} {% macro pdf_address(title, customer_name, address, is_left=True) %}
+<td
+	style="width: 50%; vertical-align: top; {{ 'padding-right: 40px !important; padding-left: 0px !important;' if is_left else 'padding-left: 40px !important; padding-right: 0px !important;' }}"
+>
+	<div style="background-color: #819ac2; padding: 3px 5px; margin-bottom: 2px">
+		<div style="font-weight: bold; font-size: 13px; color: #000">{{ title }}:</div>
+	</div>
+	<div style="padding-left: 5px; padding-top: 2px; color: #000">
+		<div
+			style="
+				font-size: 12px;
+				font-weight: bold;
+				margin-bottom: 2px;
+				text-transform: uppercase;
+			"
+		>
+			{{ customer_name }}
+		</div>
+
+		{% if address %}
+		<div style="line-height: 1.3; font-size: 12px">{{ address }}</div>
+		{% else %}
+		<div style="color: #666; font-style: italic; font-size: 12px">N/A.</div>
+		{% endif %}
+	</div>
+</td>
+{% endmacro %} {% macro pdf_signature(title) %}
+<td style="width: 25%; vertical-align: top; padding: 0 10px; color: #000; margin-bottom: 20px">
+	<div style="margin-bottom: 4px">
+		<div style="font-weight: 500; font-size: 13px; margin-bottom: 2px">Stamp & Signature:</div>
+
+		<div style="height: 30px"></div>
+		<div style="font-weight: 500; font-size: 13px">{{ title }}</div>
+	</div>
+</td>
+{% endmacro %} {% macro pdf_bank_details(doc) %} {% set company_doc = frappe.get_doc("Company",
+doc.company) %}
+<td
+	style="
+		width: 50%;
+		vertical-align: top;
+		padding-right: 20px !important;
+		padding-left: 0px !important;
+		color: #000;
+	"
+>
+	<div style="background-color: #819ac2; padding: 3px 5px; margin-bottom: 2px">
+		<div style="font-weight: bold; font-size: 13px">Bank Details</div>
+	</div>
+	<div style="padding: 2px 5px 0 5px">
+		<table style="width: 100%; border-collapse: collapse">
+			<tr>
+				<td style="font-size: 10px; padding: 0 !important; width: 20%">Bank Name:</td>
+				<td style="font-size: 10px; padding: 0 !important">
+					{{ company_doc.custom_bank_name or "N/A" }}
+				</td>
+			</tr>
+			<tr>
+				<td style="font-size: 10px; padding: 0 !important; width: 20%">Address:</td>
+				<td style="font-size: 10px; padding: 0 !important">
+					{{ company_doc.custom_bank_address or "N/A" }}
+				</td>
+			</tr>
+			<tr>
+				<td style="font-size: 10px; padding: 0 !important; width: 20%">Account #:</td>
+				<td style="font-size: 10px; padding: 0 !important">
+					{{ company_doc.custom_account_number or "N/A" }}
+				</td>
+			</tr>
+			<tr>
+				<td style="font-size: 10px; padding: 0 !important; width: 20%">Swift Code:</td>
+				<td style="font-size: 10px; padding: 0 !important">
+					{{ company_doc.custom_swift_code or "N/A" }}
+				</td>
+			</tr>
+		</table>
+	</div>
+</td>
+{% endmacro %}
