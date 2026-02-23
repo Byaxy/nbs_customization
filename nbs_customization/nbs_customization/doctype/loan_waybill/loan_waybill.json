@@ -1,0 +1,406 @@
+{
+ "actions": [],
+ "allow_events_in_timeline": 1,
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-01-29 09:48:03.948687",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_info_section",
+  "naming_series",
+  "customer",
+  "customer_name",
+  "column_break_1",
+  "loan_date",
+  "section_break_lwyx",
+  "source_warehouse",
+  "stock_entry",
+  "column_break_vlya",
+  "target_warehouse",
+  "stock_entry_date",
+  "section_break_kjvo",
+  "conversion_status",
+  "column_break_fnae",
+  "conversion_date",
+  "products_section",
+  "items",
+  "totals_section",
+  "total_loan_quantity",
+  "column_break_twkz",
+  "total_converted_quantity",
+  "column_break_vakg",
+  "total_remaining_quantity",
+  "additional_information_section",
+  "notes",
+  "section_break_ivyf",
+  "amended_from",
+  "address_and_contact",
+  "billing_and_shipping_address_section",
+  "customer_address",
+  "address_display",
+  "column_break_tkue",
+  "shipping_address_name",
+  "shipping_address",
+  "officers_section",
+  "delivered_by",
+  "column_break_lmye",
+  "received_by",
+  "batchserial_balance_tab",
+  "batch__serial_traceability_section",
+  "batch_balances",
+  "conversion_history_tab",
+  "conversion_history_section",
+  "conversion_history"
+ ],
+ "fields": [
+  {
+   "default": "NBSLWB-.YYYY./.MM./.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "NBSLWB-.YYYY./.MM./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "basic_info_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Loan Waybill",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_ivyf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_lwyx",
+   "fieldtype": "Section Break",
+   "label": "Warehouse & Stock Movement"
+  },
+  {
+   "description": "Main warehouse (stock source)",
+   "fieldname": "source_warehouse",
+   "fieldtype": "Link",
+   "label": "Source Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_vlya",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Customer loan warehouse",
+   "fieldname": "target_warehouse",
+   "fieldtype": "Link",
+   "label": "Target Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_kjvo",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_fnae",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "conversion_date",
+   "fieldtype": "Date",
+   "label": "Conversion Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "products_section",
+   "fieldtype": "Section Break",
+   "label": "Products"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_loan_quantity",
+   "fieldtype": "Float",
+   "label": "Total Loan Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_twkz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_converted_quantity",
+   "fieldtype": "Float",
+   "label": "Total Converted Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_vakg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_remaining_quantity",
+   "fieldtype": "Float",
+   "label": "Total Remaining Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.stock_entry;",
+   "fetch_from": "stock_entry.posting_date",
+   "fieldname": "stock_entry_date",
+   "fieldtype": "Date",
+   "label": "Stock Entry Date",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "conversion_history_section",
+   "fieldtype": "Section Break",
+   "label": "Conversion History Details"
+  },
+  {
+   "fieldname": "additional_information_section",
+   "fieldtype": "Section Break",
+   "label": "Additional Information"
+  },
+  {
+   "description": "Any additional notes",
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "address_and_contact",
+   "fieldtype": "Tab Break",
+   "label": "Address & Contact"
+  },
+  {
+   "fieldname": "billing_and_shipping_address_section",
+   "fieldtype": "Section Break",
+   "label": "Billing And Shipping Address"
+  },
+  {
+   "fieldname": "column_break_tkue",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_address",
+   "fieldtype": "Link",
+   "label": "Customer Address (Billing)",
+   "options": "Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "shipping_address_name",
+   "fieldtype": "Link",
+   "label": "Shipping Address",
+   "options": "Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "address_display",
+   "fieldtype": "Small Text",
+   "label": "Address Display",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shipping_address",
+   "fieldtype": "Small Text",
+   "label": "Shipping Address Display",
+   "read_only": 1
+  },
+  {
+   "fieldname": "officers_section",
+   "fieldtype": "Section Break",
+   "label": "Officers"
+  },
+  {
+   "fieldname": "delivered_by",
+   "fieldtype": "Link",
+   "label": "Delivered By",
+   "options": "Contact",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_lmye",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "received_by",
+   "fieldtype": "Link",
+   "label": "Received By",
+   "options": "Contact"
+  },
+  {
+   "default": "Today",
+   "fieldname": "loan_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Loan Waybill Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "conversion_history_tab",
+   "fieldtype": "Tab Break",
+   "label": "Conversion History"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Products",
+   "options": "Loan Waybill Item",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "conversion_status",
+   "fieldtype": "Select",
+   "label": "Conversion Status",
+   "options": "Draft\nPending\nPartially Converted\nFully Converted\nCancelled",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "batchserial_balance_tab",
+   "fieldtype": "Tab Break",
+   "label": "Batch/Serial Balance"
+  },
+  {
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "batch__serial_traceability_section",
+   "fieldtype": "Section Break",
+   "label": "Batch / Serial Traceability"
+  },
+  {
+   "fieldname": "batch_balances",
+   "fieldtype": "Table",
+   "label": "Loan Waybill Batch/Serial Balance",
+   "options": "Loan Waybill Batch Balance"
+  },
+  {
+   "fieldname": "conversion_history",
+   "fieldtype": "Table",
+   "options": "Loan Conversion History"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-02-18 16:35:35.568737",
+ "modified_by": "charlesbyaxy@gmail.com",
+ "module": "NBS Customization",
+ "name": "Loan Waybill",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "share": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "select": 1,
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -23,14 +23,15 @@ app_license = "mit"
 
 # Includes in <head>
 # ------------------
+import time
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/nbs_customization/css/nbs_customization.css"
-# app_include_js = "/assets/nbs_customization/js/nbs_customization.js"
+app_include_css = "/assets/nbs_customization/css/nbs_theme.css?v={}".format(int(time.time()))
+app_include_js = "/assets/nbs_customization/js/nbs_theme.js?v={}".format(int(time.time()))
 
 # include js, css files in header of web template
-# web_include_css = "/assets/nbs_customization/css/nbs_customization.css"
-# web_include_js = "/assets/nbs_customization/js/nbs_customization.js"
+web_include_css = "/assets/nbs_customization/css/nbs_theme.css?v={}".format(int(time.time()))
+web_include_js = "/assets/nbs_customization/js/nbs_theme.js?v={}".format(int(time.time()))
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "nbs_customization/public/scss/website"
@@ -250,3 +251,89 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+# Fixtures
+
+fixtures = [
+    
+      {
+        "dt": "Custom Field",
+        "filters": [
+            [
+                "name", "in", [
+                    "Item-custom_item_type",
+                    "Company-custom_bank_name",
+                    "Company-custom_bank_address",
+                    "Company-custom_account_number", 
+                    "Company-custom_swift_code",
+                    "Company-custom_pdf_water_mark",
+                    "Company-custom_phone_no_2",
+                    "Company-custom_address_line_1",
+                    "Company-custom_address_line_2",
+                    "Quotation-custom_request_for_quotation_number",
+                    "Delivery Note-custom_waybill_type",
+                    "Delivery Note-custom_officer_details",
+                    "Sales Order-custom_has_promissory_note",
+                    "Sales Order-custom_has_customer_delivery_note",     
+                    "Delivery Note-custom_loan_waybill_section",
+                    "Delivery Note-custom_source_loan_waybill",
+                    "Delivery Note-custom_loan_waybill_column_break",
+                    "Delivery Note-custom_conversion_date",
+                    "Delivery Note-custom_is_conversion",
+                    "Delivery Note-custom_officer_details",
+                    "Delivery Note-custom_delivered_by",
+                    "Delivery Note-custom_officer_column_break",
+                    "Delivery Note-custom_received_by",
+                    "Stock Entry-custom_is_loan"
+                ]
+            ]
+        ]
+    },
+    # Export custom DocTypes
+    {
+        "dt": "DocType",
+        "filters": [
+            [
+                "name", "in", [
+                    "Customer Delivery Note",
+                    "Promissory Note", 
+                    "Item Type",
+                    "Customer Delivery Note Item",
+                    "Promissory Note Item"
+                ]
+            ]
+        ]
+    }
+]
+
+doctype_js = {
+    "Sales Order": "public/js/sales_order.js",
+    "Delivery Note": "public/js/delivery_note.js"
+}
+
+doc_events = {
+    "Quotation": {
+        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
+    },
+    "Sales Order": {
+        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
+        "on_submit": "nbs_customization.controllers.sales_order.ensure_linked_documents_on_submit",
+    },
+    "Delivery Note": {
+        "validate": [
+            "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
+            "nbs_customization.controllers.delivery_note.validate",
+        ],
+        "on_submit": "nbs_customization.controllers.delivery_note.on_submit",
+        "on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
+    },
+    "Sales Invoice": {
+        "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch"
+    },
+    "Stock Entry": {
+        "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
+        "before_cancel": "nbs_customization.controllers.stock_entry.before_cancel",
+    },
+    "Loan Waybill": {
+        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
+    }
+}

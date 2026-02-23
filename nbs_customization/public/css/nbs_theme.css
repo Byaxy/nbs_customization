@@ -1,0 +1,309 @@
+/**
+ * NBS Customization Theme - Production-Ready CSS Styling
+ * 
+ * Comprehensive theme system for Biomedical Solutions with:
+ * - Full-width layout support (100% width always)
+ * - Custom brand colors (#001b52 primary, #dc2626 danger)
+ * - Enhanced table styling with hover effects
+ * - Professional button styling
+ * - Login page customization
+ */
+
+/* ========================================
+   ROOT VARIABLES & GLOBAL SETTINGS
+   ======================================== */
+
+:root {
+	/* Brand Colors */
+	--nbs-primary-color: #001b52;
+	--nbs-primary-hover: #001540;
+	--nbs-danger-color: #dc2626;
+	--nbs-danger-hover: #b91c1c;
+
+	/* Table Colors */
+	--nbs-table-header-bg: #001b52;
+	--nbs-table-header-text: #ffffff;
+	--nbs-table-even-bg: #eff6ff;
+	--nbs-table-hover-bg: #eff6ff;
+
+	/* Navigation */
+	--nbs-navbar-bg: #001b52;
+	--nbs-navbar-text: #ffffff;
+
+	/* Login */
+	--nbs-login-title: "Biomedical Solutions";
+	--nbs-login-title-color: #001b52;
+	--nbs-login-box-bg: #ffffff;
+	--nbs-login-box-width: "400px";
+
+	/* Layout - Always 100% width */
+	--page-max-width: 100% !important;
+	--content-max-width: 100% !important;
+	--form-container-max-width: 100% !important;
+}
+
+/* ========================================
+   FULL-WIDTH LAYOUT SYSTEM
+   ======================================== */
+
+/* Main page containers - always full width */
+.page-container,
+.content.page-container,
+.layout-main-section,
+.form-page {
+	max-width: var(--page-max-width) !important;
+	width: 100% !important;
+	padding: 0 24px !important;
+}
+
+/* Form layouts - full width with proper spacing */
+.form-layout,
+.form-container,
+.form-view,
+.frappe-control {
+	max-width: var(--form-container-max-width) !important;
+	width: 100% !important;
+}
+
+/* Form sections and columns */
+.form-layout .row,
+.form-section,
+.form-grid,
+.form-layout .section-break,
+.form-layout .column-break {
+	max-width: 100% !important;
+	width: 100% !important;
+}
+
+/* Form controls - full width within containers */
+.form-layout .frappe-control,
+.form-layout .control-input,
+.form-layout .control-label {
+	max-width: 100% !important;
+	width: 100% !important;
+}
+
+/* List view containers - full width */
+.list-view-container,
+.report-view-container,
+.tree-view-container {
+	max-width: var(--page-max-width) !important;
+	width: 100% !important;
+}
+
+/* List view tables - full width */
+.list-view-table,
+.report-table,
+.dataTable,
+.table-responsive {
+	max-width: 100% !important;
+	width: 100% !important;
+	overflow-x: auto;
+}
+
+/* ========================================
+   PRIMARY BUTTON STYLING
+   ======================================== */
+
+.btn-primary,
+.btn-primary:not(.btn-secondary):not(.btn-light) {
+	background-color: var(--nbs-primary-color) !important;
+	border-color: var(--nbs-primary-color) !important;
+	color: #ffffff !important;
+	border-radius: 6px;
+	font-weight: 500;
+	padding: 8px 16px;
+	transition: all 0.2s ease;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+	background-color: var(--nbs-primary-hover) !important;
+	border-color: var(--nbs-primary-hover) !important;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(0, 27, 82, 0.3);
+}
+
+.btn-primary span {
+	color: #ffffff !important;
+}
+
+/* ========================================
+   DANGER/CANCEL BUTTON STYLING
+   ======================================== */
+
+.btn-danger,
+.btn-secondary[data-action="cancel"],
+.btn-cancel,
+.btn-red,
+[data-action="no"],
+[data-response="no"] {
+	background-color: var(--nbs-danger-color) !important;
+	border-color: var(--nbs-danger-color) !important;
+	color: #ffffff !important;
+	border-radius: 6px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+}
+
+.btn-danger:hover,
+.btn-secondary[data-action="cancel"]:hover,
+.btn-cancel:hover,
+.btn-red:hover,
+[data-action="no"]:hover,
+[data-response="no"]:hover {
+	background-color: var(--nbs-danger-hover) !important;
+	border-color: var(--nbs-danger-hover) !important;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+}
+
+/* ========================================
+   TABLE STYLING
+   ======================================== */
+
+/* Table headers with primary color */
+.table thead th,
+.dataTable thead th,
+.frappe-control .table-header th,
+.list-view-table thead th,
+.level.list-row-head.text-muted {
+	background-color: var(--nbs-table-header-bg) !important;
+	color: var(--nbs-table-header-text) !important;
+	border-bottom: 2px solid var(--nbs-primary-color) !important;
+	font-weight: 600;
+	padding: 12px 16px;
+}
+
+header.level.list-row-head.text-muted {
+	background-color: var(--nbs-table-header-bg) !important;
+	color: var(--nbs-table-header-text) !important;
+}
+
+/* Even rows with light blue background */
+.table tbody tr:nth-child(even),
+.dataTable tbody tr:nth-child(even),
+.list-view-table tbody tr:nth-child(even) {
+	background-color: var(--nbs-table-even-bg) !important;
+}
+
+/* Hover effect for all rows */
+.table tbody tr:hover,
+.dataTable tbody tr:hover,
+.list-view-table tbody tr:hover {
+	background-color: var(--nbs-table-hover-bg) !important;
+	cursor: pointer;
+}
+
+/* Table cells with proper spacing */
+.table td,
+.dataTable td,
+.list-view-table td {
+	padding: 12px 16px;
+	vertical-align: middle;
+}
+
+/* ========================================
+   NAVIGATION BAR STYLING
+   ======================================== */
+
+/* Full-width navbar */
+.navbar,
+.navbar.container {
+	max-width: var(--page-max-width) !important;
+	width: 100% !important;
+	background-color: var(--nbs-navbar-bg) !important;
+}
+
+.navbar-brand,
+.navbar .container {
+	max-width: 100% !important;
+	width: 100% !important;
+}
+
+/* Navbar text and icons */
+.navbar-brand,
+.navbar .navbar-text,
+.navbar .nav-link {
+	color: var(--nbs-navbar-text) !important;
+}
+
+.navbar svg,
+.navbar svg use {
+	fill: var(--nbs-navbar-text) !important;
+	stroke: var(--nbs-navbar-text) !important;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+	/* Mobile adjustments */
+	.page-container,
+	.content.page-container,
+	.layout-main-section,
+	.form-page {
+		padding: 0 16px !important;
+	}
+
+	/* Login form mobile */
+	.login-content.page-card {
+		width: auto;
+		margin: 0 16px;
+	}
+
+	/* Table mobile */
+	.table-responsive {
+		font-size: 14px;
+	}
+
+	.table td,
+	.dataTable td,
+	.list-view-table td {
+		padding: 8px 12px;
+	}
+}
+
+/* ========================================
+   ACCESSIBILITY & PERFORMANCE
+   ======================================== */
+
+/* Focus states for accessibility */
+.btn-primary:focus,
+.btn-danger:focus {
+	outline: 2px solid var(--nbs-primary-color);
+	outline-offset: 2px;
+}
+
+/* Smooth transitions */
+.btn-primary,
+.btn-danger,
+.table tbody tr {
+	transition: all 0.2s ease;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+	.btn-primary {
+		border: 2px solid #000000;
+	}
+
+	.btn-danger {
+		border: 2px solid #000000;
+	}
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+	.btn-primary,
+	.btn-danger,
+	.table tbody tr {
+		transition: none;
+	}
+
+	.btn-primary:hover,
+	.btn-danger:hover {
+		transform: none;
+	}
+}

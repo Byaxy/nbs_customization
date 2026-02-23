@@ -1,0 +1,210 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-02-20 13:39:37.514345",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "sales_order",
+  "column_break_ypds",
+  "date",
+  "customer",
+  "customer_name",
+  "section_break_drwf",
+  "items",
+  "section_break_dsmj",
+  "column_break_vqdw",
+  "column_break_elbm",
+  "total_amount",
+  "section_break_eezl",
+  "promissory_note_status",
+  "notes",
+  "section_break_ekqj",
+  "amended_from",
+  "address_and_contact",
+  "customer_address",
+  "address_display",
+  "column_break_slkj",
+  "shipping_address_name",
+  "shipping_address"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "read_only_depends_on": "eval:doc.sales_order",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Promissory Note Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Promissory Note Item"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Grand Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Promissory Note",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_ypds",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_drwf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_dsmj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_vqdw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_elbm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ekqj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "NBSPN-.YYYY./.MM./.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "NBSPN-.YYYY./.MM./.####",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "address_and_contact",
+   "fieldtype": "Tab Break",
+   "label": "Address & Contact"
+  },
+  {
+   "fieldname": "customer_address",
+   "fieldtype": "Link",
+   "label": "Customer Address (Billing)",
+   "options": "Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "address_display",
+   "fieldtype": "Small Text",
+   "label": "Address Display",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_slkj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "shipping_address_name",
+   "fieldtype": "Link",
+   "label": "Shipping Address",
+   "options": "Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "shipping_address",
+   "fieldtype": "Small Text",
+   "label": "Shipping Address Display",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_eezl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "promissory_note_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Promissory Status",
+   "options": "Pending\nPartially Fulfilled\nFulfilled",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-02-20 21:05:28.466165",
+ "modified_by": "charlesbyaxy@gmail.com",
+ "module": "NBS Customization",
+ "name": "Promissory Note",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "show_preview_popup": 1,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

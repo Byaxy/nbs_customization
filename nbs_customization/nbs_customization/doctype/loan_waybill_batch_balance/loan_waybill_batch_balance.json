@@ -1,0 +1,141 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-02-14 09:41:20.666353",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "description",
+  "column_break_ihda",
+  "warehouse",
+  "section_break_xcuq",
+  "batch_no",
+  "serial_no",
+  "section_break_tvjw",
+  "qty_loaned",
+  "column_break_exnn",
+  "qty_converted",
+  "column_break_xcoe",
+  "qty_remaining",
+  "section_break_unkz",
+  "expiry_date",
+  "column_break_bzin",
+  "valuation_rate"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Product Code",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_ihda",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse",
+   "search_index": 1
+  },
+  {
+   "fieldname": "section_break_xcuq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Batch No",
+   "options": "Batch",
+   "search_index": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Serial No"
+  },
+  {
+   "fieldname": "section_break_tvjw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "qty_loaned",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity Loaned",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_exnn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qty_converted",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity Converted",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_xcoe",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qty_remaining",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity Remaining",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_unkz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_bzin",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expiry Date"
+  },
+  {
+   "fieldname": "valuation_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Valuation Rate"
+  },
+  {
+   "fetch_from": "item_code.description",
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-02-23 09:42:43.110752",
+ "modified_by": "charlesbyaxy@gmail.com",
+ "module": "NBS Customization",
+ "name": "Loan Waybill Batch Balance",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

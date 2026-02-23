@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-01-29 11:32:34.694384",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "column_break_uhxc",
+  "uom",
+  "section_break_dttq",
+  "item_name",
+  "description",
+  "section_break_afbv",
+  "quantity_loaned",
+  "column_break_jqdd",
+  "quantity_converted",
+  "column_break_zurp",
+  "quantity_remaining",
+  "section_break_gqfr",
+  "rate",
+  "column_break_ngdg",
+  "amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Product Code",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Product Name"
+  },
+  {
+   "fetch_from": "item_code.description",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "section_break_afbv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "quantity_loaned",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity Loaned",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.stock_uom",
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "quantity_converted",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity Converted",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quantity_remaining",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity Remaining",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_gqfr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "item_code.valuation_rate",
+   "fieldname": "rate",
+   "fieldtype": "Currency",
+   "label": "Rate"
+  },
+  {
+   "fieldname": "column_break_ngdg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "column_break_uhxc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_dttq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_jqdd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_zurp",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-02-14 10:10:45.532729",
+ "modified_by": "charlesbyaxy@gmail.com",
+ "module": "NBS Customization",
+ "name": "Loan Waybill Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
