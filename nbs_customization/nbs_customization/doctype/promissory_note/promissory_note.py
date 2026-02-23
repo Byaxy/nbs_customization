@@ -1,7 +1,6 @@
 # Copyright (c) 2026, Charles Byakutaga/NBS and contributors
 # For license information, please see license.txt
 
-from turtle import color
 import frappe
 from frappe.model.document import Document
 from frappe.utils import flt, nowdate
