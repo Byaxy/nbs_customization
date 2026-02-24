@@ -180,6 +180,18 @@ header.level.list-row-head.text-muted {
 	color: var(--nbs-table-header-text) !important;
 }
 
+header.level.list-row-head.text-muted > div.level-right {
+	background-color: var(--nbs-table-header-bg) !important;
+}
+
+.list-subject span[data-sort-by="name"] {
+	color: var(--nbs-table-header-text) !important;
+}
+
+.list-subject span.list-header-meta {
+	color: var(--nbs-table-header-text) !important;
+}
+
 /* Even rows with light blue background */
 .table tbody tr:nth-child(even),
 .dataTable tbody tr:nth-child(even),
