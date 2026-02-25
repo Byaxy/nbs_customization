@@ -184,7 +184,7 @@ header.level.list-row-head.text-muted > div.level-right {
 	background-color: var(--nbs-table-header-bg) !important;
 }
 
-.list-subject span[data-sort-by="name"] {
+.list-subject span.level-item {
 	color: var(--nbs-table-header-text) !important;
 }
 
