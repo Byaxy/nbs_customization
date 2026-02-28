@@ -49,18 +49,150 @@ def get_so_remaining_quantities(sales_order: str) -> Dict[str, float]:
     return remaining_map
 
 
-def ensure_linked_documents_on_submit(doc, method=None):
-    ensure_customer_delivery_note(doc)
-    ensure_promissory_note(doc)
+@frappe.whitelist()
+def make_customer_delivery_note(source_name: str, target_doc=None, ignore_permissions=None):
+    from frappe.model.mapper import get_mapped_doc
 
+    def set_missing_values(source, target):
+        customer_address, shipping_address_name = _resolve_customer_addresses(source)
+        target.customer_address = customer_address
+        target.shipping_address_name = shipping_address_name
+        target.date = nowdate()
+        target.run_method("set_missing_values")
+
+    return get_mapped_doc(
+        "Sales Order",
+        source_name,
+        {
+            "Sales Order": {
+                "doctype": "Customer Delivery Note",
+                "field_map": {
+                    "name": "sales_order",
+                    "customer": "customer",
+                    "customer_name": "customer_name",
+                    "customer_address": "customer_address",
+                    "shipping_address_name": "shipping_address_name",
+                },
+                "validation": {
+                    "docstatus": ["=", 1],
+                },
+            },
+            "Sales Order Item": {
+                "doctype": "Customer Delivery Note Item",
+                "field_map": {
+                    "item_code": "item_code",
+                    "description": "description",
+                    "qty": "qty_requested",
+                },
+                "postprocess": lambda source, target, source_parent: target.update({
+                    "qty_supplied": source.qty,
+                    "balance_left": 0,
+                }),
+                "add_if_empty": True,
+            },
+        },
+        target_doc,
+        set_missing_values,
+    )
 
 @frappe.whitelist()
-def create_customer_delivery_note_from_sales_order(sales_order: str) -> str:
-    so_doc = frappe.get_doc("Sales Order", sales_order)
-    _validate_sales_order_for_linked_docs(so_doc)
-    name = _create_or_get_linked_doc_draft(so_doc, "Customer Delivery Note")
-    return name
+def make_promissory_note(source_name, target_doc=None, ignore_permissions=None):
+    """
+    Maps SO → new unsaved Promissory Note via get_mapped_doc.
+    Called by frappe.model.open_mapped_doc from the SO form button.
+    Items are set server-side based on SO qty minus delivered qty.
+    """
+    from frappe.model.mapper import get_mapped_doc
+    from frappe.utils import nowdate, flt
 
+    def set_missing_values(source, target):
+        target.date = nowdate()
+
+        # Resolve addresses
+        target.customer_address = getattr(source, "customer_address", None) or \
+            frappe.db.get_value("Customer", source.customer, "customer_primary_address")
+        target.shipping_address_name = getattr(source, "shipping_address_name", None) \
+            or target.customer_address
+
+        if not target.customer_address or not target.shipping_address_name:
+            frappe.throw(
+                "Could not resolve billing/shipping address from Sales Order. "
+                "Please set addresses on the Customer."
+            )
+
+        # Compute delivered quantities for each SO item
+        delivered_rows = frappe.db.sql(
+            """
+            SELECT dni.item_code, SUM(dni.qty) AS qty
+            FROM `tabDelivery Note Item` dni
+            INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
+            WHERE dn.docstatus = 1
+              AND dn.is_return = 0
+              AND IFNULL(dni.against_sales_order, '') = %s
+            GROUP BY dni.item_code
+            """,
+            (source_name,),
+            as_dict=True,
+        )
+        delivered_by_item = {r.item_code: flt(r.qty) for r in delivered_rows}
+
+        # Patch qty_remaining and sub_total on mapped child rows
+        total = 0.0
+        any_remaining = False
+        nothing_delivered = True
+
+        for item in target.items:
+            delivered = delivered_by_item.get(item.item_code, 0.0)
+            so_qty = flt(item.qty_remaining)
+            item.qty_remaining = max(0.0, so_qty - delivered)
+            item.sub_total = item.qty_remaining * flt(item.unit_price)
+            total += item.sub_total
+
+            if item.qty_remaining > 0:
+                any_remaining = True
+            if delivered > 0:
+                nothing_delivered = False
+
+        target.total_amount = total
+
+        if not target.items:
+            target.promissory_note_status = "Pending"
+        elif not any_remaining:
+            target.promissory_note_status = "Fulfilled"
+        elif nothing_delivered:
+            target.promissory_note_status = "Pending"
+        else:
+            target.promissory_note_status = "Partially Fulfilled"
+
+    return get_mapped_doc(
+        "Sales Order",
+        source_name,
+        {
+            "Sales Order": {
+                "doctype": "Promissory Note",
+                "field_map": {
+                    "name": "sales_order",
+                    "customer": "customer",
+                    "customer_name": "customer_name",
+                },
+                "validation": {"docstatus": ["=", 1]},
+            },
+            "Sales Order Item": {
+                "doctype": "Promissory Note Item",
+                "field_map": {
+                    "item_code": "item_code",
+                    "description": "description",
+                    "qty": "qty_remaining",   # raw SO qty; patched in set_missing_values
+                    "rate": "unit_price",
+                    "uom": "uom",
+                },
+                "add_if_empty": True,
+            },
+        },
+        target_doc,
+        set_missing_values,
+        ignore_permissions=ignore_permissions,
+    )
 
 @frappe.whitelist()
 def create_promissory_note_from_sales_order(sales_order: str) -> str:
@@ -80,20 +212,11 @@ def _validate_sales_order_for_linked_docs(so_doc):
 
 
 def _create_or_get_linked_doc_draft(so_doc, target_doctype: str) -> str:
-    link_field = (
-        "custom_customer_delivery_note"
-        if target_doctype == "Customer Delivery Note"
-        else "custom_promissory_note"
-    )
     flag_field = (
         "custom_has_customer_delivery_note"
         if target_doctype == "Customer Delivery Note"
         else "custom_has_promissory_note"
     )
-
-    linked = getattr(so_doc, link_field, None)
-    if linked:
-        return linked
 
     existing = frappe.db.get_value(
         target_doctype,
@@ -104,7 +227,7 @@ def _create_or_get_linked_doc_draft(so_doc, target_doctype: str) -> str:
         frappe.db.set_value(
             "Sales Order",
             so_doc.name,
-            {link_field: existing, flag_field: 1},
+            {flag_field: 1},
         )
         return existing
 
@@ -122,11 +245,11 @@ def _create_or_get_linked_doc_draft(so_doc, target_doctype: str) -> str:
     )
     doc.insert(ignore_permissions=True)
 
-    # Link immediately so the Sales Order UI doesn't keep offering the Create button.
+    # Set the flag field so the Sales Order UI doesn't keep offering the Create button.
     frappe.db.set_value(
         "Sales Order",
         so_doc.name,
-        {link_field: doc.name, flag_field: 1},
+        {flag_field: 1},
     )
 
     return doc.name
@@ -174,113 +297,6 @@ def _get_default_shipping_address(customer: str) -> str | None:
         return get_default_address("Customer", customer, sort_key="is_shipping_address")
     except Exception:
         return None
-
-
-def ensure_customer_delivery_note(so_doc):
-    if not so_doc or not getattr(so_doc, "name", None):
-        return
-
-    if getattr(so_doc, "custom_customer_delivery_note", None):
-        return
-
-    existing = frappe.db.get_value(
-        "Customer Delivery Note",
-        {"sales_order": so_doc.name, "docstatus": ["<", 2]},
-        "name",
-    )
-    if existing:
-        frappe.db.set_value(
-            "Sales Order",
-            so_doc.name,
-            {
-                "custom_has_customer_delivery_note": 1,
-            },
-        )
-        return
-
-    customer_address = getattr(so_doc, "customer_address", None) or frappe.get_value(
-        "Customer", so_doc.customer, "customer_primary_address"
-    )
-    shipping_address_name = getattr(so_doc, "shipping_address_name", None)
-
-    if not customer_address:
-        customer_address = _get_default_customer_address(so_doc.customer)
-
-    if not shipping_address_name:
-        shipping_address_name = _get_default_shipping_address(so_doc.customer) or customer_address
-
-    if not customer_address or not shipping_address_name:
-        frappe.throw(
-            "Customer billing/shipping address is required to create Customer Delivery Note. "
-            "Please set addresses on the Sales Order or Customer."
-        )
-
-    cdn = frappe.get_doc(
-        {
-            "doctype": "Customer Delivery Note",
-            "sales_order": so_doc.name,
-            "date": nowdate(),
-            "customer": so_doc.customer,
-            "customer_address": customer_address,
-            "shipping_address_name": shipping_address_name,
-        }
-    )
-    cdn.insert(ignore_permissions=True)
-    cdn.submit()
-
-
-def ensure_promissory_note(so_doc):
-    if not so_doc or not getattr(so_doc, "name", None):
-        return
-
-    if getattr(so_doc, "custom_promissory_note", None):
-        return
-
-    existing = frappe.db.get_value(
-        "Promissory Note",
-        {"sales_order": so_doc.name, "docstatus": ["<", 2]},
-        "name",
-    )
-    if existing:
-        frappe.db.set_value(
-            "Sales Order",
-            so_doc.name,
-            {
-                "custom_has_promissory_note": 1,
-            },
-        )
-        return
-
-    customer_address = getattr(so_doc, "customer_address", None) or frappe.get_value(
-        "Customer", so_doc.customer, "customer_primary_address"
-    )
-    shipping_address_name = getattr(so_doc, "shipping_address_name", None)
-
-    if not customer_address:
-        customer_address = _get_default_customer_address(so_doc.customer)
-
-    if not shipping_address_name:
-        shipping_address_name = _get_default_shipping_address(so_doc.customer) or customer_address
-
-    if not customer_address or not shipping_address_name:
-        frappe.throw(
-            "Customer billing/shipping address is required to create Promissory Note. "
-            "Please set addresses on the Sales Order or Customer."
-        )
-
-    pn = frappe.get_doc(
-        {
-            "doctype": "Promissory Note",
-            "sales_order": so_doc.name,
-            "date": nowdate(),
-            "customer": so_doc.customer,
-            "customer_address": customer_address,
-            "shipping_address_name": shipping_address_name,
-        }
-    )
-    pn.insert(ignore_permissions=True)
-    pn.submit()
-
 
 @frappe.whitelist()
 def get_pending_loan_waybills(sales_order: str):
@@ -573,3 +589,60 @@ def create_delivery_note_from_loan(
     frappe.db.commit()
 
     return dn.name
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def sales_order_query(doctype, txt, searchfield, start, page_len, filters):
+    return frappe.db.sql(
+        """
+        SELECT name, customer, transaction_date
+        FROM `tabSales Order`
+        WHERE docstatus = 1
+          AND (%(txt)s = "" OR name LIKE %(txt)s OR customer LIKE %(txt)s)
+          AND name NOT IN (
+              SELECT sales_order FROM `tabCustomer Delivery Note`
+              WHERE docstatus < 2
+                AND sales_order IS NOT NULL
+                AND name != %(current_doc)s
+          )
+        ORDER BY transaction_date DESC
+        LIMIT %(page_len)s OFFSET %(start)s
+        """,
+        {
+            "txt": f"%{txt}%",
+            "current_doc": filters.get("current_doc") or "",
+            "page_len": page_len,
+            "start": start,
+        },
+    )
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def promissory_note_sales_order_query(doctype, txt, searchfield, start, page_len, filters):
+    """
+    Link field query for Promissory Note → Sales Order.
+    Only shows submitted SOs that don't already have an active PN,
+    except for the current document's own SO.
+    """
+    return frappe.db.sql(
+        """
+        SELECT name, customer, transaction_date
+        FROM `tabSales Order`
+        WHERE docstatus = 1
+          AND (%(txt)s = "" OR name LIKE %(txt)s OR customer LIKE %(txt)s)
+          AND name NOT IN (
+              SELECT sales_order FROM `tabPromissory Note`
+              WHERE docstatus < 2
+                AND sales_order IS NOT NULL
+                AND name != %(current_doc)s
+          )
+        ORDER BY transaction_date DESC
+        LIMIT %(page_len)s OFFSET %(start)s
+        """,
+        {
+            "txt": f"%{txt}%",
+            "current_doc": filters.get("current_doc") or "",
+            "page_len": page_len,
+            "start": start,
+        },
+    )

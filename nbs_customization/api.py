@@ -32,6 +32,31 @@ def get_nbs_theme():
         frappe.log_error(f"Error getting NBS theme: {str(e)}")
         return {}
 
+@frappe.whitelist(allow_guest=True)
+def get_default_company():
+    """Get the default company name for login page display"""
+    try:
+        # Use frappe.defaults.get_defaults() to get default company
+        defaults = frappe.defaults.get_defaults()
+        default_company = defaults.get('company')
+        
+        if default_company:
+            # Get company name from Company doctype
+            company_name = frappe.db.get_value("Company", default_company, "company_name")
+            if company_name:
+                return {"company_name": company_name}
+        
+        # Fallback: get any company
+        companies = frappe.get_all("Company", fields=["company_name"], limit=1)
+        if companies:
+            return {"company_name": companies[0].company_name}
+            
+        # Final fallback
+        return {"company_name": "NBS"}
+        
+    except Exception:
+        return {"company_name": "NBS"}
+
 @frappe.whitelist()
 def save_nbs_theme(theme_data):
     """

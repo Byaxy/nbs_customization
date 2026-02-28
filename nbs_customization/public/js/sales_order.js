@@ -14,34 +14,78 @@ frappe.ui.form.on("Sales Order", {
 });
 
 function add_linked_document_buttons(frm) {
-	if (!frm.doc.custom_customer_delivery_note) {
-		frm.add_custom_button(
-			__("Customer Delivery Note"),
-			() => create_linked_doc(frm, "Customer Delivery Note"),
-			__("Create"),
-		);
-	}
+	// --- Customer Delivery Note ---
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Customer Delivery Note",
+			filters: { sales_order: frm.doc.name, docstatus: ["<", 2] },
+			fields: ["name"],
+			limit: 1,
+		},
+		callback(r) {
+			if (r.message && r.message.length) {
+				frm.add_custom_button(
+					__("Customer Delivery Note"),
+					() => frappe.set_route("Form", "Customer Delivery Note", r.message[0].name),
+					__("View"),
+				);
+			} else {
+				frm.add_custom_button(
+					__("Customer Delivery Note"),
+					() =>
+						frappe.model.open_mapped_doc({
+							method: "nbs_customization.controllers.sales_order.make_customer_delivery_note",
+							frm: frm,
+						}),
+					__("Create"),
+				);
+			}
+		},
+	});
 
-	if (!frm.doc.custom_promissory_note) {
-		frm.add_custom_button(
-			__("Promissory Note"),
-			() => create_linked_doc(frm, "Promissory Note"),
-			__("Create"),
-		);
-	}
+	// --- Promissory Note ---
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Promissory Note",
+			filters: { sales_order: frm.doc.name, docstatus: ["<", 2] },
+			fields: ["name"],
+			limit: 1,
+		},
+		callback(r) {
+			if (r.message && r.message.length) {
+				frm.add_custom_button(
+					__("Promissory Note"),
+					() => frappe.set_route("Form", "Promissory Note", r.message[0].name),
+					__("View"),
+				);
+			} else {
+				frm.add_custom_button(
+					__("Promissory Note"),
+					() =>
+						frappe.model.open_mapped_doc({
+							method: "nbs_customization.controllers.sales_order.make_promissory_note",
+							frm: frm,
+						}),
+					__("Create"),
+				);
+			}
+		},
+	});
+}
+
+function open_new_customer_delivery_note(frm) {
+	frappe.model.open_mapped_doc({
+		method: "nbs_customization.controllers.sales_order.make_customer_delivery_note",
+		frm: frm,
+	});
 }
 
 function create_linked_doc(frm, doctype) {
-	const method =
-		doctype === "Customer Delivery Note"
-			? "nbs_customization.controllers.sales_order.create_customer_delivery_note_from_sales_order"
-			: "nbs_customization.controllers.sales_order.create_promissory_note_from_sales_order";
-
 	frappe.call({
-		method,
-		args: {
-			sales_order: frm.doc.name,
-		},
+		method: "nbs_customization.controllers.sales_order.create_promissory_note_from_sales_order",
+		args: { sales_order: frm.doc.name },
 		freeze: true,
 		freeze_message: __("Creating {0}...", [doctype]),
 		callback: (r) => {

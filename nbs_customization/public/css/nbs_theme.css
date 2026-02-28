@@ -184,10 +184,7 @@ header.level.list-row-head.text-muted > div.level-right {
 	background-color: var(--nbs-table-header-bg) !important;
 }
 
-.list-subject span.level-item {
-	color: var(--nbs-table-header-text) !important;
-}
-
+.list-subject span.level-item,
 .list-subject span.list-header-meta {
 	color: var(--nbs-table-header-text) !important;
 }
@@ -275,6 +272,28 @@ header.level.list-row-head.text-muted > div.level-right {
 	.list-view-table td {
 		padding: 8px 12px;
 	}
+}
+
+/* ========================================
+   LOGIN PAGE CUSTOMIZATION
+   ======================================== */
+
+/* Logo sizing */
+.page-card-head img {
+	max-height: 200px !important;
+	border-radius: 8px;
+}
+
+/* Login page header styling */
+.page-card-head {
+	text-align: center;
+	padding: 20px 0;
+	margin-bottom: 20px;
+}
+
+.page-card-head h4 {
+	color: var(--nbs-login-title-color, #001b52) !important;
+	font-size: 20px !important;
 }
 
 /* ========================================

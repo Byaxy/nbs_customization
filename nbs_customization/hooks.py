@@ -272,8 +272,6 @@ fixtures = [
                     "Quotation-custom_request_for_quotation_number",
                     "Delivery Note-custom_waybill_type",
                     "Delivery Note-custom_officer_details",
-                    "Sales Order-custom_has_promissory_note",
-                    "Sales Order-custom_has_customer_delivery_note",     
                     "Delivery Note-custom_loan_waybill_section",
                     "Delivery Note-custom_source_loan_waybill",
                     "Delivery Note-custom_loan_waybill_column_break",
@@ -298,7 +296,11 @@ fixtures = [
                     "Promissory Note", 
                     "Item Type",
                     "Customer Delivery Note Item",
-                    "Promissory Note Item"
+                    "Promissory Note Item",
+                    "Loan Waybill",
+                    "Loan Waybill Item",
+                    "Loan Conversion History",
+                    "Loan Waybill Batch Balance"
                 ]
             ]
         ]
@@ -316,7 +318,6 @@ doc_events = {
     },
     "Sales Order": {
         "validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
-        "on_submit": "nbs_customization.controllers.sales_order.ensure_linked_documents_on_submit",
     },
     "Delivery Note": {
         "validate": [

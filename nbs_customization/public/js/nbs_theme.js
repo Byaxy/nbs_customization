@@ -26,7 +26,7 @@ class NBSTheme {
 			navbarText: "#ffffff",
 
 			// Login
-			loginTitle: "Biomedical Solutions",
+			loginTitle: "NBS",
 			loginTitleColor: "#001b52",
 			loginBoxBg: "#ffffff",
 			loginBoxWidth: "400px",
@@ -250,18 +250,68 @@ class NBSTheme {
 	getThemeConfig() {
 		return { ...this.themeConfig };
 	}
+
+	/**
+	 * Setup login page customization
+	 */
+	setupLoginPage() {
+		// Update login page text with company name
+		this.updateLoginText();
+	}
+
+	/**
+	 * Update login text with company name
+	 */
+	updateLoginText() {
+		const loginTextElement = document.querySelector(".page-card-head h4");
+		if (!loginTextElement) return;
+
+		// Get company name via our custom whitelisted API call
+		frappe
+			.call({
+				method: "nbs_customization.api.get_default_company",
+				args: {},
+			})
+			.then((r) => {
+				if (r.message && r.message.company_name) {
+					const loginText = document.querySelector(".page-card-head h4");
+					if (loginText) {
+						loginText.textContent = `Login to ${r.message.company_name}`;
+					}
+				}
+			})
+			.catch((err) => {
+				// Fallback to theme config if API call fails
+				loginTextElement.textContent = `Login to ${this.themeConfig.loginTitle || "NBS"}`;
+			});
+	}
 }
 
 // Initialize theme when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
 	window.NBSTheme = new NBSTheme();
+	// Setup login page customization
+	window.NBSTheme.setupLoginPage();
 });
 
 // Also initialize if DOM is already loaded
 if (document.readyState === "loading") {
 	document.addEventListener("DOMContentLoaded", () => {
 		window.NBSTheme = new NBSTheme();
+		// Setup login page customization
+		window.NBSTheme.setupLoginPage();
 	});
 } else {
 	window.NBSTheme = new NBSTheme();
+	// Setup login page customization
+	window.NBSTheme.setupLoginPage();
+}
+
+// Additional setup for Frappe framework
+if (window.frappe) {
+	frappe.ready(() => {
+		if (window.NBSTheme) {
+			window.NBSTheme.setupLoginPage();
+		}
+	});
 }

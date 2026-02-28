@@ -5,126 +5,164 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import nowdate
 
+
 class CustomerDeliveryNote(Document):
-	def validate(self):
-		self._set_defaults()
-		self._validate_sales_order()
-		self._sync_from_sales_order()
-		self._set_address_displays()
 
-	def on_submit(self):
-		self._link_to_sales_order()
+    def before_insert(self):
+        """Earliest possible duplicate gate — runs before naming, before validate."""
+        self._check_duplicate_sales_order(is_new=True)
 
-	def on_cancel(self):
-		# Check cancellation permissions
-		if not frappe.has_permission("Customer Delivery Note", "cancel", self.name):
-			frappe.throw("You do not have permission to cancel Customer Delivery Notes.")
-			
-		try:
-			self._unlink_from_sales_order()
-			frappe.msgprint(f"Customer Delivery Note {self.name} cancelled successfully.")
-		except Exception as e:
-			frappe.log_error(f"Customer Delivery Note cancellation failed: {str(e)}")
-			frappe.throw("Failed to cancel Customer Delivery Note. Please check system logs.")
+    def validate(self):
+        self._set_defaults()
+        self._validate_sales_order()
+        self._sync_from_sales_order()
+        self._set_address_displays()
 
-	def on_trash(self):
-		self._unlink_from_sales_order()
+    def before_save(self):
+        """Catches SO change on an existing draft."""
+        if not self.is_new():
+            self._check_duplicate_sales_order(is_new=False)
 
-	def on_update_after_submit(self):
-		frappe.throw("Customer Delivery Note cannot be modified after submission.")
+    def on_submit(self):
+        self.db_set("status", "Submitted")
 
-	def _set_defaults(self):
-		if not self.date:
-			self.date = nowdate()
-		if not self.naming_series:
-			self.naming_series = "NBSDN-.YYYY./.MM./.####"
+    def on_cancel(self):
+        self.ignore_linked_doctypes = ("Sales Order",)
+        self.db_set("status", "Cancelled")
 
-	def _validate_sales_order(self):
-		if not self.sales_order:
-			frappe.throw("Sales Order is required.")
+    # ------------------------------------------------------------------
+    # Duplicate prevention
+    # ------------------------------------------------------------------
 
-		so = frappe.get_doc("Sales Order", self.sales_order)
-		if so.docstatus != 1:
-			frappe.throw("Sales Order must be submitted.")
+    def _check_duplicate_sales_order(self, is_new: bool):
+        if not self.sales_order:
+            return
 
-		if self.customer and self.customer != so.customer:
-			frappe.throw("Customer must match the Sales Order customer.")
+        if is_new:
+            # Doc not in DB yet — query without name exclusion
+            existing = frappe.db.sql(
+                """
+                SELECT name FROM `tabCustomer Delivery Note`
+                WHERE sales_order = %s AND docstatus < 2
+                LIMIT 1
+                """,
+                (self.sales_order,),
+                as_dict=True,
+            )
+        else:
+            existing = frappe.db.sql(
+                """
+                SELECT name FROM `tabCustomer Delivery Note`
+                WHERE sales_order = %s AND name != %s AND docstatus < 2
+                LIMIT 1
+                """,
+                (self.sales_order, self.name),
+                as_dict=True,
+            )
 
-	def _sync_from_sales_order(self):
-		so = frappe.get_doc("Sales Order", self.sales_order)
+        if existing:
+            dup = existing[0].name
+            frappe.throw(
+                f"Sales Order {self.sales_order} is already linked to "
+                f'<a href="/app/customer-delivery-note/{dup}" target="_blank">'
+                f"Customer Delivery Note {dup}</a>.",
+                title="Duplicate Link",
+            )
 
-		self.customer = so.customer
-		self.customer_name = so.customer_name
+    # ------------------------------------------------------------------
+    # Validation
+    # ------------------------------------------------------------------
 
-		if hasattr(so, "customer_address") and so.customer_address:
-			self.customer_address = so.customer_address
-		if hasattr(so, "shipping_address_name") and so.shipping_address_name:
-			self.shipping_address_name = so.shipping_address_name
+    def _set_defaults(self):
+        if not self.date:
+            self.date = nowdate()
 
-		so_items = [d for d in so.items if d.item_code]
-		if not so_items:
-			frappe.throw("Sales Order has no items.")
+    def _validate_sales_order(self):
+        if not self.sales_order:
+            frappe.throw("Sales Order is required.")
 
-		# This document is an accounts trigger derived purely from the Sales Order.
-		# Always enforce: qty_supplied == qty_requested == Sales Order qty.
-		self.set("items", [])
-		for d in so_items:
-			self.append(
-				"items",
-				{
-					"item_code": d.item_code,
-					"item_description": d.description,
-					"qty_requested": d.qty,
-					"qty_supplied": d.qty,
-					"balance_left": 0,
-				},
-			)
+        so = frappe.get_doc("Sales Order", self.sales_order)
 
-	def _set_address_displays(self):
-		# Populate read-only display fields if the Address links are set.
-		if self.customer_address:
-			self.address_display = self._get_address_display(self.customer_address)
-		if self.shipping_address_name:
-			self.shipping_address = self._get_address_display(self.shipping_address_name)
+        if so.docstatus != 1:
+            frappe.throw(f"Sales Order {self.sales_order} must be submitted.")
 
-	def _get_address_display(self, address_name: str) -> str:
-		try:
-			from frappe.contacts.doctype.address.address import get_address_display
-		except Exception:
-			return ""
+        if self.customer and self.customer != so.customer:
+            frappe.throw("Customer must match the Sales Order customer.")
 
-		try:
-			return get_address_display(address_name) or ""
-		except Exception:
-			return ""
+    def _sync_from_sales_order(self):
+        so = frappe.get_doc("Sales Order", self.sales_order)
 
-	def _link_to_sales_order(self):
-		if not self.sales_order:
-			return
+        self.customer = so.customer
+        self.customer_name = so.customer_name
+        self.customer_address = (
+            getattr(so, "customer_address", None)
+            or frappe.db.get_value("Customer", so.customer, "customer_primary_address")
+        )
+        self.shipping_address_name = (
+            getattr(so, "shipping_address_name", None) or self.customer_address
+        )
 
-		frappe.db.set_value(
-			"Sales Order",
-			self.sales_order,
-			{
-				"custom_has_customer_delivery_note": 1,
-			},
-		)
+        if not self.customer_address or not self.shipping_address_name:
+            frappe.throw(
+                "Could not resolve billing/shipping address. "
+                "Please set addresses on the Sales Order or Customer."
+            )
 
-	def _unlink_from_sales_order(self):
-		if not self.sales_order:
-			return
+        so_items = {d.item_code: d for d in so.items if d.item_code}
+        if not so_items:
+            frappe.throw(f"Sales Order {self.sales_order} has no items.")
 
-		current = frappe.db.get_value(
-			"Sales Order", self.sales_order, "custom_customer_delivery_note"
-		)
-		if current != self.name:
-			return
+        cdn_item_codes = {d.item_code for d in self.items if d.item_code}
+        extra = cdn_item_codes - so_items.keys()
+        if extra:
+            frappe.throw(
+                f"Items not in Sales Order {self.sales_order}: {', '.join(extra)}."
+            )
 
-		frappe.db.set_value(
-			"Sales Order",
-			self.sales_order,
-			{
-				"custom_customer_delivery_note": None,
-				"custom_has_customer_delivery_note": 0,
-			},
-		)
+        cdn_map = {d.item_code: d for d in self.items if d.item_code}
+        changed = False
+
+        for item_code, so_item in so_items.items():
+            if item_code in cdn_map:
+                row = cdn_map[item_code]
+                if row.qty_requested != so_item.qty:
+                    row.qty_requested = so_item.qty
+                    changed = True
+                if row.qty_supplied != so_item.qty:
+                    row.qty_supplied = so_item.qty
+                    changed = True
+                if row.balance_left != 0:
+                    row.balance_left = 0
+                    changed = True
+                if row.description != so_item.description:
+                    row.description = so_item.description
+                    changed = True
+            else:
+                self.append("items", {
+                    "item_code": item_code,
+                    "description": so_item.description,
+                    "qty_requested": so_item.qty,
+                    "qty_supplied": so_item.qty,
+                    "balance_left": 0,
+                })
+                changed = True
+
+        if changed:
+            frappe.msgprint(
+                "Items updated to match Sales Order.",
+                indicator="blue",
+                alert=True,
+            )
+
+    def _set_address_displays(self):
+        if self.customer_address:
+            self.address_display = self._get_address_display(self.customer_address)
+        if self.shipping_address_name:
+            self.shipping_address = self._get_address_display(self.shipping_address_name)
+
+    def _get_address_display(self, address_name: str) -> str:
+        try:
+            from frappe.contacts.doctype.address.address import get_address_display
+            return get_address_display(address_name) or ""
+        except Exception:
+            return ""
