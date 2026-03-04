@@ -255,7 +255,6 @@ class NBSTheme {
 	 * Setup login page customization
 	 */
 	setupLoginPage() {
-		// Update login page text with company name
 		this.updateLoginText();
 	}
 
@@ -290,7 +289,6 @@ class NBSTheme {
 // Initialize theme when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
 	window.NBSTheme = new NBSTheme();
-	// Setup login page customization
 	window.NBSTheme.setupLoginPage();
 });
 
@@ -298,18 +296,16 @@ document.addEventListener("DOMContentLoaded", () => {
 if (document.readyState === "loading") {
 	document.addEventListener("DOMContentLoaded", () => {
 		window.NBSTheme = new NBSTheme();
-		// Setup login page customization
 		window.NBSTheme.setupLoginPage();
 	});
 } else {
 	window.NBSTheme = new NBSTheme();
-	// Setup login page customization
 	window.NBSTheme.setupLoginPage();
 }
 
 // Additional setup for Frappe framework
 if (window.frappe) {
-	frappe.ready(() => {
+	$(document).ready(() => {
 		if (window.NBSTheme) {
 			window.NBSTheme.setupLoginPage();
 		}

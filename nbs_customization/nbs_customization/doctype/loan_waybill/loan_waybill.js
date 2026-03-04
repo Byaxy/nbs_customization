@@ -4,7 +4,9 @@
 frappe.ui.form.on("Loan Waybill", {
 	refresh(frm) {
 		set_address_contact_filters(frm);
-		lock_after_submit(frm);
+		if (frm.doc.docstatus === 1) {
+			frm.set_read_only();
+		}
 	},
 
 	onload_post_render(frm) {
@@ -16,7 +18,6 @@ frappe.ui.form.on("Loan Waybill", {
 			clear_customer_fields(frm);
 			return;
 		}
-
 		load_customer_addresses(frm);
 	},
 
@@ -33,26 +34,20 @@ frappe.ui.form.on("Loan Waybill", {
 	},
 });
 
-/* -------------------------------------------------- */
-/* CUSTOMER HELPERS */
-/* -------------------------------------------------- */
+/* ------------------------------------------------------------------ */
+/* CUSTOMER HELPERS                                                     */
+/* ------------------------------------------------------------------ */
 
 function load_customer_addresses(frm) {
-	// Billing
 	frappe.call({
 		method: "frappe.contacts.doctype.address.address.get_default_address",
 		args: { doctype: "Customer", name: frm.doc.customer },
 		callback: (r) => r.message && frm.set_value("customer_address", r.message),
 	});
 
-	// Shipping
 	frappe.call({
 		method: "frappe.contacts.doctype.address.address.get_default_address",
-		args: {
-			doctype: "Customer",
-			name: frm.doc.customer,
-			sort_key: "is_shipping_address",
-		},
+		args: { doctype: "Customer", name: frm.doc.customer, sort_key: "is_shipping_address" },
 		callback: (r) => r.message && frm.set_value("shipping_address_name", r.message),
 	});
 }
@@ -67,22 +62,21 @@ function clear_customer_fields(frm) {
 	});
 }
 
-function update_address_display(frm, source, target) {
-	if (!frm.doc[source]) {
-		frm.set_value(target, "");
+function update_address_display(frm, source_field, target_field) {
+	if (!frm.doc[source_field]) {
+		frm.set_value(target_field, "");
 		return;
 	}
-
 	frappe.call({
 		method: "frappe.contacts.doctype.address.address.get_address_display",
-		args: { address_dict: frm.doc[source] },
-		callback: (r) => r.message && frm.set_value(target, r.message),
+		args: { address_dict: frm.doc[source_field] },
+		callback: (r) => r.message && frm.set_value(target_field, r.message),
 	});
 }
 
-/* -------------------------------------------------- */
-/* FILTERS */
-/* -------------------------------------------------- */
+/* ------------------------------------------------------------------ */
+/* FILTERS                                                             */
+/* ------------------------------------------------------------------ */
 
 function set_address_contact_filters(frm) {
 	const empty = { filters: [["name", "=", ""]] };
@@ -115,9 +109,9 @@ function set_address_contact_filters(frm) {
 	);
 }
 
-/* -------------------------------------------------- */
-/* UX SAFETY */
-/* -------------------------------------------------- */
+/* ------------------------------------------------------------------ */
+/* UX SAFETY                                                           */
+/* ------------------------------------------------------------------ */
 
 function setup_customer_redirect(frm) {
 	["customer_address", "shipping_address_name", "received_by"].forEach((fieldname) => {
@@ -137,21 +131,11 @@ function setup_customer_redirect(frm) {
 	});
 }
 
-function lock_after_submit(frm) {
-	if (frm.doc.docstatus !== 1) return;
-
-	frm.set_read_only();
-}
-
 function set_item_query(frm) {
 	if (!frm.doc.source_warehouse) return;
 
-	frm.fields_dict.items.grid.get_field("item_code").get_query = function () {
-		return {
-			query: "nbs_customization.nbs_customization.doctype.loan_waybill.loan_waybill.get_items_with_stock",
-			filters: {
-				warehouse: frm.doc.source_warehouse,
-			},
-		};
-	};
+	frm.fields_dict.items.grid.get_field("item_code").get_query = () => ({
+		query: "nbs_customization.nbs_customization.doctype.loan_waybill.loan_waybill.get_items_with_stock",
+		filters: { warehouse: frm.doc.source_warehouse },
+	});
 }

@@ -3,6 +3,62 @@ from frappe.utils import flt, nowdate
 from typing import Union, List, Dict
 
 
+@frappe.whitelist()
+def get_loan_waybill_customer_details(customer: str, company: str = None):
+    """
+    Get customer details for Loan Waybill including default addresses
+    Similar to get_party_details but specific to Loan Waybill
+    """
+    if not customer:
+        return {}
+    
+    # Get customer details
+    customer_doc = frappe.get_doc("Customer", customer)
+    
+    # Get default billing address
+    billing_address = frappe.call(
+        "frappe.contacts.doctype.address.address.get_default_address",
+        doctype="Customer",
+        name=customer
+    )
+    
+    # Get default shipping address
+    shipping_address = frappe.call(
+        "frappe.contacts.doctype.address.address.get_default_address",
+        doctype="Customer", 
+        name=customer,
+        sort_key="is_shipping_address"
+    )
+    
+    # Prepare result
+    result = {
+        "customer_name": customer_doc.customer_name,
+        "customer_address": billing_address or "",
+        "shipping_address_name": shipping_address or billing_address or "",
+        "territory": customer_doc.territory,
+        "customer_group": customer_doc.customer_group,
+        "tax_id": customer_doc.tax_id,
+    }
+    
+    # Get address displays
+    if billing_address:
+        billing_display = frappe.call(
+            "frappe.contacts.doctype.address.address.get_address_display",
+            address_dict=billing_address
+        )
+        result["address_display"] = billing_display or ""
+    
+    shipping_addr = shipping_address or billing_address
+    if shipping_addr:
+        shipping_display = frappe.call(
+            "frappe.contacts.doctype.address.address.get_address_display",
+            address_dict=shipping_addr
+        )
+        result["shipping_address"] = shipping_display or ""
+    
+    return result
+
+
 def get_so_remaining_quantities(sales_order: str) -> Dict[str, float]:
     """
     Calculate remaining quantities for each item in a Sales Order
@@ -194,14 +250,6 @@ def make_promissory_note(source_name, target_doc=None, ignore_permissions=None):
         ignore_permissions=ignore_permissions,
     )
 
-@frappe.whitelist()
-def create_promissory_note_from_sales_order(sales_order: str) -> str:
-    so_doc = frappe.get_doc("Sales Order", sales_order)
-    _validate_sales_order_for_linked_docs(so_doc)
-    name = _create_or_get_linked_doc_draft(so_doc, "Promissory Note")
-    return name
-
-
 def _validate_sales_order_for_linked_docs(so_doc):
     if not so_doc or not getattr(so_doc, "name", None):
         frappe.throw("Sales Order is required")
@@ -370,8 +418,6 @@ def get_pending_loan_waybills(sales_order: str):
                 "serial_no": bb.serial_no,
                 "expiry_date": bb.expiry_date,
                 "warehouse": bb.warehouse,
-                "stock_entry": bb.stock_entry,
-                "stock_entry_detail": bb.stock_entry_detail,
             })
 
         if matching_items:
@@ -388,207 +434,149 @@ def get_pending_loan_waybills(sales_order: str):
     }
 
 @frappe.whitelist()
-def create_delivery_note_from_loan(
-    loan_waybill: str,
-    sales_order: str,
-    items: Union[str, List[Dict]],
-):
+def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permissions=None):
     """
-    Create a DRAFT Delivery Note/Waybill (Loan Conversion Waybill)
-    from selected Loan Waybill batch balances.
+    Maps Loan Waybill → new unsaved Delivery Note (Loan Conversion Waybill) via get_mapped_doc.
+    Follows ERPNext best practices like make_customer_delivery_note and make_promissory_note.
+    Items are mapped from selected batch balances with validation.
     """
+    from frappe.model.mapper import get_mapped_doc
+    from frappe.utils import nowdate, flt
 
-    # ---------------------------------------------------------
-    # PARSE + VALIDATE INPUT
-    # ---------------------------------------------------------
-    if isinstance(items, str):
-        items = frappe.parse_json(items)
-
-    if not isinstance(items, list):
-        frappe.throw("Invalid items payload. Expected a list.")
-
-    if not loan_waybill or not sales_order or not items:
-        frappe.throw("Missing required conversion data.")
-
-    # ---------------------------------------------------------
-    # LOCK LOAN WAYBILL (prevents concurrent conversion)
-    # ---------------------------------------------------------
-    frappe.db.sql(
-        """
-        SELECT name FROM `tabLoan Waybill`
-        WHERE name = %s
-        FOR UPDATE
-        """,
-        loan_waybill,
-    )
-
-    loan = frappe.get_doc("Loan Waybill", loan_waybill)
-
-    if loan.docstatus != 1:
-        frappe.throw("Loan Waybill must be submitted.")
-
-    if loan.conversion_status == "Fully Converted":
-        frappe.throw("Loan Waybill already fully converted.")
-
-    # ---------------------------------------------------------
-    # LOCK BATCH BALANCES (FIFO ORDER)
-    # ---------------------------------------------------------
-    batch_rows = frappe.db.sql(
-        """
-        SELECT *
-        FROM `tabLoan Waybill Batch Balance`
-        WHERE parent = %s
-          AND qty_remaining > 0
-        ORDER BY creation ASC
-        FOR UPDATE
-        """,
-        loan_waybill,
-        as_dict=True,
-    )
-
-    if not batch_rows:
-        frappe.throw("No remaining loan balances available.")
-
-    # ---------------------------------------------------------
-    # LOAD SALES ORDER + MAP ITEMS + GET REMAINING QTY
-    # ---------------------------------------------------------
-    so_doc = frappe.get_doc("Sales Order", sales_order)
-
-    if so_doc.docstatus != 1:
-        frappe.throw("Sales Order must be submitted before conversion.")
-
-    so_item_map = {d.item_code: d for d in so_doc.items}
-    so_remaining_map = get_so_remaining_quantities(sales_order)
-
-    # ---------------------------------------------------------
-    # BUILD BATCH BALANCE MAP (strict selection)
-    # ---------------------------------------------------------
-    balance_map: Dict[tuple, Dict] = {}
-    for b in batch_rows:
-        key = (b.item_code, b.batch_no, b.serial_no, b.stock_entry_detail)
-        balance_map[key] = b
-
-    # ---------------------------------------------------------
-    # PREPARE DELIVERY NOTE (DRAFT ONLY)
-    # ---------------------------------------------------------
+    # Get the args from the frappe.form_dict (set by frappe.model.open_mapped_doc)
+    args = frappe.form_dict.get('args', {})
+    if isinstance(args, str):
+        args = frappe.parse_json(args)
     
-    dn = frappe.get_doc(
+    sales_order = args.get('sales_order')
+    items = args.get('items')
+    
+    if not sales_order or not items:
+        frappe.throw("Sales Order and items are required for loan conversion.")
+
+    def set_missing_values(source, target):
+        # Set basic delivery note fields
+        target.posting_date = nowdate()
+        target.set_warehouse = source.target_warehouse
+        target.custom_waybill_type = "Loan Conversion Waybill"
+        target.custom_source_loan_waybill = source.name
+        target.custom_is_conversion = 1
+        target.is_return = 0
+        target.sales_order = sales_order
+        
+        # Resolve addresses from Sales Order
+        if sales_order:
+            so_doc = frappe.get_doc("Sales Order", sales_order)
+            customer_address, shipping_address_name = _resolve_customer_addresses(so_doc)
+            target.customer_address = customer_address
+            target.shipping_address_name = shipping_address_name
+
+    def postprocess_source(doc, source, target):
+        """Validate loan waybill status before mapping"""
+        if doc.docstatus != 1:
+            frappe.throw("Loan Waybill must be submitted.")
+        
+        if doc.conversion_status == "Fully Converted":
+            frappe.throw("Loan Waybill already fully converted.")
+
+    def postprocess_item(source, target, source_parent):
+        """Filter and process only selected items"""
+        # Parse selected items
+        if isinstance(items, str):
+            selected_items = frappe.parse_json(items)
+        else:
+            selected_items = items
+        
+        # Check if this batch balance is in the selected items
+        for selected in selected_items:
+            if (selected.get('item_code') == source.item_code and 
+                selected.get('batch_no') == source.batch_no and 
+                selected.get('serial_no') == source.serial_no):
+                
+                # Update quantity from selection
+                target.qty = flt(selected.get('qty', 0))
+                target.rate = flt(selected.get('valuation_rate', source.valuation_rate))
+                
+                # Set mandatory fields from Item master
+                item_details = frappe.db.get_value("Item", source.item_code, 
+                    ["item_name", "description", "stock_uom"], as_dict=True)
+                
+                if item_details:
+                    target.item_name = item_details.item_name
+                    target.description = item_details.description
+                    target.uom = item_details.stock_uom
+                
+                # Set Sales Order reference
+                so_item = frappe.db.get_value("Sales Order Item", 
+                    filters={"parent": sales_order, "item_code": source.item_code},
+                    fieldname="name")
+                if so_item:
+                    target.against_sales_order = sales_order
+                    target.so_detail = so_item
+                return
+        
+        # If not in selected items, don't add this row
+        target.delete = True
+
+    def validate_batch_balance(source, target, source_parent):
+        """Validate that batch balance has remaining quantity"""
+        if flt(source.qty_remaining) <= 0:
+            frappe.throw(
+                f"No remaining loan balance for Item {source.item_code}, "
+                f"Batch {source.batch_no or '-'}, Serial {source.serial_no or '-'}"
+            )
+
+    return get_mapped_doc(
+        "Loan Waybill",
+        source_name,
         {
-            "doctype": "Delivery Note",
-            "posting_date": nowdate(),
-            "customer": loan.customer,
-            "set_warehouse": loan.target_warehouse,
-            "sales_order": sales_order,
-            "custom_waybill_type": "Loan Conversion Waybill",
-            "custom_source_loan_waybill": loan_waybill,
-            "custom_is_conversion": 1,
-            "is_return": 0,
-            "items": [],
-        }
+            "Loan Waybill": {
+                "doctype": "Delivery Note",
+                "field_map": {
+                    "customer": "customer",
+                    "customer_name": "customer_name",
+                    "target_warehouse": "set_warehouse",
+                    "name": "custom_source_loan_waybill",
+                },
+                "validation": {
+                    "docstatus": ["=", 1],
+                },
+                "postprocess": postprocess_source,
+            },
+            "Loan Waybill Batch Balance": {
+                "doctype": "Delivery Note Item",
+                "field_map": {
+                    "item_code": "item_code",
+                    "batch_no": "batch_no", 
+                    "serial_no": "serial_no",
+                    "warehouse": "warehouse",
+                    "valuation_rate": "rate",
+                    "qty_remaining": "qty",  # Will be updated in postprocess_item
+                },
+                "postprocess": postprocess_item,
+                "add_if_empty": True,
+            },
+        },
+        target_doc,
+        set_missing_values,
+        ignore_permissions=ignore_permissions,
     )
 
-    # ---------------------------------------------------------
-    # RESOLVE ADDRESSES FROM SALES ORDER
-    # ---------------------------------------------------------
-    so_doc = frappe.get_doc("Sales Order", sales_order)
-    customer_address, shipping_address_name = _resolve_customer_addresses(so_doc)
+
+def _resolve_customer_addresses(so_doc):
+    """
+    Resolve customer addresses from Sales Order.
+    Returns tuple of (customer_address, shipping_address_name)
+    """
+    customer_address = so_doc.customer_address
+    shipping_address_name = so_doc.shipping_address_name or customer_address
     
-    dn.customer_address = customer_address
-    dn.shipping_address_name = shipping_address_name
-
-    # ---------------------------------------------------------
-    # STRICT USER-SELECTION (VALIDATION ONLY — NO MUTATION)
-    # ---------------------------------------------------------
-    for row in items:
-        item_code = row.get("item_code")
-        qty = flt(row.get("qty"))
-        batch_no = row.get("batch_no")
-        serial_no = row.get("serial_no")
-        stock_entry_detail = row.get("stock_entry_detail")
-
-        if not item_code or qty <= 0:
-            continue
-
-        if item_code not in so_item_map:
-            frappe.throw(
-                f"Item {item_code} does not exist in Sales Order {sales_order}."
-            )
-
-        key = (item_code, batch_no, serial_no, stock_entry_detail)
-        balance = balance_map.get(key)
-
-        if not balance:
-            frappe.throw(
-                f"No remaining loan balance row found for Item {item_code}, "
-                f"Batch {batch_no or '-'}, Serial {serial_no or '-'} (selection mismatch)."
-            )
-
-        remaining = flt(balance.get("qty_remaining"))
-        if remaining <= 0:
-            frappe.throw(
-                f"No remaining loan balance for Item {item_code}, "
-                f"Batch {batch_no or '-'}, Serial {serial_no or '-'}"
-            )
-
-        if qty > remaining:
-            frappe.throw(
-                f"Cannot convert {qty} of Item {item_code}, Batch {batch_no or '-'}, "
-                f"Serial {serial_no or '-'}. Only {remaining} remaining in loan balance."
-            )
-        
-        # Validate against Sales Order remaining quantity
-        so_remaining = so_remaining_map.get(item_code, 0)
-        if so_remaining <= 0:
-            frappe.throw(
-                f"Cannot convert Item {item_code}. No remaining quantity in Sales Order {sales_order}."
-            )
-        
-        if qty > so_remaining:
-            frappe.throw(
-                f"Cannot convert {qty} of Item {item_code}, Batch {batch_no or '-'}, "
-                f"Serial {serial_no or '-'}. Only {so_remaining} remaining in Sales Order {sales_order}."
-            )
-
-        so_item = so_item_map[item_code]
-
-        dn.append(
-            "items",
-            {
-                "item_code": item_code,
-                "qty": qty,
-                "uom": frappe.db.get_value("Item", item_code, "stock_uom"),
-                "warehouse": loan.target_warehouse,
-                "batch_no": batch_no,
-                "serial_no": serial_no,
-                "against_sales_order": sales_order,
-                "so_detail": so_item.name,
-                "rate": balance.get("valuation_rate"),
-                "use_serial_batch_fields": 1,
-            },
-        )
-
-    if not dn.items:
-        frappe.throw("No valid quantities provided for conversion.")
-
-    # ---------------------------------------------------------
-    # INSERT DELIVERY NOTE (STILL DRAFT)
-    # ---------------------------------------------------------
-    dn.insert(ignore_permissions=True)
-
-    # ---------------------------------------------------------
-    # REFRESH LOAN STATUS (READ-ONLY UPDATE)
-    # ---------------------------------------------------------
-    loan.reload()
-    loan.calculate_totals()
-    loan.update_overall_status()
-    loan.db_update()
-
-    # ---------------------------------------------------------
-    # ATOMIC COMMIT
-    # ---------------------------------------------------------
-    frappe.db.commit()
-
-    return dn.name
+    # If no addresses on SO, get customer defaults
+    if not customer_address:
+        customer_address = frappe.db.get_value("Customer", so_doc.customer, "customer_primary_address")
+        shipping_address_name = customer_address
+    
+    return customer_address, shipping_address_name
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs

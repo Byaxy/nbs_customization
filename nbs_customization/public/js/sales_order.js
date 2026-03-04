@@ -82,19 +82,6 @@ function open_new_customer_delivery_note(frm) {
 	});
 }
 
-function create_linked_doc(frm, doctype) {
-	frappe.call({
-		method: "nbs_customization.controllers.sales_order.create_promissory_note_from_sales_order",
-		args: { sales_order: frm.doc.name },
-		freeze: true,
-		freeze_message: __("Creating {0}...", [doctype]),
-		callback: (r) => {
-			if (!r.message) return;
-			frappe.set_route("Form", doctype, r.message);
-		},
-	});
-}
-
 function check_pending_loans(frm) {
 	frappe.call({
 		method: "nbs_customization.controllers.sales_order.get_pending_loan_waybills",
@@ -452,20 +439,14 @@ function collect_conversion_data(dialog, loan) {
 }
 
 function create_draft_delivery_note(frm, loan, payload) {
-	frappe.call({
-		method: "nbs_customization.controllers.sales_order.create_delivery_note_from_loan",
+	frappe.model.open_mapped_doc({
+		method: "nbs_customization.controllers.sales_order.make_delivery_note_from_loan",
+		source_name: loan.loan_waybill,
 		args: {
 			sales_order: frm.doc.name,
-			loan_waybill: loan.loan_waybill,
 			items: payload.items,
 		},
 		freeze: true,
-		freeze_message: __("Creating Waybill..."),
-		callback(r) {
-			if (!r.message) return;
-
-			// Redirect to Draft Waybill
-			frappe.set_route("Form", "Delivery Note", r.message);
-		},
+		freeze_message: __("Loading Waybill..."),
 	});
 }

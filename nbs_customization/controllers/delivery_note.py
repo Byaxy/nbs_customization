@@ -134,214 +134,66 @@ def _update_promissory_note_directly(doc):
         frappe.log_error(f"Failed to update Promissory Note: {str(e)}")
 
 
-# LOAN CONVERSION — SUBMIT
-
-def _apply_loan_conversion(doc):
-    loan = frappe.get_doc("Loan Waybill", doc.custom_source_loan_waybill)
-
-    frappe.db.sql(
-        "SELECT name FROM `tabLoan Waybill` WHERE name=%s FOR UPDATE",
-        loan.name,
-    )
-
-    batch_rows = frappe.db.sql(
-        "SELECT * FROM `tabLoan Waybill Batch Balance` WHERE parent=%s FOR UPDATE",
-        loan.name,
-        as_dict=True,
-    )
-
-    balance_map = {}
-    for b in batch_rows:
-        key = (b.item_code, b.batch_no, b.serial_no)
-        balance_map.setdefault(key, []).append(b)
-
-    converted_by_item = {}
-
-    for d in doc.items:
-        qty_to_convert = flt(d.qty)
-        if qty_to_convert <= 0:
-            continue
-
-        loan_item = next((i for i in loan.items if i.item_code == d.item_code), None)
-        if not loan_item:
-            frappe.throw(f"Item {d.item_code} not found in Loan Waybill {loan.name}.")
-
-        if qty_to_convert > flt(loan_item.quantity_remaining):
-            frappe.throw(f"Over-conversion detected for Item {d.item_code}.")
-
-        key = (d.item_code, d.batch_no, d.serial_no)
-        candidates = balance_map.get(key) or []
-        if not candidates:
-            frappe.throw(
-                f"Row {d.idx}: No remaining loan balance row found for "
-                f"Item {d.item_code}, Batch {d.batch_no or '-'}, Serial {d.serial_no or '-'}"
-            )
-
-        chosen = next((b for b in candidates if flt(b.qty_remaining) >= qty_to_convert), None)
-        if not chosen:
-            available = sum(flt(b.qty_remaining) for b in candidates)
-            frappe.throw(
-                f"Row {d.idx}: Cannot convert {qty_to_convert} of Item {d.item_code}. "
-                f"Only {available} remaining across matching balances."
-            )
-
-        frappe.db.set_value(
-            "Loan Waybill Batch Balance",
-            chosen.name,
-            {
-                "qty_remaining": flt(chosen.qty_remaining) - qty_to_convert,
-                "qty_converted": flt(chosen.qty_converted) + qty_to_convert,
-            },
-            update_modified=False,
+def _apply_loan_conversion(dn):
+    """Called on Delivery Note submit. Updates the source Loan Waybill."""
+    loan_waybill_name = dn.custom_source_loan_waybill
+    if not loan_waybill_name:
+        frappe.throw(
+            _(
+                "Delivery Note {0} is marked as a Loan Conversion Waybill "
+                "but has no Source Loan Waybill set."
+            ).format(dn.name)
         )
 
-        frappe.db.sql(
-            """
-            INSERT INTO `tabLoan Conversion History`
-                (name, parent, parenttype, parentfield,
-                 owner, creation, modified, modified_by,
-                 conversion_date, delivery_note, sales_order,
-                 item_code, quantity_converted,
-                 batch_no, serial_no, loan_batch_balance)
-            VALUES
-                (%(name)s, %(parent)s, %(parenttype)s, %(parentfield)s,
-                 %(owner)s, NOW(), NOW(), %(modified_by)s,
-                 %(conversion_date)s, %(delivery_note)s, %(sales_order)s,
-                 %(item_code)s, %(quantity_converted)s,
-                 %(batch_no)s, %(serial_no)s, %(loan_batch_balance)s)
-            """,
-            {
-                "name": frappe.generate_hash(length=10),
-                "parent": loan.name,
-                "parenttype": "Loan Waybill",
-                "parentfield": "conversion_history",
-                "owner": frappe.session.user,
-                "modified_by": frappe.session.user,
-                "conversion_date": doc.posting_date,
-                "delivery_note": doc.name,
-                "sales_order": d.against_sales_order or None,
-                "item_code": d.item_code,
-                "quantity_converted": qty_to_convert,
-                "batch_no": d.batch_no or None,
-                "serial_no": d.serial_no or None,
-                "loan_batch_balance": chosen.name,
-            },
+    loan_doc = frappe.get_doc("Loan Waybill", loan_waybill_name)
+
+    if loan_doc.docstatus != 1:
+        frappe.throw(
+            _("Source Loan Waybill {0} is not submitted.").format(loan_waybill_name)
         )
 
-        converted_by_item[d.item_code] = converted_by_item.get(d.item_code, 0) + qty_to_convert
-
-    for item_code, qty in converted_by_item.items():
-        loan_item = next((i for i in loan.items if i.item_code == item_code), None)
-        if not loan_item:
-            continue
-        loan_item.quantity_converted = flt(loan_item.quantity_converted) + flt(qty)
-        loan_item.quantity_remaining = flt(loan_item.quantity_loaned) - flt(loan_item.quantity_converted)
-
-        frappe.db.set_value(
-            "Loan Waybill Item",
-            loan_item.name,
-            {
-                "quantity_converted": loan_item.quantity_converted,
-                "quantity_remaining": loan_item.quantity_remaining,
-            },
-            update_modified=False,
+    if loan_doc.conversion_status == "Fully Converted":
+        frappe.throw(
+            _("Source Loan Waybill {0} is already fully converted.").format(loan_waybill_name)
         )
 
-    loan.calculate_totals()
-    loan.update_overall_status()
+    items = _extract_conversion_items(dn)
+    loan_doc.apply_conversion(dn.name, items)
 
-    frappe.db.set_value(
-        "Loan Waybill",
-        loan.name,
+
+def _reverse_loan_conversion(dn):
+    """Called on Delivery Note cancel. Reverses changes on the source Loan Waybill."""
+    loan_waybill_name = dn.custom_source_loan_waybill
+    if not loan_waybill_name:
+        return  # Nothing to reverse if no source is set
+
+    if not frappe.db.exists("Loan Waybill", loan_waybill_name):
+        return  # Source was deleted — nothing to reverse
+
+    loan_doc = frappe.get_doc("Loan Waybill", loan_waybill_name)
+
+    if loan_doc.docstatus == 2:
+        return  # Source already cancelled — nothing to reverse
+
+    items = _extract_conversion_items(dn)
+    loan_doc.reverse_conversion(dn.name, items)
+
+
+def _extract_conversion_items(dn):
+    """
+    Build the items payload for apply_conversion / reverse_conversion
+    from the Delivery Note item rows.
+
+    Returns list of:
+        { item_code, batch_no, serial_no, qty_converted }
+    """
+    return [
         {
-            "total_converted_quantity": loan.total_converted_quantity,
-            "total_remaining_quantity": loan.total_remaining_quantity,
-            "conversion_status": loan.conversion_status,
-        },
-        update_modified=False,
-    )
-
-
-# LOAN CONVERSION — CANCEL
-
-def _reverse_loan_conversion(doc):
-    loan = frappe.get_doc("Loan Waybill", doc.custom_source_loan_waybill)
-
-    frappe.db.sql(
-        "SELECT name FROM `tabLoan Waybill` WHERE name=%s FOR UPDATE",
-        loan.name,
-    )
-    frappe.db.sql(
-        "SELECT name FROM `tabLoan Waybill Batch Balance` WHERE parent=%s FOR UPDATE",
-        loan.name,
-    )
-
-    history_rows = frappe.get_all(
-        "Loan Conversion History",
-        filters={"parent": loan.name, "delivery_note": doc.name},
-        fields=["name", "item_code", "quantity_converted", "loan_batch_balance"],
-    )
-
-    restored_by_item = {}
-
-    for h in history_rows:
-        qty = flt(h.quantity_converted)
-        if qty <= 0 or not h.loan_batch_balance:
-            continue
-
-        bb = frappe.db.get_value(
-            "Loan Waybill Batch Balance",
-            h.loan_batch_balance,
-            ["qty_remaining", "qty_converted"],
-            as_dict=True,
-        )
-        if not bb:
-            continue
-
-        frappe.db.set_value(
-            "Loan Waybill Batch Balance",
-            h.loan_batch_balance,
-            {
-                "qty_converted": flt(bb.qty_converted) - qty,
-                "qty_remaining": flt(bb.qty_remaining) + qty,
-            },
-            update_modified=False,
-        )
-
-        restored_by_item[h.item_code] = restored_by_item.get(h.item_code, 0) + qty
-
-    for item_code, qty in restored_by_item.items():
-        loan_item = next((i for i in loan.items if i.item_code == item_code), None)
-        if not loan_item:
-            continue
-        loan_item.quantity_converted = flt(loan_item.quantity_converted) - flt(qty)
-        loan_item.quantity_remaining = flt(loan_item.quantity_loaned) - flt(loan_item.quantity_converted)
-
-        frappe.db.set_value(
-            "Loan Waybill Item",
-            loan_item.name,
-            {
-                "quantity_converted": loan_item.quantity_converted,
-                "quantity_remaining": loan_item.quantity_remaining,
-            },
-            update_modified=False,
-        )
-
-    frappe.db.sql(
-        "DELETE FROM `tabLoan Conversion History` WHERE parent = %s AND delivery_note = %s",
-        (loan.name, doc.name),
-    )
-
-    loan.calculate_totals()
-    loan.update_overall_status()
-
-    frappe.db.set_value(
-        "Loan Waybill",
-        loan.name,
-        {
-            "total_converted_quantity": loan.total_converted_quantity,
-            "total_remaining_quantity": loan.total_remaining_quantity,
-            "conversion_status": loan.conversion_status,
-        },
-        update_modified=False,
-    )
+            "item_code": item.item_code,
+            "batch_no": item.batch_no or None,
+            "serial_no": item.serial_no or None,
+            "qty_converted": flt(item.qty),
+        }
+        for item in dn.items
+        if item.item_code and flt(item.qty)
+    ]

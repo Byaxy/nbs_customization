@@ -23,12 +23,10 @@ class CustomerDeliveryNote(Document):
         if not self.is_new():
             self._check_duplicate_sales_order(is_new=False)
 
-    def on_submit(self):
-        self.db_set("status", "Submitted")
 
     def on_cancel(self):
         self.ignore_linked_doctypes = ("Sales Order",)
-        self.db_set("status", "Cancelled")
+        pass
 
     # ------------------------------------------------------------------
     # Duplicate prevention
