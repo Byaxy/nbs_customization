@@ -285,25 +285,6 @@ fixtures = [
                 ]
             ]
         ]
-    },
-    # Export custom DocTypes
-    {
-        "dt": "DocType",
-        "filters": [
-            [
-                "name", "in", [
-                    "Customer Delivery Note",
-                    "Promissory Note", 
-                    "Item Type",
-                    "Customer Delivery Note Item",
-                    "Promissory Note Item",
-                    "Loan Waybill",
-                    "Loan Waybill Item",
-                    "Loan Conversion History",
-                    "Loan Waybill Batch Balance"
-                ]
-            ]
-        ]
     }
 ]
 

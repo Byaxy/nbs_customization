@@ -479,19 +479,39 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
         if doc.conversion_status == "Fully Converted":
             frappe.throw("Loan Waybill already fully converted.")
 
-    def postprocess_item(source, target, source_parent):
-        """Filter and process only selected items"""
+    def condition(doc):
+        """Only include batch balances that are in the selected items"""
         # Parse selected items
         if isinstance(items, str):
             selected_items = frappe.parse_json(items)
         else:
             selected_items = items
         
-        # Check if this batch balance is in the selected items
+        # Check if this batch balance is in selected items
+        for selected in selected_items:
+            if (selected.get('item_code') == doc.item_code and 
+                selected.get('batch_no') == doc.batch_no and 
+                selected.get('serial_no') == doc.serial_no and
+                flt(selected.get('qty', 0)) > 0):
+                
+                return True
+        
+        return False
+
+    def postprocess_item(source, target, source_parent):
+        """Set quantity from selected items - only called for items that passed condition"""
+        # Parse selected items
+        if isinstance(items, str):
+            selected_items = frappe.parse_json(items)
+        else:
+            selected_items = items
+        
+        # Find the matching selected item and set its quantity
         for selected in selected_items:
             if (selected.get('item_code') == source.item_code and 
                 selected.get('batch_no') == source.batch_no and 
-                selected.get('serial_no') == source.serial_no):
+                selected.get('serial_no') == source.serial_no and
+                flt(selected.get('qty', 0)) > 0):
                 
                 # Update quantity from selection
                 target.qty = flt(selected.get('qty', 0))
@@ -505,6 +525,7 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
                     target.item_name = item_details.item_name
                     target.description = item_details.description
                     target.uom = item_details.stock_uom
+                    target.use_serial_batch_fields = 1
                 
                 # Set Sales Order reference
                 so_item = frappe.db.get_value("Sales Order Item", 
@@ -514,9 +535,6 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
                     target.against_sales_order = sales_order
                     target.so_detail = so_item
                 return
-        
-        # If not in selected items, don't add this row
-        target.delete = True
 
     def validate_batch_balance(source, target, source_parent):
         """Validate that batch balance has remaining quantity"""
@@ -553,8 +571,9 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
                     "valuation_rate": "rate",
                     "qty_remaining": "qty",  # Will be updated in postprocess_item
                 },
+                "condition": condition,  # ← KEY: Filter before mapping!
                 "postprocess": postprocess_item,
-                "add_if_empty": True,
+                "add_if_empty": False,
             },
         },
         target_doc,

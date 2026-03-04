@@ -431,7 +431,6 @@ function collect_conversion_data(dialog, loan) {
 			warehouse: src.warehouse,
 			expiry_date: src.expiry_date,
 			loan_waybill: loan.loan_waybill,
-			stock_entry_detail: src.stock_entry_detail,
 		});
 	});
 
