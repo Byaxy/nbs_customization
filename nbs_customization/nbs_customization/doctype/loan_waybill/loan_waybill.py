@@ -38,14 +38,20 @@ class LoanWaybill(Document):
         if self.source_warehouse == self.target_warehouse:
             frappe.throw(_("Source Warehouse and Target Warehouse cannot be the same."))
 
-        # Soft warning — adjust to your warehouse naming / custom field convention.
-        if self.customer and self.customer.lower() not in self.target_warehouse.lower():
-            frappe.throw(
-                _(
-                    "Target Warehouse '{0}' must be '{1}' loan warehouse. "
-                    "Please select customer loan warehouse or create one"
-                ).format(self.target_warehouse, self.customer)
-            )
+        # Validate that target warehouse belongs to the customer
+        if self.customer:
+            customer_name = frappe.db.get_value("Customer", self.customer, "customer_name")
+            if not customer_name:
+                customer_name = self.customer
+            
+            # Check if customer name is contained in warehouse name (more flexible than exact match)
+            if customer_name.lower() not in self.target_warehouse.lower():
+                frappe.throw(
+                    _(
+                        "Target Warehouse '{0}' must contain '{1}' in the name. "
+                        "Please select customer loan warehouse or create one"
+                    ).format(self.target_warehouse, customer_name)
+                )
 
     def _validate_stock_availability(self):
         """Check the source warehouse has sufficient actual qty for each item."""

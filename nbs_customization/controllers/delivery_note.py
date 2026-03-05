@@ -25,6 +25,19 @@ def validate_loan_source_warehouse(doc):
     if loan.conversion_status == "Fully Converted":
         frappe.throw("Loan Waybill is already fully converted.")
 
+    # Validate that target warehouse belongs to customer (consistent with Loan Waybill validation)
+    if loan.customer:
+        customer_name = frappe.db.get_value("Customer", loan.customer, "customer_name")
+        if not customer_name:
+            customer_name = loan.customer
+        
+        # Check if customer name is contained in warehouse name
+        if customer_name.lower() not in loan.target_warehouse.lower():
+            frappe.throw(
+                f"Target warehouse '{loan.target_warehouse}' must contain '{customer_name}' in name. "
+                f"Please select customer loan warehouse or create one"
+            )
+
     for item in doc.items:
         if item.warehouse != loan.target_warehouse:
             frappe.throw(
