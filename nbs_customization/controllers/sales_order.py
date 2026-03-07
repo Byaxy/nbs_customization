@@ -3,62 +3,6 @@ from frappe.utils import flt, nowdate
 from typing import Union, List, Dict
 
 
-@frappe.whitelist()
-def get_loan_waybill_customer_details(customer: str, company: str = None):
-    """
-    Get customer details for Loan Waybill including default addresses
-    Similar to get_party_details but specific to Loan Waybill
-    """
-    if not customer:
-        return {}
-    
-    # Get customer details
-    customer_doc = frappe.get_doc("Customer", customer)
-    
-    # Get default billing address
-    billing_address = frappe.call(
-        "frappe.contacts.doctype.address.address.get_default_address",
-        doctype="Customer",
-        name=customer
-    )
-    
-    # Get default shipping address
-    shipping_address = frappe.call(
-        "frappe.contacts.doctype.address.address.get_default_address",
-        doctype="Customer", 
-        name=customer,
-        sort_key="is_shipping_address"
-    )
-    
-    # Prepare result
-    result = {
-        "customer_name": customer_doc.customer_name,
-        "customer_address": billing_address or "",
-        "shipping_address_name": shipping_address or billing_address or "",
-        "territory": customer_doc.territory,
-        "customer_group": customer_doc.customer_group,
-        "tax_id": customer_doc.tax_id,
-    }
-    
-    # Get address displays
-    if billing_address:
-        billing_display = frappe.call(
-            "frappe.contacts.doctype.address.address.get_address_display",
-            address_dict=billing_address
-        )
-        result["address_display"] = billing_display or ""
-    
-    shipping_addr = shipping_address or billing_address
-    if shipping_addr:
-        shipping_display = frappe.call(
-            "frappe.contacts.doctype.address.address.get_address_display",
-            address_dict=shipping_addr
-        )
-        result["shipping_address"] = shipping_display or ""
-    
-    return result
-
-
 def get_so_remaining_quantities(sales_order: str) -> Dict[str, float]:
     """
     Calculate remaining quantities for each item in a Sales Order
@@ -250,58 +194,6 @@ def make_promissory_note(source_name, target_doc=None, ignore_permissions=None):
         ignore_permissions=ignore_permissions,
     )
 
-def _validate_sales_order_for_linked_docs(so_doc):
-    if not so_doc or not getattr(so_doc, "name", None):
-        frappe.throw("Sales Order is required")
-    if so_doc.docstatus != 1:
-        frappe.throw("Sales Order must be submitted")
-    if not so_doc.customer:
-        frappe.throw("Sales Order customer is required")
-
-
-def _create_or_get_linked_doc_draft(so_doc, target_doctype: str) -> str:
-    flag_field = (
-        "custom_has_customer_delivery_note"
-        if target_doctype == "Customer Delivery Note"
-        else "custom_has_promissory_note"
-    )
-
-    existing = frappe.db.get_value(
-        target_doctype,
-        {"sales_order": so_doc.name, "docstatus": ["<", 2]},
-        "name",
-    )
-    if existing:
-        frappe.db.set_value(
-            "Sales Order",
-            so_doc.name,
-            {flag_field: 1},
-        )
-        return existing
-
-    customer_address, shipping_address_name = _resolve_customer_addresses(so_doc)
-
-    doc = frappe.get_doc(
-        {
-            "doctype": target_doctype,
-            "sales_order": so_doc.name,
-            "date": nowdate(),
-            "customer": so_doc.customer,
-            "customer_address": customer_address,
-            "shipping_address_name": shipping_address_name,
-        }
-    )
-    doc.insert(ignore_permissions=True)
-
-    # Set the flag field so the Sales Order UI doesn't keep offering the Create button.
-    frappe.db.set_value(
-        "Sales Order",
-        so_doc.name,
-        {flag_field: 1},
-    )
-
-    return doc.name
-
 
 def _resolve_customer_addresses(so_doc) -> tuple[str, str]:
     customer_address = getattr(so_doc, "customer_address", None) or frappe.get_value(
@@ -432,6 +324,48 @@ def get_pending_loan_waybills(sales_order: str):
         "sales_order": sales_order,
         "loan_waybills": results,
     }
+
+@frappe.whitelist()
+def has_pending_loan_waybills(customer, sales_order):
+    """
+    Check if customer has any pending loan waybills with items matching sales order.
+    Returns True immediately upon finding the first matching item with remaining quantity.
+    Optimized for performance - stops at first match.
+    """
+    if not customer or not sales_order:
+        return False
+    
+    # Get sales order items
+    so_items_query = """
+        SELECT DISTINCT item_code 
+        FROM `tabSales Order Item` 
+        WHERE parent = %s 
+        AND docstatus = 1
+    """
+    so_items = frappe.db.sql(so_items_query, (sales_order,), as_dict=True)
+    
+    if not so_items:
+        return False
+    
+    # Check if any pending loan waybill has matching items with remaining quantity
+    item_codes = [item.item_code for item in so_items]
+    
+    # Use EXISTS query for maximum performance
+    exists_query = """
+        SELECT 1 
+        FROM `tabLoan Waybill Batch Balance` lwbb
+        INNER JOIN `tabLoan Waybill` lw ON lwbb.parent = lw.name
+        WHERE lw.customer = %s 
+        AND lw.docstatus = 1 
+        AND lw.conversion_status != 'Fully Converted'
+        AND lwbb.item_code IN %s
+        AND lwbb.qty_remaining > 0
+        LIMIT 1
+    """
+    
+    result = frappe.db.sql(exists_query, (customer, item_codes), as_dict=True)
+    return len(result) > 0
+
 
 @frappe.whitelist()
 def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permissions=None):
@@ -582,21 +516,6 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
     )
 
 
-def _resolve_customer_addresses(so_doc):
-    """
-    Resolve customer addresses from Sales Order.
-    Returns tuple of (customer_address, shipping_address_name)
-    """
-    customer_address = so_doc.customer_address
-    shipping_address_name = so_doc.shipping_address_name or customer_address
-    
-    # If no addresses on SO, get customer defaults
-    if not customer_address:
-        customer_address = frappe.db.get_value("Customer", so_doc.customer, "customer_primary_address")
-        shipping_address_name = customer_address
-    
-    return customer_address, shipping_address_name
-
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def sales_order_query(doctype, txt, searchfield, start, page_len, filters):
@@ -653,3 +572,4 @@ def promissory_note_sales_order_query(doctype, txt, searchfield, start, page_len
             "start": start,
         },
     )
+

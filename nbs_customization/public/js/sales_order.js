@@ -7,9 +7,7 @@ frappe.ui.form.on("Sales Order", {
 		if (!frm.doc.customer) return;
 		if (frm.doc.per_delivered >= 100) return;
 
-		frm.add_custom_button(__("Check Pending Loan Waybills"), () =>
-			check_pending_loans(frm),
-		).addClass("btn-danger");
+		check_and_show_pending_loan_button(frm);
 	},
 });
 
@@ -447,5 +445,28 @@ function create_draft_delivery_note(frm, loan, payload) {
 		},
 		freeze: true,
 		freeze_message: __("Loading Waybill..."),
+	});
+}
+
+function check_and_show_pending_loan_button(frm) {
+	// Perform fast server-side check for pending loan waybills with matching items
+	frappe.call({
+		method: "nbs_customization.controllers.sales_order.has_pending_loan_waybills",
+		args: {
+			customer: frm.doc.customer,
+			sales_order: frm.doc.name,
+		},
+		callback: function (r) {
+			// Only show button if pending loans with matching items exist
+			if (r.message === true) {
+				frm.add_custom_button(__("Check Pending Loan Waybills"), () =>
+					check_pending_loans(frm),
+				).addClass("btn-danger");
+			}
+		},
+		error: function (err) {
+			// Silently fail - don't break the form if check fails
+			console.error("Failed to check pending loan waybills:", err);
+		},
 	});
 }

@@ -7,6 +7,8 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, nowdate
+import json
+import re
 
 
 class LoanWaybill(Document):
@@ -500,248 +502,61 @@ class LoanWaybill(Document):
                 )
 
 
-# =========================================================
-# WHITELISTED API
-# =========================================================
-
+def strip_html(text):
+    if not text:
+        return ""
+    # Remove all HTML tags
+    clean = re.sub(r"<[^>]+>", " ", text)
+    # Collapse whitespace
+    clean = re.sub(r"\s+", " ", clean).strip()
+    return clean
 
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def get_items_with_stock(doctype, txt, searchfield, start, page_len, filters):
-    """Link-field search: items with actual stock in the given warehouse."""
-    warehouse = filters.get("warehouse") if isinstance(filters, dict) else None
+    if isinstance(filters, str):
+        filters = json.loads(filters)
+
+    warehouse = filters.get("warehouse") if filters else None
+
     if not warehouse:
         return []
 
-    return frappe.db.sql(
+    results = frappe.db.sql(
         """
-        SELECT item_code
-        FROM `tabBin`
-        WHERE warehouse = %s
-          AND actual_qty > 0
-          AND item_code LIKE %s
-        ORDER BY item_code
-        LIMIT %s, %s
+        SELECT
+            item.name,
+            item.item_code,
+            item.description,
+            CONCAT('Qty: ', ROUND(bin.actual_qty, 2)) AS stock_qty
+        FROM `tabItem` item
+        INNER JOIN `tabBin` bin
+            ON bin.item_code = item.name
+            AND bin.warehouse = %(warehouse)s
+            AND bin.actual_qty > 0
+        WHERE
+            item.disabled = 0
+            AND item.is_stock_item = 1
+            AND (
+                item.name LIKE %(txt)s
+                OR item.description LIKE %(txt)s
+            )
+        ORDER BY
+            IF(LOCATE(%(raw_txt)s, item.name), LOCATE(%(raw_txt)s, item.name), 99999),
+            item.name
+        LIMIT %(start)s, %(page_len)s
         """,
-        (warehouse, f"%{txt}%", start, page_len),
-    )
-
-
-@frappe.whitelist()
-def get_pending_loan_waybills(sales_order: str):
-    """
-    Return all submitted, not-fully-converted Loan Waybills for the SO's customer,
-    filtered to batch rows with remaining qty where the SO also has remaining qty.
-    Ordered by loan_date ascending (FIFO).
-    """
-    if not sales_order:
-        frappe.throw(_("Sales Order is required."))
-
-    so = frappe.get_doc("Sales Order", sales_order)
-    if so.docstatus != 1:
-        frappe.throw(_("Sales Order must be submitted."))
-
-    item_codes = {row.item_code for row in so.items}
-    so_remaining_map = _get_so_remaining_quantities(sales_order)
-
-    loans = frappe.get_all(
-        "Loan Waybill",
-        filters={
-            "customer": so.customer,
-            "docstatus": 1,
-            "conversion_status": ["!=", "Fully Converted"],
-        },
-        fields=["name", "loan_date"],
-        order_by="loan_date asc",
-    )
-
-    results = []
-    for loan in loans:
-        batch_rows = frappe.get_all(
-            "Loan Waybill Batch Balance",
-            filters={"parent": loan.name, "qty_remaining": [">", 0]},
-            fields=[
-                "item_code", "batch_no", "serial_no", "expiry_date",
-                "warehouse", "qty_loaned", "qty_converted", "qty_remaining",
-            ],
-        )
-
-        matching = []
-        for bb in batch_rows:
-            if bb.item_code not in item_codes:
-                continue
-            so_rem = so_remaining_map.get(bb.item_code, 0)
-            if so_rem <= 0:
-                continue
-            max_conv = min(flt(bb.qty_remaining), flt(so_rem))
-            if max_conv <= 0:
-                continue
-            matching.append(
-                {
-                    "item_code": bb.item_code,
-                    "batch_no": bb.batch_no,
-                    "serial_no": bb.serial_no,
-                    "expiry_date": str(bb.expiry_date) if bb.expiry_date else None,
-                    "warehouse": bb.warehouse,
-                    "qty_loaned": flt(bb.qty_loaned),
-                    "qty_converted": flt(bb.qty_converted),
-                    "qty_remaining": flt(bb.qty_remaining),
-                    "so_qty_remaining": flt(so_rem),
-                    "max_convertible_qty": max_conv,
-                }
-            )
-
-        if matching:
-            results.append(
-                {
-                    "loan_waybill": loan.name,
-                    "loan_date": str(loan.loan_date) if loan.loan_date else None,
-                    "items": matching,
-                }
-            )
-
-    return {"customer": so.customer, "sales_order": sales_order, "loan_waybills": results}
-
-
-@frappe.whitelist()
-def make_delivery_note_from_loan(loan_waybill: str, sales_order: str, items: str):
-    """
-    Prepare (but do NOT save) a Delivery Note of type "Loan Conversion Waybill".
-
-    items — JSON list of: { item_code, batch_no, serial_no, qty, valuation_rate }
-
-    Returns the unsaved Delivery Note as a dict so the JS can open it in the form
-    via frappe.model.sync + frappe.set_route. The user saves and submits it manually.
-    On submission the delivery_note controller calls loan_doc.apply_conversion().
-    """
-    import json
-
-    if isinstance(items, str):
-        items = json.loads(items)
-
-    loan_doc = frappe.get_doc("Loan Waybill", loan_waybill)
-    if loan_doc.docstatus != 1:
-        frappe.throw(_("Loan Waybill must be submitted."))
-    if loan_doc.conversion_status == "Fully Converted":
-        frappe.throw(_("This Loan Waybill is already fully converted."))
-
-    so_doc = frappe.get_doc("Sales Order", sales_order)
-    if so_doc.docstatus != 1:
-        frappe.throw(_("Sales Order must be submitted."))
-
-    so_remaining_map = _get_so_remaining_quantities(sales_order)
-
-    # Validate all rows before building the DN
-    for row in items:
-        item_code = row.get("item_code")
-        qty = flt(row.get("qty"))
-        batch_no = row.get("batch_no") or None
-        serial_no = row.get("serial_no") or None
-
-        if qty <= 0:
-            frappe.throw(_("Quantity must be greater than zero for Item {0}.").format(item_code))
-
-        bb = loan_doc._find_batch_balance_row(item_code, batch_no, serial_no)
-        if not bb or flt(bb.qty_remaining) < qty:
-            frappe.throw(
-                _(
-                    "Requested qty {0} for Item {1} (Batch {2}) exceeds "
-                    "remaining loan balance {3}."
-                ).format(qty, item_code, batch_no or "—", flt(bb.qty_remaining) if bb else 0)
-            )
-
-        so_rem = so_remaining_map.get(item_code, 0)
-        if qty > so_rem:
-            frappe.throw(
-                _(
-                    "Requested qty {0} for Item {1} exceeds remaining "
-                    "Sales Order quantity {2}."
-                ).format(qty, item_code, so_rem)
-            )
-
-    # Build item rows
-    dn_items = []
-    for row in items:
-        item_code = row.get("item_code")
-        so_item_name = frappe.db.get_value(
-            "Sales Order Item",
-            {"parent": sales_order, "item_code": item_code},
-            "name",
-        )
-        dn_items.append(
-            {
-                "item_code": item_code,
-                "qty": flt(row.get("qty")),
-                "uom": frappe.db.get_value("Item", item_code, "stock_uom"),
-                "warehouse": loan_doc.target_warehouse,
-                "batch_no": row.get("batch_no") or None,
-                "serial_no": row.get("serial_no") or None,
-                "rate": flt(row.get("valuation_rate", 0)),
-                "use_serial_batch_fields": 1,
-                "against_sales_order": sales_order,
-                "so_detail": so_item_name,
-            }
-        )
-
-    customer_address = (
-        frappe.db.get_value("Customer", loan_doc.customer, "customer_primary_address")
-        or loan_doc.customer_address
-    )
-
-    dn = frappe.get_doc(
         {
-            "doctype": "Delivery Note",
-            "customer": loan_doc.customer,
-            "customer_name": loan_doc.customer_name,
-            "posting_date": nowdate(),
-            "set_warehouse": loan_doc.target_warehouse,
-            "customer_address": customer_address,
-            "shipping_address_name": loan_doc.shipping_address_name or customer_address,
-            "custom_waybill_type": "Loan Conversion Waybill",
-            "custom_source_loan_waybill": loan_waybill,
-            "custom_is_conversion": 1,
-            "custom_conversion_date": nowdate(),
-            "items": dn_items,
-        }
+            "warehouse": warehouse,
+            "txt": f"%{txt}%",
+            "raw_txt": txt,
+            "start": start,
+            "page_len": page_len,
+        },
     )
 
-    dn.run_method("set_missing_values")
-    return dn.as_dict()
-
-
-# =========================================================
-# PRIVATE HELPERS
-# =========================================================
-
-
-def _get_so_remaining_quantities(sales_order: str) -> dict:
-    """
-    Returns {item_code: remaining_qty} for a Sales Order,
-    deducting quantities already delivered by submitted non-return Delivery Notes.
-    """
-    so_items = frappe.get_all(
-        "Sales Order Item",
-        filters={"parent": sales_order},
-        fields=["item_code", "qty"],
-    )
-    so_qty_map = {row.item_code: flt(row.qty) for row in so_items}
-
-    delivered = frappe.db.sql(
-        """
-        SELECT dni.item_code, SUM(dni.qty) AS delivered_qty
-        FROM `tabDelivery Note Item` dni
-        INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
-        WHERE dn.docstatus = 1
-          AND dn.is_return = 0
-          AND dni.against_sales_order = %s
-        GROUP BY dni.item_code
-        """,
-        sales_order,
-        as_dict=True,
-    )
-    delivered_map = {row.item_code: flt(row.delivered_qty) for row in delivered}
-
-    return {
-        item_code: max(0.0, qty - delivered_map.get(item_code, 0.0))
-        for item_code, qty in so_qty_map.items()
-    }
+    # Strip HTML tags from description column (index 2) before returning
+    return [
+        (row[0], row[1], strip_html(row[2]), row[3])
+        for row in results
+    ]

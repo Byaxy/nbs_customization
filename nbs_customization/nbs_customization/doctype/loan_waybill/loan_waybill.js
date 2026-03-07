@@ -4,6 +4,7 @@
 frappe.ui.form.on("Loan Waybill", {
 	refresh(frm) {
 		set_address_contact_filters(frm);
+		set_item_query(frm);
 		if (frm.doc.docstatus === 1) {
 			frm.set_read_only();
 		}
@@ -31,6 +32,22 @@ frappe.ui.form.on("Loan Waybill", {
 
 	source_warehouse(frm) {
 		set_item_query(frm);
+		if (frm.doc.items && frm.doc.items.length > 0) {
+			const has_data = frm.doc.items.some((row) => row.item_code);
+
+			if (has_data) {
+				frappe.confirm(
+					__("Changing the source warehouse will clear existing items. Continue?"),
+					() => {
+						frm.clear_table("items");
+						frm.add_child("items");
+						frm.refresh_field("items");
+					},
+				);
+			} else {
+				frm.refresh_field("items");
+			}
+		}
 	},
 });
 
@@ -132,10 +149,15 @@ function setup_customer_redirect(frm) {
 }
 
 function set_item_query(frm) {
-	if (!frm.doc.source_warehouse) return;
-
-	frm.fields_dict.items.grid.get_field("item_code").get_query = () => ({
-		query: "nbs_customization.nbs_customization.doctype.loan_waybill.loan_waybill.get_items_with_stock",
-		filters: { warehouse: frm.doc.source_warehouse },
-	});
+	frm.fields_dict.items.grid.get_field("item_code").get_query = () => {
+		if (!frm.doc.source_warehouse) {
+			return {
+				filters: { name: ["=", ""] },
+			};
+		}
+		return {
+			query: "nbs_customization.nbs_customization.doctype.loan_waybill.loan_waybill.get_items_with_stock",
+			filters: { warehouse: frm.doc.source_warehouse },
+		};
+	};
 }

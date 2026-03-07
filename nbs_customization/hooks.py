@@ -23,15 +23,14 @@ app_license = "mit"
 
 # Includes in <head>
 # ------------------
-import time
 
 # include js, css files in header of desk.html
-app_include_css = "/assets/nbs_customization/css/nbs_theme.css?v={}".format(int(time.time()))
-app_include_js = "/assets/nbs_customization/js/nbs_theme.js?v={}".format(int(time.time()))
+app_include_css = "/assets/nbs_customization/css/nbs_theme.css"
+app_include_js = "/assets/nbs_customization/js/nbs_theme.js"
 
 # include js, css files in header of web template
-web_include_css = "/assets/nbs_customization/css/nbs_theme.css?v={}".format(int(time.time()))
-web_include_js = "/assets/nbs_customization/js/nbs_theme.js?v={}".format(int(time.time()))
+web_include_css = "/assets/nbs_customization/css/nbs_theme.css"
+web_include_js = "/assets/nbs_customization/js/nbs_theme.js"
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "nbs_customization/public/scss/website"
@@ -287,6 +286,7 @@ fixtures = [
         ]
     }
 ]
+
 
 doctype_js = {
     "Sales Order": "public/js/sales_order.js",
