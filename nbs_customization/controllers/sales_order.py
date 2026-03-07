@@ -328,44 +328,86 @@ def get_pending_loan_waybills(sales_order: str):
 @frappe.whitelist()
 def has_pending_loan_waybills(customer, sales_order):
     """
-    Check if customer has any pending loan waybills with items matching sales order.
-    Returns True immediately upon finding the first matching item with remaining quantity.
-    Optimized for performance - stops at first match.
+    Check if customer has any pending loan waybills with items matching
+    the sales order AND where the SO still has remaining qty to deliver.
+    Returns True immediately upon finding the first qualifying match.
     """
     if not customer or not sales_order:
         return False
-    
-    # Get sales order items
-    so_items_query = """
-        SELECT DISTINCT item_code 
-        FROM `tabSales Order Item` 
-        WHERE parent = %s 
-        AND docstatus = 1
-    """
-    so_items = frappe.db.sql(so_items_query, (sales_order,), as_dict=True)
-    
+
+    # Child table rows always have docstatus=0 — filter by parent instead
+    so_items = frappe.db.sql(
+        """
+        SELECT DISTINCT soi.item_code
+        FROM `tabSales Order Item` soi
+        INNER JOIN `tabSales Order` so ON so.name = soi.parent
+        WHERE soi.parent = %s
+          AND so.docstatus = 1
+        """,
+        (sales_order,),
+        as_dict=True,
+    )
+
     if not so_items:
         return False
-    
-    # Check if any pending loan waybill has matching items with remaining quantity
-    item_codes = [item.item_code for item in so_items]
-    
-    # Use EXISTS query for maximum performance
-    exists_query = """
-        SELECT 1 
+
+    item_codes = tuple(item.item_code for item in so_items)
+
+    # Check SO remaining quantities — same logic as get_so_remaining_quantities
+    delivered = frappe.db.sql(
+        """
+        SELECT dni.item_code, SUM(dni.qty) AS delivered_qty
+        FROM `tabDelivery Note Item` dni
+        INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
+        WHERE dn.docstatus = 1
+          AND dni.against_sales_order = %s
+          AND dni.item_code IN %s
+        GROUP BY dni.item_code
+        """,
+        (sales_order, item_codes),
+        as_dict=True,
+    )
+    delivered_map = {r.item_code: flt(r.delivered_qty) for r in delivered}
+
+    so_qty_rows = frappe.db.sql(
+        """
+        SELECT item_code, SUM(qty) AS so_qty
+        FROM `tabSales Order Item`
+        WHERE parent = %s
+          AND item_code IN %s
+        GROUP BY item_code
+        """,
+        (sales_order, item_codes),
+        as_dict=True,
+    )
+
+    # Only keep items where SO still has remaining qty
+    items_with_so_remaining = tuple(
+        r.item_code
+        for r in so_qty_rows
+        if flt(r.so_qty) - delivered_map.get(r.item_code, 0) > 0
+    )
+
+    if not items_with_so_remaining:
+        return False
+
+    # Now check loan waybills only for items with SO remaining
+    result = frappe.db.sql(
+        """
+        SELECT 1
         FROM `tabLoan Waybill Batch Balance` lwbb
         INNER JOIN `tabLoan Waybill` lw ON lwbb.parent = lw.name
-        WHERE lw.customer = %s 
-        AND lw.docstatus = 1 
-        AND lw.conversion_status != 'Fully Converted'
-        AND lwbb.item_code IN %s
-        AND lwbb.qty_remaining > 0
+        WHERE lw.customer = %s
+          AND lw.docstatus = 1
+          AND lw.conversion_status != 'Fully Converted'
+          AND lwbb.item_code IN %s
+          AND lwbb.qty_remaining > 0
         LIMIT 1
-    """
-    
-    result = frappe.db.sql(exists_query, (customer, item_codes), as_dict=True)
+        """,
+        (customer, items_with_so_remaining),
+        as_dict=True,
+    )
     return len(result) > 0
-
 
 @frappe.whitelist()
 def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permissions=None):
