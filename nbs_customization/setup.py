@@ -5,10 +5,9 @@ NBS_SELLING_SIDEBAR_ITEMS = [
     {
         "label": "Customer Delivery Note",
         "type": "Link",
-        "icon": "receipt",
+        "icon": "file-text",
         "link_to": "Customer Delivery Note",
         "link_type": "DocType",
-        "icon": "es-line-truck",
         "child": 1,
         "indent": 0,
         "collapsible": 1,
@@ -20,7 +19,6 @@ NBS_SELLING_SIDEBAR_ITEMS = [
         "icon": "handshake",
         "link_to": "Promissory Note",
         "link_type": "DocType",
-        "icon": "es-line-handshake",
         "child": 1,
         "indent": 0,
         "collapsible": 1,
@@ -32,7 +30,6 @@ NBS_SELLING_SIDEBAR_ITEMS = [
         "icon": "truck",
         "link_to": "Delivery Note",
         "link_type": "DocType",
-        "icon": "es-line-paper-plane",
         "child": 1,
         "indent": 0,
         "collapsible": 1,
@@ -44,7 +41,6 @@ NBS_SELLING_SIDEBAR_ITEMS = [
         "icon": "truck-electric",
         "link_to": "Loan Waybill",
         "link_type": "DocType",
-        "icon": "es-line-transfer",
         "child": 1,
         "indent": 0,
         "collapsible": 1,
@@ -55,26 +51,16 @@ NBS_SELLING_SIDEBAR_ITEMS = [
 NBS_LABELS = [item["label"] for item in NBS_SELLING_SIDEBAR_ITEMS]
 
 
-def _get_expected_sequence(items):
-    """
-    Return the labels of our four items in the order they appear in the
-    sidebar, or None if any are missing.
-    """
-    positions = {}
-    for i, row in enumerate(items):
-        if row.label in NBS_LABELS:
-            positions[row.label] = i
-
-    if len(positions) != len(NBS_LABELS):
-        return None  # some items are missing
-
-    return [label for label in NBS_LABELS if label in positions]
+NBS_EXPECTED = {item["label"]: item for item in NBS_SELLING_SIDEBAR_ITEMS}
 
 
 def _is_correctly_placed(items):
     """
-    Returns True if all four NBS items are already present, in the correct
-    order, and immediately follow 'Sales Invoice' with no gaps or duplicates.
+    Returns True only if all four NBS items are:
+    - present with no duplicates
+    - in the correct order immediately after 'Sales Invoice'
+    - have the correct icon, link_to, and link_type
+    Any mismatch (including stale icons) triggers a reinject.
     """
     # Check for duplicates
     nbs_rows = [row for row in items if row.label in set(NBS_LABELS)]
@@ -89,11 +75,24 @@ def _is_correctly_placed(items):
         return False
 
     # Check our four items occupy exactly the four slots after Sales Invoice
-    expected_slice = NBS_LABELS  # correct order
-    actual_slice = [items[sales_invoice_idx + 1 + j].label for j in range(len(NBS_LABELS))
-                    if sales_invoice_idx + 1 + j < len(items)]
+    # and that each row matches the expected definition
+    for j, expected_label in enumerate(NBS_LABELS):
+        slot_idx = sales_invoice_idx + 1 + j
+        if slot_idx >= len(items):
+            return False
 
-    return actual_slice == expected_slice
+        row = items[slot_idx]
+        expected = NBS_EXPECTED[expected_label]
+
+        if (
+            row.label != expected["label"]
+            or row.icon != expected["icon"]
+            or row.link_to != expected["link_to"]
+            or row.link_type != expected["link_type"]
+        ):
+            return False
+
+    return True
 
 
 def after_migrate():
