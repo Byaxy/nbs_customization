@@ -88,6 +88,8 @@ web_include_js = "/assets/nbs_customization/js/nbs_theme.js"
 # before_install = "nbs_customization.install.before_install"
 # after_install = "nbs_customization.install.after_install"
 
+after_migrate = ["nbs_customization.setup.after_migrate"]
+
 # Uninstallation
 # ------------
 
