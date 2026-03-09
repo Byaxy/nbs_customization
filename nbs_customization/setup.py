@@ -109,8 +109,8 @@ def after_migrate():
 
     sidebar = frappe.get_doc("Workspace Sidebar", "Selling")
 
-    #if _is_correctly_placed(sidebar.items):
-    #    return
+    if _is_correctly_placed(sidebar.items):
+        return
 
     # Remove all NBS-managed rows (handles stale/duplicate/misplaced entries)
     nbs_label_set = set(NBS_LABELS)

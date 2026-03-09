@@ -311,6 +311,7 @@ doc_events = {
         "on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
     },
     "Sales Invoice": {
+        "autoname": "nbs_customization.controllers.sales_invoice.set_name_from_sales_order",
         "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch"
     },
     "Stock Entry": {
