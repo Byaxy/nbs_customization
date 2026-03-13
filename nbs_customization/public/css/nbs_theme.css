@@ -1,71 +1,109 @@
 /**
- * NBS Customization Theme - Production-Ready CSS Styling
- * 
- * Comprehensive theme system for Biomedical Solutions with:
- * - Full-width layout support (100% width always)
- * - Custom brand colors (#001b52 primary, #dc2626 danger)
- * - Enhanced table styling with hover effects
- * - Professional button styling
- * - Login page customization
+ * NBS Customization Theme — nbs_theme.css
+ * Production-ready CSS for ERPNext v16 desk theming.
+ *
+ * All colors are driven by CSS custom properties declared in :root.
+ * The JS engine (nbs_theme.js) overrides these at runtime from the
+ * Desk Theme doctype, so the values here are safe fallback defaults.
+ *
+ * Section order:
+ *  1.  :root — token declarations
+ *  2.  Full-width layout
+ *  3.  Navbar
+ *  4.  Sidebar
+ *  5.  Primary buttons
+ *  6.  Danger / cancel buttons
+ *  7.  List view tables
+ *  8.  Child tables (form grid)
+ *  9.  Select / link / dropdown hover
+ *  10. Forms & inputs
+ *  11. Page titles & breadcrumbs
+ *  12. Modals & dialogs
+ *  13. Status indicators & badges
+ *  14. Page loader / splash screen
+ *  15. Login page
+ *  16. Responsive / mobile
+ *  17. Accessibility
  */
 
-/* ========================================
-   ROOT VARIABLES & GLOBAL SETTINGS
-   ======================================== */
+/* ============================================================
+   1. ROOT — CSS VARIABLE TOKENS
+   ============================================================ */
 
 :root {
-	/* Brand Colors */
-	--nbs-primary-color: #001b52;
+	/* Brand */
+	--nbs-primary: #001b52;
 	--nbs-primary-hover: #001540;
-	--nbs-danger-color: #dc2626;
+	--nbs-accent: #06b6d4;
+	--nbs-danger: #dc2626;
 	--nbs-danger-hover: #b91c1c;
 
-	/* Table Colors */
+	/* Sidebar */
+	--nbs-sidebar-bg: #001b52;
+	--nbs-sidebar-text: #e2e8f0;
+	--nbs-sidebar-active-bg: #06b6d4;
+	--nbs-sidebar-active-text: #ffffff;
+
+	/* Navbar */
+	--nbs-navbar-bg: #001b52;
+	--nbs-navbar-text: #ffffff;
+	--nbs-navbar-icon: #ffffff;
+
+	/* Tables & lists */
 	--nbs-table-header-bg: #001b52;
 	--nbs-table-header-text: #ffffff;
 	--nbs-table-even-bg: #eff6ff;
-	--nbs-table-hover-bg: #eff6ff;
+	--nbs-table-row-hover-bg: #dbeafe;
 
-	/* Navigation */
-	--nbs-navbar-bg: #001b52;
-	--nbs-navbar-text: #ffffff;
+	/* Child tables (can differ from list table headers) */
+	--nbs-child-header-bg: #001b52;
+	--nbs-child-header-text: #ffffff;
+
+	/* Select / dropdown hover */
+	--nbs-select-row-hover-bg: #e0f2fe;
+
+	/* Buttons */
+	--nbs-btn-primary-bg: #001b52;
+	--nbs-btn-primary-hover: #001540;
+	--nbs-btn-primary-text: #ffffff;
+	--nbs-btn-danger-bg: #dc2626;
+	--nbs-btn-danger-hover: #b91c1c;
+
+	/* Forms & inputs */
+	--nbs-form-bg: #ffffff;
+	--nbs-input-border: #cbd5e1;
+	--nbs-input-focus: #06b6d4;
+	--nbs-label-color: #475569;
 
 	/* Login */
-	--nbs-login-title: "Biomedical Solutions";
-	--nbs-login-title-color: #001b52;
+	--nbs-login-bg: #f1f5f9;
 	--nbs-login-box-bg: #ffffff;
-	--nbs-login-box-width: "400px";
-
-	/* Layout - Always 100% width */
-	--page-max-width: 100% !important;
-	--content-max-width: 100% !important;
-	--form-container-max-width: 100% !important;
+	--nbs-login-title-color: #001b52;
+	--nbs-login-btn-color: #001b52;
 }
 
-/* ========================================
-   FULL-WIDTH LAYOUT SYSTEM
-   ======================================== */
+/* ============================================================
+   2. FULL-WIDTH LAYOUT
+   ============================================================ */
 
-/* Main page containers - always full width */
 .page-container,
 .content.page-container,
 .layout-main-section,
 .form-page {
-	max-width: var(--page-max-width) !important;
+	max-width: 100% !important;
 	width: 100% !important;
-	padding: 0 24px !important;
+	padding-left: 24px !important;
+	padding-right: 24px !important;
 }
 
-/* Form layouts - full width with proper spacing */
 .form-layout,
 .form-container,
 .form-view,
 .frappe-control {
-	max-width: var(--form-container-max-width) !important;
+	max-width: 100% !important;
 	width: 100% !important;
 }
 
-/* Form sections and columns */
 .form-layout .row,
 .form-section,
 .form-grid,
@@ -75,23 +113,13 @@
 	width: 100% !important;
 }
 
-/* Form controls - full width within containers */
-.form-layout .frappe-control,
-.form-layout .control-input,
-.form-layout .control-label {
+.list-view-container,
+.report-view-container,
+.tree-view-container {
 	max-width: 100% !important;
 	width: 100% !important;
 }
 
-/* List view containers - full width */
-.list-view-container,
-.report-view-container,
-.tree-view-container {
-	max-width: var(--page-max-width) !important;
-	width: 100% !important;
-}
-
-/* List view tables - full width */
 .list-view-table,
 .report-table,
 .dataTable,
@@ -101,81 +129,260 @@
 	overflow-x: auto;
 }
 
-/* ========================================
-   PRIMARY BUTTON STYLING
-   ======================================== */
+/* ============================================================
+   3. NAVBAR
+   ============================================================ */
+
+.navbar,
+.navbar.container {
+	max-width: 100% !important;
+	width: 100% !important;
+	background-color: var(--nbs-navbar-bg) !important;
+	border-bottom: none !important;
+}
+
+.navbar-brand,
+.navbar .container {
+	max-width: 100% !important;
+	width: 100% !important;
+}
+
+/* Text & links */
+.navbar-brand,
+.navbar .navbar-text,
+.navbar .nav-link,
+.navbar a {
+	color: var(--nbs-navbar-text) !important;
+}
+
+/* Icons — SVG fill and stroke */
+.navbar svg,
+.navbar svg use,
+.navbar .navbar-home svg {
+	fill: var(--nbs-navbar-icon) !important;
+	stroke: var(--nbs-navbar-icon) !important;
+	color: var(--nbs-navbar-icon) !important;
+}
+
+/* Search bar in navbar */
+.navbar .search-bar input,
+.navbar .form-control.search-bar {
+	background-color: rgba(255, 255, 255, 0.12) !important;
+	border-color: rgba(255, 255, 255, 0.2) !important;
+	color: var(--nbs-navbar-text) !important;
+}
+
+.navbar .search-bar input::placeholder {
+	color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* Navbar dropdown menus */
+.navbar .dropdown-menu {
+	border-top: 2px solid var(--nbs-accent) !important;
+}
+
+/* ============================================================
+   4. SIDEBAR
+   ============================================================ */
+
+/* Container */
+.desk-sidebar,
+.layout-side-section,
+.sidebar-column {
+	background-color: var(--nbs-sidebar-bg) !important;
+	border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+/* All sidebar item links/spans */
+.desk-sidebar .sidebar-item a,
+.desk-sidebar .standard-sidebar-item a,
+.desk-sidebar .sidebar-item > span,
+.sidebar-column .sidebar-item > span,
+.sidebar-column .sidebar-item > a,
+.sidebar-column .standard-sidebar-item > a {
+	color: var(--nbs-sidebar-text) !important;
+	border-radius: 6px;
+	margin: 1px 6px;
+	padding: 7px 10px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
+}
+
+/* Hover — uses active colors, matching old app behaviour */
+.desk-sidebar .sidebar-item:not(.selected):hover a,
+.desk-sidebar .standard-sidebar-item:not(.selected):hover a,
+.desk-sidebar .sidebar-item:not(.selected):hover > span,
+.sidebar-column .sidebar-item:not(.selected):hover > span,
+.sidebar-column .sidebar-item:not(.selected):hover > a {
+	background-color: var(--nbs-sidebar-active-bg) !important;
+	color: var(--nbs-sidebar-active-text) !important;
+}
+
+/* Hover icons */
+.desk-sidebar .sidebar-item:not(.selected):hover svg,
+.sidebar-column .sidebar-item:not(.selected):hover svg {
+	fill: var(--nbs-sidebar-active-text) !important;
+	opacity: 1 !important;
+}
+
+/* Active / selected */
+.desk-sidebar .sidebar-item.selected a,
+.desk-sidebar .sidebar-item.active a,
+.desk-sidebar .standard-sidebar-item.selected a,
+.sidebar-column .sidebar-item.selected > span,
+.sidebar-column .sidebar-item.selected > a {
+	background-color: var(--nbs-sidebar-active-bg) !important;
+	color: var(--nbs-sidebar-active-text) !important;
+	font-weight: 600 !important;
+	border-left: 3px solid rgba(255, 255, 255, 0.8) !important;
+	padding-left: 8px !important;
+}
+
+/* Icons — inactive */
+.desk-sidebar .sidebar-item svg,
+.sidebar-column .sidebar-item svg {
+	fill: var(--nbs-sidebar-text) !important;
+	opacity: 0.7;
+	flex-shrink: 0;
+}
+
+/* Icons — active */
+.desk-sidebar .sidebar-item.selected svg,
+.sidebar-column .sidebar-item.selected svg {
+	fill: var(--nbs-sidebar-active-text) !important;
+	opacity: 1 !important;
+}
+
+/* Section / group headings */
+.desk-sidebar .sidebar-group-title,
+.sidebar-column .list-unstyled-title,
+.desk-sidebar .sidebar-label {
+	color: rgba(255, 255, 255, 0.4) !important;
+	font-size: 10.5px !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.09em !important;
+	padding: 18px 16px 4px !important;
+}
+
+/* Sidebar scrollbar — subtle on dark bg */
+.desk-sidebar::-webkit-scrollbar,
+.layout-side-section::-webkit-scrollbar {
+	width: 4px;
+}
+.desk-sidebar::-webkit-scrollbar-track,
+.layout-side-section::-webkit-scrollbar-track {
+	background: transparent;
+}
+.desk-sidebar::-webkit-scrollbar-thumb,
+.layout-side-section::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: 2px;
+}
+
+/* ============================================================
+   5. PRIMARY BUTTONS
+   ============================================================ */
 
 .btn-primary,
 .btn-primary:not(.btn-secondary):not(.btn-light) {
-	background-color: var(--nbs-primary-color) !important;
-	border-color: var(--nbs-primary-color) !important;
-	color: #ffffff !important;
+	background-color: var(--nbs-btn-primary-bg) !important;
+	border-color: var(--nbs-btn-primary-bg) !important;
+	color: var(--nbs-btn-primary-text) !important;
 	border-radius: 6px;
 	font-weight: 500;
-	padding: 8px 16px;
-	transition: all 0.2s ease;
+	padding: 7px 16px;
+	transition: all 0.18s ease;
 }
 
 .btn-primary:hover,
 .btn-primary:focus {
-	background-color: var(--nbs-primary-hover) !important;
-	border-color: var(--nbs-primary-hover) !important;
+	background-color: var(--nbs-btn-primary-hover) !important;
+	border-color: var(--nbs-btn-primary-hover) !important;
+	color: var(--nbs-btn-primary-text) !important;
 	transform: translateY(-1px);
-	box-shadow: 0 4px 8px rgba(0, 27, 82, 0.3);
+	box-shadow: 0 4px 10px rgba(0, 27, 82, 0.28);
 }
 
-.btn-primary span {
-	color: #ffffff !important;
+.btn-primary span,
+.btn-primary .btn-text {
+	color: var(--nbs-btn-primary-text) !important;
 }
 
-/* ========================================
-   DANGER/CANCEL BUTTON STYLING
-   ======================================== */
+.btn-primary:active {
+	transform: translateY(0) !important;
+	box-shadow: none !important;
+}
+
+/* ============================================================
+   6. DANGER / CANCEL BUTTONS
+   ============================================================ */
 
 .btn-danger,
-.btn-secondary[data-action="cancel"],
-.btn-cancel,
 .btn-red,
+.btn-cancel,
+.btn-secondary[data-action="cancel"],
 [data-action="no"],
-[data-response="no"] {
-	background-color: var(--nbs-danger-color) !important;
-	border-color: var(--nbs-danger-color) !important;
+[data-response="no"],
+.form-toolbar .btn[data-label="Cancel"],
+.form-toolbar .btn.btn-cancel,
+.modal-footer .btn[data-button-primary="false"],
+.modal-footer .btn.btn-secondary:not(.btn-default),
+.workflow-button-area .btn[data-action*="reject"],
+.workflow-button-area .btn[data-action*="cancel"],
+.workflow-button-area .btn[data-action*="decline"] {
+	background-color: var(--nbs-btn-danger-bg) !important;
+	border-color: var(--nbs-btn-danger-bg) !important;
 	color: #ffffff !important;
 	border-radius: 6px;
 	font-weight: 500;
-	transition: all 0.2s ease;
+	transition: all 0.18s ease;
 }
 
 .btn-danger:hover,
-.btn-secondary[data-action="cancel"]:hover,
-.btn-cancel:hover,
 .btn-red:hover,
+.btn-cancel:hover,
+.btn-secondary[data-action="cancel"]:hover,
 [data-action="no"]:hover,
-[data-response="no"]:hover {
-	background-color: var(--nbs-danger-hover) !important;
-	border-color: var(--nbs-danger-hover) !important;
+[data-response="no"]:hover,
+.form-toolbar .btn[data-label="Cancel"]:hover,
+.modal-footer .btn.btn-secondary:not(.btn-default):hover {
+	background-color: var(--nbs-btn-danger-hover) !important;
+	border-color: var(--nbs-btn-danger-hover) !important;
+	color: #ffffff !important;
 	transform: translateY(-1px);
-	box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
+	box-shadow: 0 4px 10px rgba(220, 38, 38, 0.28);
 }
 
-/* ========================================
-   TABLE STYLING
-   ======================================== */
+.btn-danger:active,
+.btn-cancel:active {
+	transform: translateY(0) !important;
+	box-shadow: none !important;
+}
 
-/* Table headers with primary color */
+/* ============================================================
+   7. LIST VIEW TABLES
+   ============================================================ */
+
+/* Header row */
 .table thead th,
 .dataTable thead th,
-.frappe-control .table-header th,
 .list-view-table thead th,
-.level.list-row-head.text-muted {
+.frappe-control .table-header th {
 	background-color: var(--nbs-table-header-bg) !important;
 	color: var(--nbs-table-header-text) !important;
-	border-bottom: 2px solid var(--nbs-primary-color) !important;
+	border-bottom: 2px solid var(--nbs-table-header-bg) !important;
 	font-weight: 600;
-	padding: 12px 16px;
+	padding: 11px 16px;
+	white-space: nowrap;
 }
 
-header.level.list-row-head.text-muted {
+/* List view head row (Frappe's custom list header) */
+header.level.list-row-head.text-muted,
+.level.list-row-head.text-muted {
 	background-color: var(--nbs-table-header-bg) !important;
 	color: var(--nbs-table-header-text) !important;
 }
@@ -189,84 +396,389 @@ header.level.list-row-head.text-muted > div.level-right {
 	color: var(--nbs-table-header-text) !important;
 }
 
-/* Even rows with light blue background */
+/* Checkbox in header */
+.list-row-head .list-check-all {
+	accent-color: var(--nbs-accent) !important;
+}
+
+/* Even rows */
 .table tbody tr:nth-child(even),
 .dataTable tbody tr:nth-child(even),
 .list-view-table tbody tr:nth-child(even) {
 	background-color: var(--nbs-table-even-bg) !important;
 }
 
-/* Hover effect for all rows */
+/* Row hover */
 .table tbody tr:hover,
 .dataTable tbody tr:hover,
-.list-view-table tbody tr:hover {
-	background-color: var(--nbs-table-hover-bg) !important;
+.list-view-table tbody tr:hover,
+.list-row-container:hover {
+	background-color: var(--nbs-table-row-hover-bg) !important;
 	cursor: pointer;
 }
 
-/* Table cells with proper spacing */
+/* Cell padding */
 .table td,
 .dataTable td,
 .list-view-table td {
-	padding: 12px 16px;
+	padding: 10px 16px;
 	vertical-align: middle;
 }
 
-/* ========================================
-   NAVIGATION BAR STYLING
-   ======================================== */
+/* ============================================================
+   8. CHILD TABLES (FORM GRID)
+   ============================================================ */
 
-/* Full-width navbar */
-.navbar,
-.navbar.container {
-	max-width: var(--page-max-width) !important;
-	width: 100% !important;
-	background-color: var(--nbs-navbar-bg) !important;
+/* Child table header — matches list view style */
+.form-grid .grid-heading-row .col,
+.form-grid .grid-heading-row > div,
+.form-grid thead th,
+.form-grid .row.grid-row.head,
+.grid-heading-row {
+	background-color: var(--nbs-child-header-bg) !important;
+	color: var(--nbs-child-header-text) !important;
+	font-weight: 600 !important;
+	border-bottom: 2px solid var(--nbs-child-header-bg) !important;
 }
 
-.navbar-brand,
-.navbar .container {
-	max-width: 100% !important;
-	width: 100% !important;
+/* Child table even rows */
+.form-grid .grid-row:nth-child(even) .row,
+.form-grid .grid-row:nth-child(even) {
+	background-color: var(--nbs-table-even-bg) !important;
 }
 
-/* Navbar text and icons */
-.navbar-brand,
-.navbar .navbar-text,
-.navbar .nav-link {
-	color: var(--nbs-navbar-text) !important;
+/* Child table row hover */
+.form-grid .grid-row:hover .row,
+.form-grid .grid-row:hover {
+	background-color: var(--nbs-table-row-hover-bg) !important;
+	cursor: pointer;
 }
 
-.navbar svg,
-.navbar svg use {
-	fill: var(--nbs-navbar-text) !important;
-	stroke: var(--nbs-navbar-text) !important;
+/* Add row button */
+.form-grid .grid-footer .btn-xs {
+	color: var(--nbs-primary) !important;
+	border-color: var(--nbs-primary) !important;
 }
 
-/* ========================================
-   RESPONSIVE DESIGN
-   ======================================== */
+.form-grid .grid-footer .btn-xs:hover {
+	background-color: var(--nbs-primary) !important;
+	color: #ffffff !important;
+}
+
+/* ============================================================
+   9. SELECT / LINK / DROPDOWN HOVER
+   ============================================================ */
+
+/* Awesomplete — Link field autocomplete */
+.awesomplete > ul {
+	border-top: 2px solid var(--nbs-accent) !important;
+}
+
+.awesomplete > ul > li:hover,
+.awesomplete > ul > li[aria-selected="true"] {
+	background-color: var(--nbs-select-row-hover-bg) !important;
+	color: var(--nbs-primary) !important;
+	cursor: pointer;
+}
+
+/* Keyboard-focused item gets accent bg for clear distinction */
+.awesomplete > ul > li[aria-selected="true"] {
+	background-color: var(--nbs-accent) !important;
+	color: #ffffff !important;
+}
+
+/* Bootstrap dropdown-menu items */
+.dropdown-menu > li > a:hover,
+.dropdown-menu > li > a:focus,
+.dropdown-menu > .active > a,
+.dropdown-menu > .active > a:hover,
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+	background-color: var(--nbs-select-row-hover-bg) !important;
+	color: var(--nbs-primary) !important;
+}
+
+.dropdown-menu > .active > a,
+.dropdown-menu .dropdown-item.active {
+	background-color: var(--nbs-accent) !important;
+	color: #ffffff !important;
+}
+
+/* Frappe link field result list */
+.link-results .link-result:hover,
+.frappe-control .dropdown-results .link-result:hover,
+.frappe-result:hover {
+	background-color: var(--nbs-select-row-hover-bg) !important;
+	color: var(--nbs-primary) !important;
+}
+
+/* Selected link result */
+.link-results .link-result.active,
+.frappe-result.active {
+	background-color: var(--nbs-accent) !important;
+	color: #ffffff !important;
+}
+
+/* Universal search results (Ctrl+G) */
+.search-results .search-result:hover,
+.omnisearch-result:hover,
+.omnisearch .list-group-item:hover {
+	background-color: var(--nbs-select-row-hover-bg) !important;
+	border-left: 3px solid var(--nbs-accent) !important;
+}
+
+/* Frappe Select control custom dropdown */
+.frappe-control .select-input option:checked,
+select.form-control option:checked {
+	background-color: var(--nbs-select-row-hover-bg) !important;
+}
+
+/* ============================================================
+   10. FORMS & INPUTS
+   ============================================================ */
+
+/* ============================================================
+   11. PAGE TITLES & BREADCRUMBS
+   ============================================================ */
+
+.page-title h1,
+.page-head h1,
+.title-text,
+.form-title,
+h1.title-text {
+	color: var(--nbs-primary) !important;
+	font-weight: 700;
+}
+
+/* Breadcrumbs */
+.breadcrumb-item a {
+	color: var(--nbs-primary) !important;
+}
+
+.breadcrumb-item.active {
+	color: var(--nbs-accent) !important;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+	color: var(--nbs-accent) !important;
+}
+
+/* ============================================================
+   12. MODALS & DIALOGS
+   ============================================================ */
+
+.modal-header {
+	background-color: #f0f4ff !important;
+	border-bottom: 2px solid var(--nbs-primary) !important;
+}
+
+.modal-title {
+	color: var(--nbs-primary) !important;
+	font-weight: 700;
+}
+
+/* Close button */
+.modal-header .close,
+.modal-header button.close {
+	color: var(--nbs-primary) !important;
+	opacity: 0.7;
+}
+
+.modal-header .close:hover {
+	opacity: 1;
+}
+
+/* Modal primary action button */
+.modal-footer .btn-primary {
+	background-color: var(--nbs-btn-primary-bg) !important;
+	border-color: var(--nbs-btn-primary-bg) !important;
+	color: var(--nbs-btn-primary-text) !important;
+}
+
+/* ============================================================
+   13. STATUS INDICATORS & BADGES
+   ============================================================ */
+
+/* Indicator dots */
+.indicator-pill.blue,
+.indicator.blue {
+	background: var(--nbs-accent) !important;
+	color: #ffffff !important;
+}
+
+.indicator-pill.red,
+.indicator.red {
+	background: var(--nbs-danger) !important;
+	color: #ffffff !important;
+}
+
+.indicator-pill.green,
+.indicator.green {
+	background: #16a34a !important;
+	color: #ffffff !important;
+}
+
+.indicator-pill.orange,
+.indicator.orange {
+	background: #ea580c !important;
+	color: #ffffff !important;
+}
+
+/* Form status indicator bar */
+.form-status-indicator {
+	border-color: var(--nbs-primary) !important;
+}
+
+/* Submitted doc — accent color */
+.indicator-pill[data-docstatus="1"],
+.indicator[data-docstatus="1"] {
+	background: var(--nbs-accent) !important;
+	color: #ffffff !important;
+}
+
+/* ============================================================
+   14. PAGE LOADER / SPLASH SCREEN
+   ============================================================ */
+
+/*
+ * The logo swap is handled entirely in nbs_theme.js using frappe.boot.app_logo_url
+ * (set via Navbar Settings). CSS here only handles layout, background, and
+ * the pulse animation applied to the <img> the JS injects.
+ */
+
+/* Loader overlay — centered flex column */
+#freeze,
+.page-loading-indicator {
+	background-color: rgba(255, 255, 255, 0.96) !important;
+	display: flex !important;
+	flex-direction: column !important;
+	align-items: center !important;
+	justify-content: center !important;
+}
+
+/* Hide the default ERPNext inline SVG logo */
+#freeze > svg,
+.page-loading-indicator > svg {
+	display: none !important;
+}
+
+/* Animate the logo <img> injected by nbs_theme.js */
+#freeze img,
+.page-loading-indicator img {
+	animation: nbs-loader-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes nbs-loader-pulse {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.6;
+		transform: scale(0.95);
+	}
+}
+
+/* Keep spinner below the logo */
+#freeze .loading-spinner,
+.page-loading-indicator .loading-spinner {
+	margin-top: 4px;
+}
+
+/* Tint the spinner to accent color */
+#freeze .loading-spinner .spinner-border,
+.page-loading-indicator .loading-spinner .spinner-border {
+	border-top-color: var(--nbs-accent) !important;
+	border-right-color: var(--nbs-accent) !important;
+}
+
+/* ============================================================
+   15. LOGIN PAGE
+   ============================================================ */
+
+/* Login page background */
+.login-content,
+body.login-page {
+	background-color: var(--nbs-login-bg) !important;
+}
+
+/* Login box */
+.login-content .page-card,
+.login-content.page-card {
+	background-color: var(--nbs-login-box-bg) !important;
+	border-radius: 10px;
+	box-shadow: 0 8px 32px rgba(0, 27, 82, 0.12);
+}
+
+/* Logo */
+.page-card-head img {
+	max-height: 200px !important;
+	border-radius: 6px;
+}
+
+.page-card-head {
+	text-align: center;
+	padding: 20px 0 10px;
+}
+
+/* Login title ("Sign in to ...") */
+.page-card-head h4 {
+	color: var(--nbs-login-title-color) !important;
+	font-size: 19px !important;
+	font-weight: 600;
+}
+
+/* Login button */
+.login-content .btn-primary,
+.page-card .btn-primary {
+	background-color: var(--nbs-login-btn-color) !important;
+	border-color: var(--nbs-login-btn-color) !important;
+	color: #ffffff !important;
+	width: 100%;
+	padding: 10px;
+	font-size: 15px;
+	font-weight: 600;
+	border-radius: 6px;
+}
+
+.login-content .btn-primary:hover,
+.page-card .btn-primary:hover {
+	filter: brightness(0.88);
+}
+
+/* ============================================================
+   16. RESPONSIVE / MOBILE
+   ============================================================ */
 
 @media (max-width: 768px) {
-	/* Mobile adjustments */
 	.page-container,
 	.content.page-container,
 	.layout-main-section,
 	.form-page {
-		padding: 0 16px !important;
+		padding-left: 16px !important;
+		padding-right: 16px !important;
 	}
 
-	/* Login form mobile */
+	/* Mobile sidebar drawer */
+	.layout-side-section.shown {
+		background-color: var(--nbs-sidebar-bg) !important;
+		z-index: 1050;
+	}
+
+	/* Mobile navbar */
+	.navbar-mobile,
+	.mobile-navbar {
+		background-color: var(--nbs-navbar-bg) !important;
+	}
+
+	/* Login form */
 	.login-content.page-card {
 		width: auto;
 		margin: 0 16px;
 	}
 
-	/* Table mobile */
-	.table-responsive {
-		font-size: 14px;
-	}
-
+	/* Table cells on mobile */
 	.table td,
 	.dataTable td,
 	.list-view-table td {
@@ -274,67 +786,52 @@ header.level.list-row-head.text-muted > div.level-right {
 	}
 }
 
-/* ========================================
-   LOGIN PAGE CUSTOMIZATION
-   ======================================== */
+/* ============================================================
+   17. ACCESSIBILITY
+   ============================================================ */
 
-/* Logo sizing */
-.page-card-head img {
-	max-height: 200px !important;
-	border-radius: 8px;
-}
-
-/* Login page header styling */
-.page-card-head {
-	text-align: center;
-	padding: 20px 0;
-	margin-bottom: 20px;
-}
-
-.page-card-head h4 {
-	color: var(--nbs-login-title-color, #001b52) !important;
-	font-size: 20px !important;
-}
-
-/* ========================================
-   ACCESSIBILITY & PERFORMANCE
-   ======================================== */
-
-/* Focus states for accessibility */
-.btn-primary:focus,
-.btn-danger:focus {
-	outline: 2px solid var(--nbs-primary-color);
+/* Focus outlines for keyboard navigation */
+.btn-primary:focus-visible,
+.btn-danger:focus-visible,
+.btn-cancel:focus-visible {
+	outline: 2px solid var(--nbs-accent);
 	outline-offset: 2px;
 }
 
-/* Smooth transitions */
-.btn-primary,
-.btn-danger,
-.table tbody tr {
-	transition: all 0.2s ease;
-}
-
-/* High contrast mode support */
+/* High contrast mode */
 @media (prefers-contrast: high) {
 	.btn-primary {
-		border: 2px solid #000000;
+		border: 2px solid #000000 !important;
 	}
 
-	.btn-danger {
-		border: 2px solid #000000;
+	.btn-danger,
+	.btn-cancel {
+		border: 2px solid #000000 !important;
+	}
+
+	.desk-sidebar .sidebar-item.selected a {
+		outline: 2px solid #ffffff;
 	}
 }
 
-/* Reduced motion support */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
 	.btn-primary,
 	.btn-danger,
-	.table tbody tr {
-		transition: none;
+	.btn-cancel,
+	.table tbody tr,
+	.desk-sidebar .sidebar-item a {
+		transition: none !important;
 	}
 
 	.btn-primary:hover,
 	.btn-danger:hover {
-		transform: none;
+		transform: none !important;
+	}
+
+	#freeze::before,
+	.page-loading-indicator::before {
+		animation: none !important;
+		opacity: 1 !important;
 	}
 }

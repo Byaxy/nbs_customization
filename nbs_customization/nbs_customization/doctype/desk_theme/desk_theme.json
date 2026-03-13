@@ -1,0 +1,315 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-09 15:06:12.116456",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "brand_colors_tab",
+  "primary_color",
+  "primary_hover",
+  "accent_color",
+  "column_break_jpwr",
+  "danger_color",
+  "danger_hover",
+  "sidebar_tab",
+  "sidebar_background",
+  "active_item_background",
+  "column_break_loyc",
+  "sidebar_text_color",
+  "active_item_text",
+  "navigation_bar_tab",
+  "navbar_background",
+  "navbar_icon_color",
+  "column_break_szbb",
+  "navbar_text_color",
+  "tables_and_lists",
+  "header_background",
+  "even_row_background",
+  "selectdropdown_row_hover_background",
+  "column_break_tthc",
+  "header_text",
+  "table_row_hover_background",
+  "child_table_header_background",
+  "child_table_header_text",
+  "buttons_tab",
+  "primary_button_bg",
+  "primary_button_hover",
+  "column_break_cfue",
+  "primary_button_text",
+  "danger_button_bg",
+  "danger_button_hover",
+  "forms_and_inputs_tab",
+  "form_background",
+  "input_border_color",
+  "column_break_zydu",
+  "input_focus_color",
+  "label_color",
+  "login_page_tab",
+  "login_title",
+  "login_title_color",
+  "login_button_color",
+  "column_break_tzxy",
+  "login_bg_color",
+  "login_box_bg"
+ ],
+ "fields": [
+  {
+   "fieldname": "primary_color",
+   "fieldtype": "Color",
+   "label": "Primary Color"
+  },
+  {
+   "fieldname": "brand_colors_tab",
+   "fieldtype": "Tab Break",
+   "label": "Brand Colors"
+  },
+  {
+   "fieldname": "sidebar_tab",
+   "fieldtype": "Tab Break",
+   "label": "Sidebar"
+  },
+  {
+   "fieldname": "sidebar_background",
+   "fieldtype": "Color",
+   "label": "Sidebar Background"
+  },
+  {
+   "fieldname": "navigation_bar_tab",
+   "fieldtype": "Tab Break",
+   "label": "Navigation Bar"
+  },
+  {
+   "fieldname": "tables_and_lists",
+   "fieldtype": "Tab Break",
+   "label": "Tables And Lists"
+  },
+  {
+   "fieldname": "buttons_tab",
+   "fieldtype": "Tab Break",
+   "label": "Buttons"
+  },
+  {
+   "fieldname": "forms_and_inputs_tab",
+   "fieldtype": "Tab Break",
+   "label": "Forms And Inputs"
+  },
+  {
+   "fieldname": "login_page_tab",
+   "fieldtype": "Tab Break",
+   "label": "Login Page"
+  },
+  {
+   "fieldname": "primary_hover",
+   "fieldtype": "Color",
+   "label": "Primary Hover"
+  },
+  {
+   "fieldname": "accent_color",
+   "fieldtype": "Color",
+   "label": "Accent Color"
+  },
+  {
+   "fieldname": "column_break_jpwr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "danger_color",
+   "fieldtype": "Color",
+   "label": "Danger Color"
+  },
+  {
+   "fieldname": "danger_hover",
+   "fieldtype": "Color",
+   "label": "Danger Hover"
+  },
+  {
+   "fieldname": "active_item_background",
+   "fieldtype": "Color",
+   "label": "Active Item Background"
+  },
+  {
+   "fieldname": "column_break_loyc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sidebar_text_color",
+   "fieldtype": "Color",
+   "label": "Sidebar Text Color"
+  },
+  {
+   "fieldname": "active_item_text",
+   "fieldtype": "Color",
+   "label": "Active Item Text"
+  },
+  {
+   "fieldname": "navbar_background",
+   "fieldtype": "Color",
+   "label": "Navbar Background"
+  },
+  {
+   "fieldname": "navbar_icon_color",
+   "fieldtype": "Color",
+   "label": "Navbar Icon Color"
+  },
+  {
+   "fieldname": "column_break_szbb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "navbar_text_color",
+   "fieldtype": "Color",
+   "label": "Navbar Text Color"
+  },
+  {
+   "fieldname": "header_background",
+   "fieldtype": "Color",
+   "label": "Header Background"
+  },
+  {
+   "fieldname": "even_row_background",
+   "fieldtype": "Color",
+   "label": "Even Row Background"
+  },
+  {
+   "fieldname": "column_break_tthc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "header_text",
+   "fieldtype": "Color",
+   "label": "Header Text"
+  },
+  {
+   "fieldname": "table_row_hover_background",
+   "fieldtype": "Color",
+   "label": "Table Row Hover Background"
+  },
+  {
+   "fieldname": "selectdropdown_row_hover_background",
+   "fieldtype": "Color",
+   "label": "Select/Dropdown Row Hover Background"
+  },
+  {
+   "fieldname": "child_table_header_background",
+   "fieldtype": "Color",
+   "label": "Child Table Header Background"
+  },
+  {
+   "fieldname": "child_table_header_text",
+   "fieldtype": "Color",
+   "label": "Child Table Header Text"
+  },
+  {
+   "fieldname": "primary_button_bg",
+   "fieldtype": "Color",
+   "label": "Primary Button BG"
+  },
+  {
+   "fieldname": "primary_button_hover",
+   "fieldtype": "Color",
+   "label": "Primary Button Hover"
+  },
+  {
+   "fieldname": "column_break_cfue",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "primary_button_text",
+   "fieldtype": "Color",
+   "label": "Primary Button Text"
+  },
+  {
+   "fieldname": "danger_button_bg",
+   "fieldtype": "Color",
+   "label": "Danger Button BG"
+  },
+  {
+   "fieldname": "danger_button_hover",
+   "fieldtype": "Color",
+   "label": "Danger Button Hover"
+  },
+  {
+   "fieldname": "form_background",
+   "fieldtype": "Color",
+   "label": "Form Background"
+  },
+  {
+   "fieldname": "input_border_color",
+   "fieldtype": "Color",
+   "label": "Input Border Color"
+  },
+  {
+   "fieldname": "column_break_zydu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "input_focus_color",
+   "fieldtype": "Color",
+   "label": "Input Focus Color"
+  },
+  {
+   "fieldname": "label_color",
+   "fieldtype": "Color",
+   "label": "Label Color"
+  },
+  {
+   "fieldname": "login_title",
+   "fieldtype": "Data",
+   "label": "Login Title"
+  },
+  {
+   "fieldname": "login_title_color",
+   "fieldtype": "Color",
+   "label": "Login Title Color"
+  },
+  {
+   "fieldname": "login_button_color",
+   "fieldtype": "Color",
+   "label": "Login Button Color"
+  },
+  {
+   "fieldname": "column_break_tzxy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "login_bg_color",
+   "fieldtype": "Color",
+   "label": "Login BG Color"
+  },
+  {
+   "fieldname": "login_box_bg",
+   "fieldtype": "Color",
+   "label": "Login Box BG"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-09 15:51:38.550761",
+ "modified_by": "charlesbyaxy@gmail.com",
+ "module": "NBS Customization",
+ "name": "Desk Theme",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

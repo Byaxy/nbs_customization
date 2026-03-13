@@ -1,312 +1,329 @@
 /**
- * NBS Customization Theme - JavaScript Theme Manager
+ * NBS Customization — nbs_theme.js
  *
- * Handles dynamic theme application and configuration for Biomedical Solutions
- * Supports full-width layouts, custom colors, and responsive design
+ * Dynamic theme engine for ERPNext v16 desk.
+ *
+ * Responsibilities:
+ *  1. Replace the page loader logo as early as possible (before DOMContentLoaded)
+ *  2. Apply cached theme config instantly on load (no flash)
+ *  3. Fetch fresh config from Desk Theme API in the background
+ *  4. Listen for real-time theme updates and re-apply without full reload
+ *  5. Observe DOM mutations for dynamically added elements
  */
 
+// ---------------------------------------------------------------------------
+// 1. LOADER LOGO SWAP — runs immediately, before anything else
+// ---------------------------------------------------------------------------
+(function replaceLoaderLogo() {
+	/**
+	 * Resolve the logo URL from Frappe's own boot data.
+	 * frappe.boot.app_logo_url is populated from Navbar Settings → Logo.
+	 * Falls back to the login page logo img src if boot isn't ready yet,
+	 * then to the standard Frappe/ERPNext logo path as a last resort.
+	 */
+	function getLogoSrc() {
+		// Best source — set once in Navbar Settings, available after boot
+		if (window.frappe && frappe.boot && frappe.boot.app_logo_url) {
+			return frappe.boot.app_logo_url;
+		}
+
+		// Fallback — the login page already has the logo rendered as an <img>
+		// in .page-card-head; borrow its src before boot is ready
+		const loginLogo = document.querySelector(".page-card-head img");
+		if (loginLogo && loginLogo.src) {
+			return loginLogo.src;
+		}
+
+		// Last resort — Frappe's own website logo setting path
+		return "/files/app-logo.png";
+	}
+
+	function swapLogo() {
+		const freeze =
+			document.getElementById("freeze") || document.querySelector(".page-loading-indicator");
+
+		if (!freeze) return;
+
+		const logoSrc = getLogoSrc();
+
+		// Hide inline SVG (ERPNext default loader uses an inline SVG logo)
+		freeze.querySelectorAll("svg").forEach((svg) => {
+			svg.style.display = "none";
+		});
+
+		// Replace an existing <img> or inject a new one
+		let img = freeze.querySelector("img");
+		if (!img) {
+			img = document.createElement("img");
+			img.alt = "Loading";
+			freeze.insertBefore(img, freeze.firstChild);
+		}
+		img.src = logoSrc;
+		img.style.cssText =
+			"width:110px;height:110px;object-fit:contain;display:block;margin:0 auto 20px;";
+	}
+
+	// Try immediately — catches the freeze div if it's already in the DOM
+	swapLogo();
+
+	// Re-run on DOMContentLoaded in case the freeze div is injected after
+	// the script executes but before the DOM is fully parsed
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", swapLogo);
+	}
+})();
+
+// ---------------------------------------------------------------------------
+// 2. MAIN THEME CLASS
+// ---------------------------------------------------------------------------
 class NBSTheme {
 	constructor() {
-		// Theme configuration with your specific colors
-		this.themeConfig = {
-			// Brand Colors
-			primaryColor: "#001b52",
-			primaryHover: "#001540",
-			dangerColor: "#dc2626",
-			dangerHover: "#b91c1c",
+		this.CACHE_KEY = "nbs_theme_v1";
+		this.CSS_VAR_MAP = {
+			// Brand
+			"--nbs-primary": "primaryColor",
+			"--nbs-primary-hover": "primaryHover",
+			"--nbs-accent": "accentColor",
+			"--nbs-danger": "dangerColor",
+			"--nbs-danger-hover": "dangerHover",
 
-			// Table Colors
-			tableHeaderBg: "#001b52",
-			tableHeaderText: "#ffffff",
-			tableEvenBg: "#eff6ff",
-			tableHoverBg: "#eff6ff",
+			// Sidebar
+			"--nbs-sidebar-bg": "sidebarBg",
+			"--nbs-sidebar-text": "sidebarText",
+			"--nbs-sidebar-active-bg": "sidebarActiveItemBg",
+			"--nbs-sidebar-active-text": "sidebarActiveText",
 
-			// Navigation
-			navbarBg: "#001b52",
-			navbarText: "#ffffff",
+			// Navbar
+			"--nbs-navbar-bg": "navbarBg",
+			"--nbs-navbar-text": "navbarText",
+			"--nbs-navbar-icon": "navbarIcon",
+
+			// Tables & lists
+			"--nbs-table-header-bg": "tableHeaderBg",
+			"--nbs-table-header-text": "tableHeaderText",
+			"--nbs-table-even-bg": "tableEvenBg",
+			"--nbs-table-row-hover-bg": "tableRowHoverBg",
+			"--nbs-select-row-hover-bg": "selectRowHoverBg",
+
+			// Child tables
+			"--nbs-child-header-bg": "childHeaderBg",
+			"--nbs-child-header-text": "childHeaderText",
+
+			// Buttons
+			"--nbs-btn-primary-bg": "btnPrimaryBg",
+			"--nbs-btn-primary-hover": "btnPrimaryHover",
+			"--nbs-btn-primary-text": "btnPrimaryText",
+			"--nbs-btn-danger-bg": "btnDangerBg",
+			"--nbs-btn-danger-hover": "btnDangerHover",
+
+			// Forms & inputs
+			"--nbs-form-bg": "formBg",
+			"--nbs-input-border": "inputBorder",
+			"--nbs-input-focus": "inputFocus",
+			"--nbs-label-color": "labelColor",
 
 			// Login
-			loginTitle: "NBS",
-			loginTitleColor: "#001b52",
-			loginBoxBg: "#ffffff",
-			loginBoxWidth: "400px",
+			"--nbs-login-bg": "loginBg",
+			"--nbs-login-box-bg": "loginBoxBg",
+			"--nbs-login-title-color": "loginTitleColor",
+			"--nbs-login-btn-color": "loginBtnColor",
 		};
-
-		this.cacheKey = "nbs_theme_cache";
-		this.init();
 	}
 
-	/**
-	 * Initialize the theme system
-	 */
-	init() {
-		this.applyTheme();
-		this.setupFullWidthLayout();
-		this.setupTableStyling();
-		this.setupButtonStyling();
-		this.setupEventListeners();
+	// -------------------------------------------------------------------------
+	// Initialise — called once when the page is ready
+	// -------------------------------------------------------------------------
+	async init() {
+		// Apply cached config immediately to prevent any color flash
+		const cached = this.loadCache();
+		if (cached) {
+			this.applyConfig(cached);
+		}
+
+		// Fetch fresh config from the server in the background
+		await this.fetchAndApply();
+
+		// Subscribe to real-time updates from other sessions
+		this.subscribeRealtime();
+
+		// Handle login page separately
+		this.setupLoginPage();
+
+		// Watch for dynamically added elements
+		this.setupMutationObserver();
 	}
 
-	/**
-	 * Apply theme configuration as CSS custom properties
-	 */
-	applyTheme() {
+	// -------------------------------------------------------------------------
+	// Fetch fresh config from Desk Theme API
+	// -------------------------------------------------------------------------
+	async fetchAndApply() {
+		try {
+			const result = await frappe.call({
+				method: "nbs_customization.api.get_desk_theme",
+				args: {},
+			});
+
+			if (result && result.message) {
+				this.applyConfig(result.message);
+				this.saveCache(result.message);
+			}
+		} catch (err) {
+			// Non-fatal — CSS defaults in :root still apply
+			console.warn("[NBSTheme] Could not load theme config from server.", err);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Apply config — write all CSS variables onto :root
+	// -------------------------------------------------------------------------
+	applyConfig(config) {
 		const root = document.documentElement;
-		Object.keys(this.themeConfig).forEach((key) => {
-			const cssVar = `--nbs-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
-			root.style.setProperty(cssVar, this.themeConfig[key]);
-		});
-	}
 
-	/**
-	 * Setup full-width layout
-	 */
-	setupFullWidthLayout() {
-		// Ensure 100% width for all major containers
-		this.addGlobalStyles(`
-            .page-container, .content.page-container, .layout-main-section, .form-page {
-                max-width: 100% !important;
-                width: 100% !important;
-            }
-            .form-layout, .form-container, .form-view {
-                max-width: 100% !important;
-                width: 100% !important;
-            }
-            .list-view-container, .report-view-container {
-                max-width: 100% !important;
-                width: 100% !important;
-            }
-            .navbar, .navbar.container {
-                max-width: 100% !important;
-                width: 100% !important;
-            }
-        `);
-	}
-
-	/**
-	 * Setup enhanced table styling
-	 */
-	setupTableStyling() {
-		this.addGlobalStyles(`
-            .table tbody tr:nth-child(even) { 
-                background-color: ${this.themeConfig.tableEvenBg} !important; 
-            }
-            .table tbody tr:hover,
-            .dataTable tbody tr:hover,
-            .list-view-table tbody tr:hover {
-                background-color: ${this.themeConfig.tableHoverBg} !important;
-                cursor: pointer;
-            }
-            .table thead th,
-            .dataTable thead th,
-            .list-view-table thead th {
-                background-color: ${this.themeConfig.tableHeaderBg} !important;
-                color: ${this.themeConfig.tableHeaderText} !important;
-                border-bottom: 2px solid ${this.themeConfig.tableHeaderBg} !important;
-            }
-        `);
-	}
-
-	/**
-	 * Setup enhanced button styling
-	 */
-	setupButtonStyling() {
-		this.addGlobalStyles(`
-            .btn-primary {
-                background-color: ${this.themeConfig.primaryColor} !important;
-                border-color: ${this.themeConfig.primaryColor} !important;
-                color: #ffffff !important;
-                border-radius: 6px;
-                font-weight: 500;
-                transition: all 0.2s ease;
-            }
-            .btn-primary:hover,
-            .btn-primary:focus {
-                background-color: ${this.themeConfig.primaryHover} !important;
-                border-color: ${this.themeConfig.primaryHover} !important;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 8px rgba(0, 27, 82, 0.3);
-            }
-            .btn-danger, .btn-cancel, [data-action="cancel"], 
-            [data-action="no"], [data-response="no"] {
-                background-color: ${this.themeConfig.dangerColor} !important;
-                border-color: ${this.themeConfig.dangerColor} !important;
-                color: #ffffff !important;
-                border-radius: 6px;
-                font-weight: 500;
-                transition: all 0.2s ease;
-            }
-            .btn-danger:hover, .btn-cancel:hover, [data-action="cancel"]:hover,
-            [data-action="no"]:hover, [data-response="no"]:hover {
-                background-color: ${this.themeConfig.dangerHover} !important;
-                border-color: ${this.themeConfig.dangerHover} !important;
-                transform: translateY(-1px);
-                box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
-            }
-        `);
-	}
-
-	/**
-	 * Setup event listeners for dynamic content
-	 */
-	setupEventListeners() {
-		// Monitor for DOM changes (for dynamic content)
-		const observer = new MutationObserver((mutations) => {
-			mutations.forEach((mutation) => {
-				if (mutation.type === "childList") {
-					mutation.addedNodes.forEach((node) => {
-						if (node.nodeType === Node.ELEMENT_NODE) {
-							this.applyStylingToNewElements(node);
-						}
-					});
-				}
-			});
-		});
-
-		observer.observe(document.body, {
-			childList: true,
-			subtree: true,
-		});
-	}
-
-	/**
-	 * Apply styling to dynamically added elements
-	 */
-	applyStylingToNewElements(element) {
-		// Apply button styling to new buttons
-		if (element.classList && element.classList.contains("btn")) {
-			if (element.classList.contains("btn-primary")) {
-				element.style.backgroundColor = this.themeConfig.primaryColor;
-				element.style.borderColor = this.themeConfig.primaryColor;
+		Object.entries(this.CSS_VAR_MAP).forEach(([cssVar, configKey]) => {
+			const value = config[configKey];
+			if (value) {
+				root.style.setProperty(cssVar, value);
 			}
-			if (
-				element.classList.contains("btn-danger") ||
-				element.classList.contains("btn-cancel")
-			) {
-				element.style.backgroundColor = this.themeConfig.dangerColor;
-				element.style.borderColor = this.themeConfig.dangerColor;
-			}
-		}
-
-		// Apply styling to tables
-		if (element.classList && element.classList.contains("table")) {
-			this.styleTable(element);
-		}
-	}
-
-	/**
-	 * Style individual table
-	 */
-	styleTable(table) {
-		const headers = table.querySelectorAll("thead th");
-		headers.forEach((header) => {
-			header.style.backgroundColor = this.themeConfig.tableHeaderBg;
-			header.style.color = this.themeConfig.tableHeaderText;
-		});
-
-		const rows = table.querySelectorAll("tbody tr");
-		rows.forEach((row, index) => {
-			if (index % 2 === 0) {
-				row.style.backgroundColor = this.themeConfig.tableEvenBg;
-			}
-
-			row.addEventListener("mouseenter", () => {
-				row.style.backgroundColor = this.themeConfig.tableHoverBg;
-			});
-
-			row.addEventListener("mouseleave", () => {
-				if (index % 2 === 0) {
-					row.style.backgroundColor = this.themeConfig.tableEvenBg;
-				} else {
-					row.style.backgroundColor = "";
-				}
-			});
 		});
 	}
 
-	/**
-	 * Add global CSS styles
-	 */
-	addGlobalStyles(css) {
-		const style = document.createElement("style");
-		style.textContent = css;
-		style.setAttribute("data-nbs-theme", "true");
-		document.head.appendChild(style);
+	// -------------------------------------------------------------------------
+	// Real-time subscription — re-apply when admin saves Desk Theme
+	// -------------------------------------------------------------------------
+	subscribeRealtime() {
+		if (!window.frappe || !frappe.realtime) return;
+
+		frappe.realtime.on("nbs_theme_updated", () => {
+			this.clearCache();
+			this.fetchAndApply();
+		});
 	}
 
-	/**
-	 * Update theme configuration
-	 */
-	updateTheme(newConfig) {
-		this.themeConfig = { ...this.themeConfig, ...newConfig };
-		this.applyTheme();
-		this.setupTableStyling();
-		this.setupButtonStyling();
-	}
-
-	/**
-	 * Get current theme configuration
-	 */
-	getThemeConfig() {
-		return { ...this.themeConfig };
-	}
-
-	/**
-	 * Setup login page customization
-	 */
+	// -------------------------------------------------------------------------
+	// Login page — update the "Sign in to ..." text with the company name
+	// -------------------------------------------------------------------------
 	setupLoginPage() {
-		this.updateLoginText();
-	}
+		const loginText = document.querySelector(".page-card-head h4");
+		if (!loginText) return;
 
-	/**
-	 * Update login text with company name
-	 */
-	updateLoginText() {
-		const loginTextElement = document.querySelector(".page-card-head h4");
-		if (!loginTextElement) return;
-
-		// Get company name via our custom whitelisted API call
 		frappe
 			.call({
 				method: "nbs_customization.api.get_default_company",
 				args: {},
 			})
 			.then((r) => {
-				if (r.message && r.message.company_name) {
-					const loginText = document.querySelector(".page-card-head h4");
-					if (loginText) {
-						loginText.textContent = `Login to ${r.message.company_name}`;
-					}
+				if (r && r.message && r.message.company_name) {
+					loginText.textContent = `Sign in to ${r.message.company_name}`;
 				}
 			})
-			.catch((err) => {
-				// Fallback to theme config if API call fails
-				loginTextElement.textContent = `Login to ${this.themeConfig.loginTitle || "NBS"}`;
+			.catch(() => {
+				// Fallback — leave default text as-is
 			});
+	}
+
+	// -------------------------------------------------------------------------
+	// MutationObserver — re-apply inline styles to dynamically injected elements
+	// -------------------------------------------------------------------------
+	setupMutationObserver() {
+		if (!window.MutationObserver) return;
+
+		const observer = new MutationObserver((mutations) => {
+			mutations.forEach((mutation) => {
+				mutation.addedNodes.forEach((node) => {
+					if (node.nodeType !== Node.ELEMENT_NODE) return;
+					this.styleNewElement(node);
+				});
+			});
+		});
+
+		observer.observe(document.body, { childList: true, subtree: true });
+	}
+
+	styleNewElement(el) {
+		// Re-swap loader logo when the freeze div is re-injected (SPA navigations)
+		if (el.id === "freeze" || el.classList.contains("page-loading-indicator")) {
+			// At this point frappe.boot is available (SPA navigation),
+			// so app_logo_url will resolve correctly
+			const logoSrc =
+				(window.frappe && frappe.boot && frappe.boot.app_logo_url) ||
+				"/files/app-logo.png";
+
+			el.querySelectorAll("svg").forEach((s) => (s.style.display = "none"));
+
+			let img = el.querySelector("img");
+			if (!img) {
+				img = document.createElement("img");
+				img.alt = "Loading";
+				el.insertBefore(img, el.firstChild);
+			}
+			img.src = logoSrc;
+			img.style.cssText =
+				"width:110px;height:110px;object-fit:contain;display:block;margin:0 auto 20px;";
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Cache helpers
+	// -------------------------------------------------------------------------
+	loadCache() {
+		// Skip cache entirely in developer mode so changes are instant
+		if (frappe.boot && frappe.boot.developer_mode) return null;
+
+		try {
+			const raw = localStorage.getItem(this.CACHE_KEY);
+			return raw ? JSON.parse(raw) : null;
+		} catch {
+			return null;
+		}
+	}
+
+	saveCache(config) {
+		try {
+			localStorage.setItem(this.CACHE_KEY, JSON.stringify(config));
+		} catch {
+			// localStorage unavailable — silently ignore
+		}
+	}
+
+	clearCache() {
+		try {
+			localStorage.removeItem(this.CACHE_KEY);
+		} catch {
+			// ignore
+		}
+	}
+
+	// Public helper — called from desk_theme.js Apply Theme button
+	applyAndReload() {
+		this.clearCache();
+		window.location.reload();
 	}
 }
 
-// Initialize theme when DOM is ready
-document.addEventListener("DOMContentLoaded", () => {
-	window.NBSTheme = new NBSTheme();
-	window.NBSTheme.setupLoginPage();
-});
+// ---------------------------------------------------------------------------
+// 3. INITIALISE
+// ---------------------------------------------------------------------------
 
-// Also initialize if DOM is already loaded
-if (document.readyState === "loading") {
-	document.addEventListener("DOMContentLoaded", () => {
-		window.NBSTheme = new NBSTheme();
-		window.NBSTheme.setupLoginPage();
-	});
-} else {
+function initNBSTheme() {
 	window.NBSTheme = new NBSTheme();
-	window.NBSTheme.setupLoginPage();
+	window.NBSTheme.init();
 }
 
-// Additional setup for Frappe framework
+// Guard against double-init
+if (!window.NBSTheme) {
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initNBSTheme);
+	} else {
+		// DOM already ready (common in Frappe SPA after first load)
+		initNBSTheme();
+	}
+}
+
+// Frappe framework hook — also fire after frappe.boot completes
 if (window.frappe) {
 	$(document).ready(() => {
 		if (window.NBSTheme) {
+			// Re-run login page setup in case frappe.call wasn't ready earlier
 			window.NBSTheme.setupLoginPage();
 		}
 	});
