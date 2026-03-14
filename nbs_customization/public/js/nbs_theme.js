@@ -83,7 +83,6 @@ class NBSTheme {
 			// Brand
 			"--nbs-primary": "primaryColor",
 			"--nbs-primary-hover": "primaryHover",
-			"--nbs-accent": "accentColor",
 			"--nbs-danger": "dangerColor",
 			"--nbs-danger-hover": "dangerHover",
 
@@ -115,12 +114,6 @@ class NBSTheme {
 			"--nbs-btn-primary-text": "btnPrimaryText",
 			"--nbs-btn-danger-bg": "btnDangerBg",
 			"--nbs-btn-danger-hover": "btnDangerHover",
-
-			// Forms & inputs
-			"--nbs-form-bg": "formBg",
-			"--nbs-input-border": "inputBorder",
-			"--nbs-input-focus": "inputFocus",
-			"--nbs-label-color": "labelColor",
 
 			// Login
 			"--nbs-login-bg": "loginBg",

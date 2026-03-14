@@ -9,13 +9,12 @@ CACHE_KEY = "nbs_desk_theme"
 NBS_DEFAULTS = {
 	"primary_color":                       "#001b52",
 	"primary_hover":                       "#001540",
-	"accent_color":                        "#06b6d4",
 	"danger_color":                        "#dc2626",
 	"danger_hover":                        "#b91c1c",
-	"sidebar_background":                  "#001b52",
-	"sidebar_text_color":                  "#e2e8f0",
-	"active_item_background":              "#06b6d4",
-	"active_item_text":                    "#ffffff",
+	"sidebar_background":                  "#e8e9e9",
+	"sidebar_text_color":                  "#001b52",
+	"active_item_background":              "#001b52",
+	"active_item_text":                    "#00fdff",
 	"navbar_background":                   "#001b52",
 	"navbar_text_color":                   "#ffffff",
 	"navbar_icon_color":                   "#ffffff",
@@ -31,10 +30,6 @@ NBS_DEFAULTS = {
 	"primary_button_text":                 "#ffffff",
 	"danger_button_bg":                    "#dc2626",
 	"danger_button_hover":                 "#b91c1c",
-	"form_background":                     "#ffffff",
-	"input_border_color":                  "#cbd5e1",
-	"input_focus_color":                   "#06b6d4",
-	"label_color":                         "#475569",
 	"login_title":                         "NBS",
 	"login_title_color":                   "#001b52",
 	"login_button_color":                  "#001b52",
@@ -59,9 +54,6 @@ def get_desk_theme():
 	if cached:
 		return cached
 
-	# get_singles_dict returns a plain dict of whatever is saved in the
-	# SingleValue table — it never raises "not found", just returns an
-	# empty dict if no values have been saved yet.
 	saved = frappe.db.get_singles_dict("Desk Theme") or {}
 
 	config = _build_config(saved)
@@ -83,7 +75,6 @@ def _build_config(saved):
 		# Brand
 		"primaryColor":        v("primary_color"),
 		"primaryHover":        v("primary_hover"),
-		"accentColor":         v("accent_color"),
 		"dangerColor":         v("danger_color"),
 		"dangerHover":         v("danger_hover"),
 
@@ -115,12 +106,6 @@ def _build_config(saved):
 		"btnPrimaryText":      v("primary_button_text"),
 		"btnDangerBg":         v("danger_button_bg"),
 		"btnDangerHover":      v("danger_button_hover"),
-
-		# Forms & inputs
-		"formBg":              v("form_background"),
-		"inputBorder":         v("input_border_color"),
-		"inputFocus":          v("input_focus_color"),
-		"labelColor":          v("label_color"),
 
 		# Login
 		"loginTitle":          v("login_title"),

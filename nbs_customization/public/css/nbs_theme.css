@@ -34,15 +34,14 @@
 	/* Brand */
 	--nbs-primary: #001b52;
 	--nbs-primary-hover: #001540;
-	--nbs-accent: #06b6d4;
 	--nbs-danger: #dc2626;
 	--nbs-danger-hover: #b91c1c;
 
 	/* Sidebar */
-	--nbs-sidebar-bg: #001b52;
-	--nbs-sidebar-text: #e2e8f0;
-	--nbs-sidebar-active-bg: #06b6d4;
-	--nbs-sidebar-active-text: #ffffff;
+	--nbs-sidebar-bg: #e8e9e9;
+	--nbs-sidebar-text: #001b52;
+	--nbs-sidebar-active-bg: #001b52;
+	--nbs-sidebar-active-text: #00fdff;
 
 	/* Navbar */
 	--nbs-navbar-bg: #001b52;
@@ -52,7 +51,7 @@
 	/* Tables & lists */
 	--nbs-table-header-bg: #001b52;
 	--nbs-table-header-text: #ffffff;
-	--nbs-table-even-bg: #eff6ff;
+	--nbs-table-even-bg: #dbeafe;
 	--nbs-table-row-hover-bg: #dbeafe;
 
 	/* Child tables (can differ from list table headers) */
@@ -60,7 +59,7 @@
 	--nbs-child-header-text: #ffffff;
 
 	/* Select / dropdown hover */
-	--nbs-select-row-hover-bg: #e0f2fe;
+	--nbs-select-row-hover-bg: #dbeafe;
 
 	/* Buttons */
 	--nbs-btn-primary-bg: #001b52;
@@ -69,41 +68,41 @@
 	--nbs-btn-danger-bg: #dc2626;
 	--nbs-btn-danger-hover: #b91c1c;
 
-	/* Forms & inputs */
-	--nbs-form-bg: #ffffff;
-	--nbs-input-border: #cbd5e1;
-	--nbs-input-focus: #06b6d4;
-	--nbs-label-color: #475569;
-
 	/* Login */
 	--nbs-login-bg: #f1f5f9;
 	--nbs-login-box-bg: #ffffff;
 	--nbs-login-title-color: #001b52;
 	--nbs-login-btn-color: #001b52;
+	/* Layout - Always 100% width */
+	--page-max-width: 100% !important;
+	--content-max-width: 100% !important;
+	--form-container-max-width: 100% !important;
 }
 
-/* ============================================================
-   2. FULL-WIDTH LAYOUT
-   ============================================================ */
+/* ========================================
+   FULL-WIDTH LAYOUT SYSTEM
+   ======================================== */
 
+/* Main page containers - always full width */
 .page-container,
 .content.page-container,
 .layout-main-section,
 .form-page {
-	max-width: 100% !important;
+	max-width: var(--page-max-width) !important;
 	width: 100% !important;
-	padding-left: 24px !important;
-	padding-right: 24px !important;
+	padding: 0 24px !important;
 }
 
+/* Form layouts - full width with proper spacing */
 .form-layout,
 .form-container,
 .form-view,
 .frappe-control {
-	max-width: 100% !important;
+	max-width: var(--form-container-max-width) !important;
 	width: 100% !important;
 }
 
+/* Form sections and columns */
 .form-layout .row,
 .form-section,
 .form-grid,
@@ -113,13 +112,23 @@
 	width: 100% !important;
 }
 
-.list-view-container,
-.report-view-container,
-.tree-view-container {
+/* Form controls - full width within containers */
+.form-layout .frappe-control,
+.form-layout .control-input,
+.form-layout .control-label {
 	max-width: 100% !important;
 	width: 100% !important;
 }
 
+/* List view containers - full width */
+.list-view-container,
+.report-view-container,
+.tree-view-container {
+	max-width: var(--page-max-width) !important;
+	width: 100% !important;
+}
+
+/* List view tables - full width */
 .list-view-table,
 .report-table,
 .dataTable,
@@ -176,109 +185,202 @@
 	color: rgba(255, 255, 255, 0.55) !important;
 }
 
-/* Navbar dropdown menus */
-.navbar .dropdown-menu {
-	border-top: 2px solid var(--nbs-accent) !important;
-}
-
 /* ============================================================
    4. SIDEBAR
    ============================================================ */
 
-/* Container */
-.desk-sidebar,
-.layout-side-section,
-.sidebar-column {
+/* ── Container ─────────────────────────────────────────── */
+.body-sidebar {
 	background-color: var(--nbs-sidebar-bg) !important;
 	border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
-/* All sidebar item links/spans */
-.desk-sidebar .sidebar-item a,
-.desk-sidebar .standard-sidebar-item a,
-.desk-sidebar .sidebar-item > span,
-.sidebar-column .sidebar-item > span,
-.sidebar-column .sidebar-item > a,
-.sidebar-column .standard-sidebar-item > a {
+/* ── Workspace header (title + subtitle) ───────────────── */
+.body-sidebar .sidebar-header {
+	background-color: var(--nbs-sidebar-bg) !important;
+}
+.body-sidebar .sidebar-header .header-title,
+.body-sidebar .sidebar-header .header-subtitle {
 	color: var(--nbs-sidebar-text) !important;
-	border-radius: 6px;
-	margin: 1px 6px;
-	padding: 7px 10px;
-	display: flex;
-	align-items: center;
-	gap: 8px;
+}
+
+/* ── All item anchors — base text colour ────────────────── */
+.body-sidebar .standard-sidebar-item .item-anchor,
+.body-sidebar .standard-sidebar-item .item-anchor .sidebar-item-label {
+	color: var(--nbs-sidebar-text) !important;
 	transition:
 		background-color 0.15s ease,
 		color 0.15s ease;
 }
 
-/* Hover — uses active colors, matching old app behaviour */
-.desk-sidebar .sidebar-item:not(.selected):hover a,
-.desk-sidebar .standard-sidebar-item:not(.selected):hover a,
-.desk-sidebar .sidebar-item:not(.selected):hover > span,
-.sidebar-column .sidebar-item:not(.selected):hover > span,
-.sidebar-column .sidebar-item:not(.selected):hover > a {
-	background-color: var(--nbs-sidebar-active-bg) !important;
-	color: var(--nbs-sidebar-active-text) !important;
+/* ── Icon colour — inactive ─────────────────────────────── */
+/* The chevron <use> has stroke="#7c7c7c" as an HTML attribute on the
+   inner <svg>, but we can override the outer svg's stroke via CSS.
+   We also force the <use> element's stroke explicitly. */
+.body-sidebar .standard-sidebar-item .sidebar-item-icon svg,
+.body-sidebar .standard-sidebar-item .item-anchor svg,
+.body-sidebar .standard-sidebar-item .drop-icon svg,
+.body-sidebar .standard-sidebar-item .drop-icon svg use {
+	color: var(--nbs-sidebar-text) !important;
+	stroke: var(--nbs-sidebar-text) !important;
+	opacity: 0.75;
 }
 
-/* Hover icons */
-.desk-sidebar .sidebar-item:not(.selected):hover svg,
-.sidebar-column .sidebar-item:not(.selected):hover svg {
-	fill: var(--nbs-sidebar-active-text) !important;
+/* ── Hover — ONLY when the container itself is hovered, not
+   when a child container inside .nested-container is hovered.
+   We achieve this by checking that the hovered element is NOT
+   inside an open .nested-container (i.e. the group row itself).
+   Selector: target > .standard-sidebar-item only when the
+   .sidebar-child-item sibling does NOT contain the hovered element.
+   CSS cannot do "unless descendant is hovered" natively, so we
+   instead scope to .body-sidebar-top > .sidebar-items children
+   and use :not(.nested-container *) — but the cleanest reliable
+   approach is :hover on the container + > child combinator to
+   limit depth, then explicitly UNDO on parent when child hovered. ─ */
+
+/* Step 1 — apply hover to directly-hovered non-active item */
+.body-sidebar
+	.sidebar-item-container:hover
+	> .standard-sidebar-item:not(.active-sidebar)
+	.item-anchor {
+	background-color: var(--nbs-sidebar-active-bg) !important;
+	border-radius: 6px;
+}
+.body-sidebar
+	.sidebar-item-container:hover
+	> .standard-sidebar-item:not(.active-sidebar)
+	.item-anchor
+	.sidebar-item-label,
+.body-sidebar
+	.sidebar-item-container:hover
+	> .standard-sidebar-item:not(.active-sidebar)
+	.item-anchor
+	span {
+	color: var(--nbs-sidebar-active-text) !important;
+}
+.body-sidebar
+	.sidebar-item-container:hover
+	> .standard-sidebar-item:not(.active-sidebar)
+	.sidebar-item-icon
+	svg,
+.body-sidebar
+	.sidebar-item-container:hover
+	> .standard-sidebar-item:not(.active-sidebar)
+	.item-anchor
+	svg,
+.body-sidebar
+	.sidebar-item-container:hover
+	> .standard-sidebar-item:not(.active-sidebar)
+	.drop-icon
+	svg,
+.body-sidebar
+	.sidebar-item-container:hover
+	> .standard-sidebar-item:not(.active-sidebar)
+	.drop-icon
+	svg
+	use {
+	color: var(--nbs-sidebar-active-text) !important;
+	stroke: var(--nbs-sidebar-active-text) !important;
 	opacity: 1 !important;
 }
 
-/* Active / selected */
-.desk-sidebar .sidebar-item.selected a,
-.desk-sidebar .sidebar-item.active a,
-.desk-sidebar .standard-sidebar-item.selected a,
-.sidebar-column .sidebar-item.selected > span,
-.sidebar-column .sidebar-item.selected > a {
+/* Step 2 — UNDO hover on the parent group row when a CHILD item
+   inside the open .nested-container is hovered. A child being
+   hovered means the parent .sidebar-item-container is also :hover,
+   which would incorrectly highlight the group label.
+   We cancel that by re-applying the default (non-hover) styles
+   whenever the .sidebar-child-item inside is also :hover. */
+.body-sidebar
+	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
+	> .standard-sidebar-item:not(.active-sidebar)
+	.item-anchor {
+	background-color: transparent !important;
+	border-radius: 6px;
+}
+.body-sidebar
+	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
+	> .standard-sidebar-item:not(.active-sidebar)
+	.item-anchor
+	.sidebar-item-label,
+.body-sidebar
+	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
+	> .standard-sidebar-item:not(.active-sidebar)
+	.item-anchor
+	span {
+	color: var(--nbs-sidebar-text) !important;
+}
+.body-sidebar
+	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
+	> .standard-sidebar-item:not(.active-sidebar)
+	.sidebar-item-icon
+	svg,
+.body-sidebar
+	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
+	> .standard-sidebar-item:not(.active-sidebar)
+	.item-anchor
+	svg,
+.body-sidebar
+	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
+	> .standard-sidebar-item:not(.active-sidebar)
+	.drop-icon
+	svg,
+.body-sidebar
+	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
+	> .standard-sidebar-item:not(.active-sidebar)
+	.drop-icon
+	svg
+	use {
+	color: var(--nbs-sidebar-text) !important;
+	stroke: var(--nbs-sidebar-text) !important;
+	opacity: 0.75 !important;
+}
+
+/* ── Active / current page (.active-sidebar) ────────────── */
+.body-sidebar .standard-sidebar-item.active-sidebar .item-anchor {
 	background-color: var(--nbs-sidebar-active-bg) !important;
-	color: var(--nbs-sidebar-active-text) !important;
-	font-weight: 600 !important;
+	border-radius: 6px;
 	border-left: 3px solid rgba(255, 255, 255, 0.8) !important;
 	padding-left: 8px !important;
 }
-
-/* Icons — inactive */
-.desk-sidebar .sidebar-item svg,
-.sidebar-column .sidebar-item svg {
-	fill: var(--nbs-sidebar-text) !important;
-	opacity: 0.7;
-	flex-shrink: 0;
+.body-sidebar .standard-sidebar-item.active-sidebar .item-anchor .sidebar-item-label {
+	color: var(--nbs-sidebar-active-text) !important;
+	font-weight: 600 !important;
 }
-
-/* Icons — active */
-.desk-sidebar .sidebar-item.selected svg,
-.sidebar-column .sidebar-item.selected svg {
-	fill: var(--nbs-sidebar-active-text) !important;
+.body-sidebar .standard-sidebar-item.active-sidebar .sidebar-item-icon svg,
+.body-sidebar .standard-sidebar-item.active-sidebar .item-anchor svg,
+.body-sidebar .standard-sidebar-item.active-sidebar .drop-icon svg,
+.body-sidebar .standard-sidebar-item.active-sidebar .drop-icon svg use {
+	color: var(--nbs-sidebar-active-text) !important;
+	stroke: var(--nbs-sidebar-active-text) !important;
 	opacity: 1 !important;
 }
 
-/* Section / group headings */
-.desk-sidebar .sidebar-group-title,
-.sidebar-column .list-unstyled-title,
-.desk-sidebar .sidebar-label {
-	color: rgba(255, 255, 255, 0.4) !important;
-	font-size: 10.5px !important;
-	font-weight: 600 !important;
-	letter-spacing: 0.09em !important;
-	padding: 18px 16px 4px !important;
+/* ── Active item hover — subtle brightness feedback ────── */
+.body-sidebar .sidebar-item-container:hover > .standard-sidebar-item.active-sidebar .item-anchor {
+	filter: brightness(1.15);
 }
 
-/* Sidebar scrollbar — subtle on dark bg */
-.desk-sidebar::-webkit-scrollbar,
-.layout-side-section::-webkit-scrollbar {
+/* ── Bottom area (user info, collapse link) ─────────────── */
+.body-sidebar .body-sidebar-bottom,
+.body-sidebar .collapse-sidebar-link {
+	color: var(--nbs-sidebar-text) !important;
+}
+.body-sidebar .collapse-sidebar-link svg {
+	color: var(--nbs-sidebar-text) !important;
+	stroke: var(--nbs-sidebar-text) !important;
+}
+.body-sidebar .avatar-name-email span {
+	color: var(--nbs-sidebar-text) !important;
+}
+
+/* ── Scrollbar — subtle on dark bg ─────────────────────── */
+.body-sidebar::-webkit-scrollbar {
 	width: 4px;
 }
-.desk-sidebar::-webkit-scrollbar-track,
-.layout-side-section::-webkit-scrollbar-track {
+.body-sidebar::-webkit-scrollbar-track {
 	background: transparent;
 }
-.desk-sidebar::-webkit-scrollbar-thumb,
-.layout-side-section::-webkit-scrollbar-thumb {
+.body-sidebar::-webkit-scrollbar-thumb {
 	background: rgba(255, 255, 255, 0.2);
 	border-radius: 2px;
 }
@@ -319,18 +421,19 @@
 
 /* ============================================================
    6. DANGER / CANCEL BUTTONS
+   ERPNext v16 cancel: <button class="btn btn-secondary btn-default btn-sm" data-label="Cancel">
+   Bootstrap's .btn.btn-secondary wins at equal specificity.
+   Adding .btn-sm (4 classes + attribute) beats it cleanly.
    ============================================================ */
 
 .btn-danger,
 .btn-red,
 .btn-cancel,
-.btn-secondary[data-action="cancel"],
+.btn.btn-secondary.btn-sm.btn-modal-secondary,
+.btn.btn-secondary.btn-default.btn-sm[data-label="Cancel"],
+.btn.btn-secondary.btn-default[data-label="Cancel"],
 [data-action="no"],
 [data-response="no"],
-.form-toolbar .btn[data-label="Cancel"],
-.form-toolbar .btn.btn-cancel,
-.modal-footer .btn[data-button-primary="false"],
-.modal-footer .btn.btn-secondary:not(.btn-default),
 .workflow-button-area .btn[data-action*="reject"],
 .workflow-button-area .btn[data-action*="cancel"],
 .workflow-button-area .btn[data-action*="decline"] {
@@ -342,14 +445,20 @@
 	transition: all 0.18s ease;
 }
 
+/* Text spans inside cancel button */
+.btn.btn-secondary.btn-default[data-label="Cancel"] span,
+.btn.btn-secondary.btn-default[data-label="Cancel"] span span {
+	color: #ffffff !important;
+}
+
 .btn-danger:hover,
 .btn-red:hover,
 .btn-cancel:hover,
-.btn-secondary[data-action="cancel"]:hover,
+.btn.btn-secondary.btn-sm.btn-modal-secondary:hover,
+.btn.btn-secondary.btn-default.btn-sm[data-label="Cancel"]:hover,
+.btn.btn-secondary.btn-default[data-label="Cancel"]:hover,
 [data-action="no"]:hover,
-[data-response="no"]:hover,
-.form-toolbar .btn[data-label="Cancel"]:hover,
-.modal-footer .btn.btn-secondary:not(.btn-default):hover {
+[data-response="no"]:hover {
 	background-color: var(--nbs-btn-danger-hover) !important;
 	border-color: var(--nbs-btn-danger-hover) !important;
 	color: #ffffff !important;
@@ -358,7 +467,8 @@
 }
 
 .btn-danger:active,
-.btn-cancel:active {
+.btn-cancel:active,
+.btn.btn-secondary.btn-default[data-label="Cancel"]:active {
 	transform: translateY(0) !important;
 	box-shadow: none !important;
 }
@@ -396,15 +506,19 @@ header.level.list-row-head.text-muted > div.level-right {
 	color: var(--nbs-table-header-text) !important;
 }
 
-/* Checkbox in header */
-.list-row-head .list-check-all {
-	accent-color: var(--nbs-accent) !important;
+/* Even rows — ERPNext v16 list view uses div-based flex rows, not <tr>.
+   The repeating unit is .list-row-container inside .list-view-main */
+.list-row-container:nth-child(even),
+.list-row-container:nth-child(even) .list-row {
+	background-color: var(--nbs-table-even-bg) !important;
+}
+.list-row-container:nth-child(even) .level-right {
+	background-color: var(--nbs-table-even-bg) !important;
 }
 
-/* Even rows */
+/* Fallback for genuine <table> views (Report Builder, Query Report) */
 .table tbody tr:nth-child(even),
-.dataTable tbody tr:nth-child(even),
-.list-view-table tbody tr:nth-child(even) {
+.dataTable tbody tr:nth-child(even) {
 	background-color: var(--nbs-table-even-bg) !important;
 }
 
@@ -415,6 +529,9 @@ header.level.list-row-head.text-muted > div.level-right {
 .list-row-container:hover {
 	background-color: var(--nbs-table-row-hover-bg) !important;
 	cursor: pointer;
+}
+.list-row-container:hover .level-right {
+	background-color: var(--nbs-table-row-hover-bg) !important;
 }
 
 /* Cell padding */
@@ -441,17 +558,16 @@ header.level.list-row-head.text-muted > div.level-right {
 	border-bottom: 2px solid var(--nbs-child-header-bg) !important;
 }
 
-/* Child table even rows */
-.form-grid .grid-row:nth-child(even) .row,
-.form-grid .grid-row:nth-child(even) {
+/* Child table even rows.
+   DOM: .form-grid > .grid-body > .rows > .grid-row > .data-row.row.m-0
+   We need high specificity to beat Bootstrap's .row and Frappe's own
+   grid styles. Target both .data-row AND the specific class combo
+   .row.m-0 to ensure we win regardless of stylesheet load order.
+   Also covers .editable-row (the currently-edited row in draft forms). */
+.form-grid .grid-body .rows .grid-row:nth-child(even) .data-row .col,
+.form-grid .grid-body .rows .grid-row:nth-child(even) .data-row .row-check,
+.form-grid .grid-body .rows .grid-row:nth-child(even) .data-row .row-index {
 	background-color: var(--nbs-table-even-bg) !important;
-}
-
-/* Child table row hover */
-.form-grid .grid-row:hover .row,
-.form-grid .grid-row:hover {
-	background-color: var(--nbs-table-row-hover-bg) !important;
-	cursor: pointer;
 }
 
 /* Add row button */
@@ -469,22 +585,11 @@ header.level.list-row-head.text-muted > div.level-right {
    9. SELECT / LINK / DROPDOWN HOVER
    ============================================================ */
 
-/* Awesomplete — Link field autocomplete */
-.awesomplete > ul {
-	border-top: 2px solid var(--nbs-accent) !important;
-}
-
 .awesomplete > ul > li:hover,
 .awesomplete > ul > li[aria-selected="true"] {
 	background-color: var(--nbs-select-row-hover-bg) !important;
 	color: var(--nbs-primary) !important;
 	cursor: pointer;
-}
-
-/* Keyboard-focused item gets accent bg for clear distinction */
-.awesomplete > ul > li[aria-selected="true"] {
-	background-color: var(--nbs-accent) !important;
-	color: #ffffff !important;
 }
 
 /* Bootstrap dropdown-menu items */
@@ -498,12 +603,6 @@ header.level.list-row-head.text-muted > div.level-right {
 	color: var(--nbs-primary) !important;
 }
 
-.dropdown-menu > .active > a,
-.dropdown-menu .dropdown-item.active {
-	background-color: var(--nbs-accent) !important;
-	color: #ffffff !important;
-}
-
 /* Frappe link field result list */
 .link-results .link-result:hover,
 .frappe-control .dropdown-results .link-result:hover,
@@ -512,55 +611,17 @@ header.level.list-row-head.text-muted > div.level-right {
 	color: var(--nbs-primary) !important;
 }
 
-/* Selected link result */
-.link-results .link-result.active,
-.frappe-result.active {
-	background-color: var(--nbs-accent) !important;
-	color: #ffffff !important;
-}
-
 /* Universal search results (Ctrl+G) */
 .search-results .search-result:hover,
 .omnisearch-result:hover,
 .omnisearch .list-group-item:hover {
 	background-color: var(--nbs-select-row-hover-bg) !important;
-	border-left: 3px solid var(--nbs-accent) !important;
 }
 
 /* Frappe Select control custom dropdown */
 .frappe-control .select-input option:checked,
 select.form-control option:checked {
 	background-color: var(--nbs-select-row-hover-bg) !important;
-}
-
-/* ============================================================
-   10. FORMS & INPUTS
-   ============================================================ */
-
-/* ============================================================
-   11. PAGE TITLES & BREADCRUMBS
-   ============================================================ */
-
-.page-title h1,
-.page-head h1,
-.title-text,
-.form-title,
-h1.title-text {
-	color: var(--nbs-primary) !important;
-	font-weight: 700;
-}
-
-/* Breadcrumbs */
-.breadcrumb-item a {
-	color: var(--nbs-primary) !important;
-}
-
-.breadcrumb-item.active {
-	color: var(--nbs-accent) !important;
-}
-
-.breadcrumb-item + .breadcrumb-item::before {
-	color: var(--nbs-accent) !important;
 }
 
 /* ============================================================
@@ -596,48 +657,7 @@ h1.title-text {
 }
 
 /* ============================================================
-   13. STATUS INDICATORS & BADGES
-   ============================================================ */
-
-/* Indicator dots */
-.indicator-pill.blue,
-.indicator.blue {
-	background: var(--nbs-accent) !important;
-	color: #ffffff !important;
-}
-
-.indicator-pill.red,
-.indicator.red {
-	background: var(--nbs-danger) !important;
-	color: #ffffff !important;
-}
-
-.indicator-pill.green,
-.indicator.green {
-	background: #16a34a !important;
-	color: #ffffff !important;
-}
-
-.indicator-pill.orange,
-.indicator.orange {
-	background: #ea580c !important;
-	color: #ffffff !important;
-}
-
-/* Form status indicator bar */
-.form-status-indicator {
-	border-color: var(--nbs-primary) !important;
-}
-
-/* Submitted doc — accent color */
-.indicator-pill[data-docstatus="1"],
-.indicator[data-docstatus="1"] {
-	background: var(--nbs-accent) !important;
-	color: #ffffff !important;
-}
-
-/* ============================================================
-   14. PAGE LOADER / SPLASH SCREEN
+   13. PAGE LOADER / SPLASH SCREEN
    ============================================================ */
 
 /*
@@ -684,13 +704,6 @@ h1.title-text {
 #freeze .loading-spinner,
 .page-loading-indicator .loading-spinner {
 	margin-top: 4px;
-}
-
-/* Tint the spinner to accent color */
-#freeze .loading-spinner .spinner-border,
-.page-loading-indicator .loading-spinner .spinner-border {
-	border-top-color: var(--nbs-accent) !important;
-	border-right-color: var(--nbs-accent) !important;
 }
 
 /* ============================================================
@@ -761,8 +774,7 @@ body.login-page {
 	}
 
 	/* Mobile sidebar drawer */
-	.layout-side-section.shown {
-		background-color: var(--nbs-sidebar-bg) !important;
+	.body-sidebar {
 		z-index: 1050;
 	}
 
@@ -789,14 +801,6 @@ body.login-page {
 /* ============================================================
    17. ACCESSIBILITY
    ============================================================ */
-
-/* Focus outlines for keyboard navigation */
-.btn-primary:focus-visible,
-.btn-danger:focus-visible,
-.btn-cancel:focus-visible {
-	outline: 2px solid var(--nbs-accent);
-	outline-offset: 2px;
-}
 
 /* High contrast mode */
 @media (prefers-contrast: high) {
