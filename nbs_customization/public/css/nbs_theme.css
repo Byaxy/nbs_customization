@@ -206,12 +206,8 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
-
-	padding: 8px 12px;
 	border-radius: 6px;
-
 	color: var(--nbs-sidebar-text) !important;
-
 	transition:
 		background-color 0.15s ease,
 		color 0.15s ease;
@@ -227,6 +223,7 @@
 .body-sidebar .standard-sidebar-item:not(.active-sidebar) .item-anchor:hover {
 	background-color: var(--nbs-sidebar-active-bg) !important;
 	color: var(--nbs-sidebar-active-text) !important;
+	border-radius: 6px;
 }
 
 .body-sidebar .standard-sidebar-item:not(.active-sidebar) .item-anchor:hover svg,
@@ -239,10 +236,7 @@
 .body-sidebar .standard-sidebar-item.active-sidebar .item-anchor {
 	background-color: var(--nbs-sidebar-active-bg) !important;
 	color: var(--nbs-sidebar-active-text) !important;
-
-	border-left: 3px solid rgba(255, 255, 255, 0.8) !important;
-	padding-left: 9px !important;
-
+	border-radius: 6px;
 	font-weight: 600;
 }
 
@@ -642,8 +636,8 @@ select.form-control option:checked {
    ============================================================ */
 
 .modal-header {
-	background-color: #f0f4ff !important;
-	border-bottom: 1px solid var(--nbs-primary) !important;
+	background-color: var(--nbs-table-even-bg) !important;
+	border-bottom: 1px solid var(--nbs-table-even-bg) !important;
 }
 
 .modal-title {
@@ -655,7 +649,6 @@ select.form-control option:checked {
 .modal-header .close,
 .modal-header button.close {
 	color: var(--nbs-primary) !important;
-	opacity: 0.7;
 }
 
 .modal-header .close:hover {
