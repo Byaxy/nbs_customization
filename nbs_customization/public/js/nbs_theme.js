@@ -85,6 +85,7 @@ class NBSTheme {
 			"--nbs-primary-hover": "primaryHover",
 			"--nbs-danger": "dangerColor",
 			"--nbs-danger-hover": "dangerHover",
+			"--nbs-accent-color": "accentColor",
 
 			// Sidebar
 			"--nbs-sidebar-bg": "sidebarBg",
@@ -96,6 +97,8 @@ class NBSTheme {
 			"--nbs-navbar-bg": "navbarBg",
 			"--nbs-navbar-text": "navbarText",
 			"--nbs-navbar-icon": "navbarIcon",
+			"--nbs-page-head-bg": "pageHeadBg",
+			"--nbs-page-head-text": "pageHeadText",
 
 			// Tables & lists
 			"--nbs-table-header-bg": "tableHeaderBg",
@@ -188,12 +191,13 @@ class NBSTheme {
 
 		frappe.realtime.on("nbs_theme_updated", () => {
 			this.clearCache();
-			this.fetchAndApply();
+			// Full reload ensures all painted elements pick up new colors
+			window.location.reload();
 		});
 	}
 
 	// -------------------------------------------------------------------------
-	// Login page — update the "Sign in to ..." text with the company name
+	// Login page — update the "Login to ..." text with the company name
 	// -------------------------------------------------------------------------
 	setupLoginPage() {
 		const loginText = document.querySelector(".page-card-head h4");
@@ -206,7 +210,7 @@ class NBSTheme {
 			})
 			.then((r) => {
 				if (r && r.message && r.message.company_name) {
-					loginText.textContent = `Sign in to ${r.message.company_name}`;
+					loginText.textContent = `Login to ${r.message.company_name}`;
 				}
 			})
 			.catch(() => {

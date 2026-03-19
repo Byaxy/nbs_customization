@@ -1,31 +1,3 @@
-/**
- * NBS Customization Theme — nbs_theme.css
- * Production-ready CSS for ERPNext v16 desk theming.
- *
- * All colors are driven by CSS custom properties declared in :root.
- * The JS engine (nbs_theme.js) overrides these at runtime from the
- * Desk Theme doctype, so the values here are safe fallback defaults.
- *
- * Section order:
- *  1.  :root — token declarations
- *  2.  Full-width layout
- *  3.  Navbar
- *  4.  Sidebar
- *  5.  Primary buttons
- *  6.  Danger / cancel buttons
- *  7.  List view tables
- *  8.  Child tables (form grid)
- *  9.  Select / link / dropdown hover
- *  10. Forms & inputs
- *  11. Page titles & breadcrumbs
- *  12. Modals & dialogs
- *  13. Status indicators & badges
- *  14. Page loader / splash screen
- *  15. Login page
- *  16. Responsive / mobile
- *  17. Accessibility
- */
-
 /* ============================================================
    1. ROOT — CSS VARIABLE TOKENS
    ============================================================ */
@@ -36,6 +8,7 @@
 	--nbs-primary-hover: #001540;
 	--nbs-danger: #dc2626;
 	--nbs-danger-hover: #b91c1c;
+	--nbs-accent-color: "#00fdff";
 
 	/* Sidebar */
 	--nbs-sidebar-bg: #e8e9e9;
@@ -47,6 +20,8 @@
 	--nbs-navbar-bg: #001b52;
 	--nbs-navbar-text: #ffffff;
 	--nbs-navbar-icon: #ffffff;
+	--nbs-page-head-bg: #e8e9e9;
+	--nbs-page-head-text: #001b52;
 
 	/* Tables & lists */
 	--nbs-table-header-bg: #001b52;
@@ -186,203 +161,124 @@
 }
 
 /* ============================================================
+   PAGE HEADER
+   ============================================================ */
+.page-head {
+	background-color: var(--nbs-page-head-bg) !important;
+	margin-left: -24px !important;
+	padding-left: 24px !important;
+}
+.navbar-breadcrumbs li:last-child > a {
+	color: var(--nbs-page-head-text) !important;
+}
+
+/* ============================================================
+   FORM TABS
+   ============================================================ */
+
+/* Active tab text — primary color instead of default black */
+.form-tabs .nav-link.active {
+	color: var(--nbs-primary) !important;
+	border-bottom-color: var(--nbs-primary) !important;
+}
+
+/* Inactive tab hover — subtle primary tint */
+.form-tabs .nav-link:not(.active):hover {
+	color: var(--nbs-primary) !important;
+	border-bottom-color: var(--nbs-primary) !important;
+}
+
+/* ============================================================
    4. SIDEBAR
    ============================================================ */
 
-/* ── Container ─────────────────────────────────────────── */
 .body-sidebar {
 	background-color: var(--nbs-sidebar-bg) !important;
 	border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
-/* ── Workspace header (title + subtitle) ───────────────── */
-.body-sidebar .sidebar-header {
-	background-color: var(--nbs-sidebar-bg) !important;
-}
-.body-sidebar .sidebar-header .header-title,
-.body-sidebar .sidebar-header .header-subtitle {
+.body-sidebar .header-title,
+.body-sidebar .header-subtitle {
 	color: var(--nbs-sidebar-text) !important;
 }
 
-/* ── All item anchors — base text colour ────────────────── */
-.body-sidebar .standard-sidebar-item .item-anchor,
-.body-sidebar .standard-sidebar-item .item-anchor .sidebar-item-label {
+. .body-sidebar .standard-sidebar-item .item-anchor {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+
+	padding: 8px 12px;
+	border-radius: 6px;
+
 	color: var(--nbs-sidebar-text) !important;
+
 	transition:
 		background-color 0.15s ease,
 		color 0.15s ease;
 }
 
-/* ── Icon colour — inactive ─────────────────────────────── */
-/* The chevron <use> has stroke="#7c7c7c" as an HTML attribute on the
-   inner <svg>, but we can override the outer svg's stroke via CSS.
-   We also force the <use> element's stroke explicitly. */
-.body-sidebar .standard-sidebar-item .sidebar-item-icon svg,
-.body-sidebar .standard-sidebar-item .item-anchor svg,
-.body-sidebar .standard-sidebar-item .drop-icon svg,
-.body-sidebar .standard-sidebar-item .drop-icon svg use {
+.body-sidebar .standard-sidebar-item svg,
+.body-sidebar .standard-sidebar-item svg use {
 	color: var(--nbs-sidebar-text) !important;
 	stroke: var(--nbs-sidebar-text) !important;
 	opacity: 0.75;
 }
 
-/* ── Hover — ONLY when the container itself is hovered, not
-   when a child container inside .nested-container is hovered.
-   We achieve this by checking that the hovered element is NOT
-   inside an open .nested-container (i.e. the group row itself).
-   Selector: target > .standard-sidebar-item only when the
-   .sidebar-child-item sibling does NOT contain the hovered element.
-   CSS cannot do "unless descendant is hovered" natively, so we
-   instead scope to .body-sidebar-top > .sidebar-items children
-   and use :not(.nested-container *) — but the cleanest reliable
-   approach is :hover on the container + > child combinator to
-   limit depth, then explicitly UNDO on parent when child hovered. ─ */
-
-/* Step 1 — apply hover to directly-hovered non-active item */
-.body-sidebar
-	.sidebar-item-container:hover
-	> .standard-sidebar-item:not(.active-sidebar)
-	.item-anchor {
+.body-sidebar .standard-sidebar-item:not(.active-sidebar) .item-anchor:hover {
 	background-color: var(--nbs-sidebar-active-bg) !important;
-	border-radius: 6px;
-}
-.body-sidebar
-	.sidebar-item-container:hover
-	> .standard-sidebar-item:not(.active-sidebar)
-	.item-anchor
-	.sidebar-item-label,
-.body-sidebar
-	.sidebar-item-container:hover
-	> .standard-sidebar-item:not(.active-sidebar)
-	.item-anchor
-	span {
 	color: var(--nbs-sidebar-active-text) !important;
 }
-.body-sidebar
-	.sidebar-item-container:hover
-	> .standard-sidebar-item:not(.active-sidebar)
-	.sidebar-item-icon
-	svg,
-.body-sidebar
-	.sidebar-item-container:hover
-	> .standard-sidebar-item:not(.active-sidebar)
-	.item-anchor
-	svg,
-.body-sidebar
-	.sidebar-item-container:hover
-	> .standard-sidebar-item:not(.active-sidebar)
-	.drop-icon
-	svg,
-.body-sidebar
-	.sidebar-item-container:hover
-	> .standard-sidebar-item:not(.active-sidebar)
-	.drop-icon
-	svg
-	use {
+
+.body-sidebar .standard-sidebar-item:not(.active-sidebar) .item-anchor:hover svg,
+.body-sidebar .standard-sidebar-item:not(.active-sidebar) .item-anchor:hover svg use {
 	color: var(--nbs-sidebar-active-text) !important;
 	stroke: var(--nbs-sidebar-active-text) !important;
-	opacity: 1 !important;
+	opacity: 1;
 }
 
-/* Step 2 — UNDO hover on the parent group row when a CHILD item
-   inside the open .nested-container is hovered. A child being
-   hovered means the parent .sidebar-item-container is also :hover,
-   which would incorrectly highlight the group label.
-   We cancel that by re-applying the default (non-hover) styles
-   whenever the .sidebar-child-item inside is also :hover. */
-.body-sidebar
-	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
-	> .standard-sidebar-item:not(.active-sidebar)
-	.item-anchor {
-	background-color: transparent !important;
-	border-radius: 6px;
-}
-.body-sidebar
-	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
-	> .standard-sidebar-item:not(.active-sidebar)
-	.item-anchor
-	.sidebar-item-label,
-.body-sidebar
-	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
-	> .standard-sidebar-item:not(.active-sidebar)
-	.item-anchor
-	span {
-	color: var(--nbs-sidebar-text) !important;
-}
-.body-sidebar
-	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
-	> .standard-sidebar-item:not(.active-sidebar)
-	.sidebar-item-icon
-	svg,
-.body-sidebar
-	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
-	> .standard-sidebar-item:not(.active-sidebar)
-	.item-anchor
-	svg,
-.body-sidebar
-	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
-	> .standard-sidebar-item:not(.active-sidebar)
-	.drop-icon
-	svg,
-.body-sidebar
-	.sidebar-item-container:has(.sidebar-child-item:not(.hidden):hover)
-	> .standard-sidebar-item:not(.active-sidebar)
-	.drop-icon
-	svg
-	use {
-	color: var(--nbs-sidebar-text) !important;
-	stroke: var(--nbs-sidebar-text) !important;
-	opacity: 0.75 !important;
-}
-
-/* ── Active / current page (.active-sidebar) ────────────── */
 .body-sidebar .standard-sidebar-item.active-sidebar .item-anchor {
 	background-color: var(--nbs-sidebar-active-bg) !important;
-	border-radius: 6px;
-	border-left: 3px solid rgba(255, 255, 255, 0.8) !important;
-	padding-left: 8px !important;
-}
-.body-sidebar .standard-sidebar-item.active-sidebar .item-anchor .sidebar-item-label {
 	color: var(--nbs-sidebar-active-text) !important;
-	font-weight: 600 !important;
+
+	border-left: 3px solid rgba(255, 255, 255, 0.8) !important;
+	padding-left: 9px !important;
+
+	font-weight: 600;
 }
-.body-sidebar .standard-sidebar-item.active-sidebar .sidebar-item-icon svg,
-.body-sidebar .standard-sidebar-item.active-sidebar .item-anchor svg,
-.body-sidebar .standard-sidebar-item.active-sidebar .drop-icon svg,
-.body-sidebar .standard-sidebar-item.active-sidebar .drop-icon svg use {
+
+.body-sidebar .standard-sidebar-item.active-sidebar svg,
+.body-sidebar .standard-sidebar-item.active-sidebar svg use {
 	color: var(--nbs-sidebar-active-text) !important;
 	stroke: var(--nbs-sidebar-active-text) !important;
-	opacity: 1 !important;
+	opacity: 1;
 }
 
-/* ── Active item hover — subtle brightness feedback ────── */
-.body-sidebar .sidebar-item-container:hover > .standard-sidebar-item.active-sidebar .item-anchor {
-	filter: brightness(1.15);
+/* Bottom area user button — suppress item hover bg, but allow dropdown to show */
+.body-sidebar-bottom .standard-sidebar-item .item-anchor:hover {
+	background: transparent !important;
 }
 
-/* ── Bottom area (user info, collapse link) ─────────────── */
-.body-sidebar .body-sidebar-bottom,
-.body-sidebar .collapse-sidebar-link {
-	color: var(--nbs-sidebar-text) !important;
-}
-.body-sidebar .collapse-sidebar-link svg {
-	color: var(--nbs-sidebar-text) !important;
-	stroke: var(--nbs-sidebar-text) !important;
-}
-.body-sidebar .avatar-name-email span {
-	color: var(--nbs-sidebar-text) !important;
+/* User popup dropdown — must escape sidebar stacking context */
+.body-sidebar-bottom {
+	position: relative;
+	z-index: 1060;
 }
 
-/* ── Scrollbar — subtle on dark bg ─────────────────────── */
-.body-sidebar::-webkit-scrollbar {
-	width: 4px;
+.body-sidebar-bottom .dropdown-menu {
+	z-index: 1061 !important;
+	/* Pop upward since it's at the bottom of the sidebar */
+	bottom: 100%;
+	top: auto !important;
+	margin-bottom: 4px;
 }
-.body-sidebar::-webkit-scrollbar-track {
-	background: transparent;
-}
-.body-sidebar::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.2);
-	border-radius: 2px;
+
+.body-sidebar .sidebar-label,
+.body-sidebar .list-sidebar-label {
+	color: rgba(0, 0, 0, 0.45) !important;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	padding: 14px 12px 6px;
 }
 
 /* ============================================================
@@ -416,6 +312,54 @@
 
 .btn-primary:active {
 	transform: translateY(0) !important;
+	box-shadow: none !important;
+}
+
+/* ============================================================
+    DEFAULT BUTTONS
+   ============================================================ */
+.btn-default,
+.btn-default span,
+.btn.btn-default:not(.btn-danger),
+.btn-default .btn-text {
+	color: var(--nbs-primary) !important;
+}
+
+/* Default button SVG icons — match button text color */
+.btn-default svg,
+.btn-default svg use,
+.btn.btn-default svg,
+.btn.btn-default svg use {
+	color: var(--nbs-primary) !important;
+	stroke: var(--nbs-primary) !important;
+	fill: currentColor !important;
+}
+
+/* Default button hover / focus — white bg + shadow, no color inversion */
+.btn-default:hover,
+.btn-default:focus,
+.btn.btn-default:hover,
+.btn.btn-default:focus {
+	background-color: #f3f3f3 !important;
+	border-color: var(--nbs-primary) !important;
+	color: var(--nbs-primary) !important;
+	box-shadow: 0 2px 8px rgba(0, 27, 82, 0.15) !important;
+	transform: none;
+}
+
+/* Keep SVG color consistent on hover too */
+.btn-default:hover svg,
+.btn-default:hover svg use,
+.btn-default:focus svg,
+.btn-default:focus svg use {
+	color: var(--nbs-primary) !important;
+	stroke: var(--nbs-primary) !important;
+}
+
+/* Active/pressed state */
+.btn-default:active,
+.btn.btn-default:active {
+	background-color: #f0f4ff !important;
 	box-shadow: none !important;
 }
 
@@ -490,11 +434,14 @@
 	white-space: nowrap;
 }
 
-/* List view head row (Frappe's custom list header) */
+/* List view head row */
 header.level.list-row-head.text-muted,
 .level.list-row-head.text-muted {
 	background-color: var(--nbs-table-header-bg) !important;
 	color: var(--nbs-table-header-text) !important;
+	position: sticky !important;
+	top: 0 !important;
+	z-index: 10 !important;
 }
 
 header.level.list-row-head.text-muted > div.level-right {
@@ -543,6 +490,59 @@ header.level.list-row-head.text-muted > div.level-right {
 }
 
 /* ============================================================
+   7b. REPORT VIEW DATATABLE ROWS
+   ============================================================ */
+
+/* Even rows */
+.datatable .dt-row:not(.dt-row-header):not([data-is-total-row="1"]):nth-child(even) .dt-cell {
+	background-color: var(--nbs-table-even-bg) !important;
+}
+
+/* Row hover */
+.datatable .dt-row:not(.dt-row-header):not([data-is-total-row="1"]):hover .dt-cell {
+	background-color: var(--nbs-table-row-hover-bg) !important;
+	cursor: pointer;
+}
+
+/* Header row — match list view style */
+.datatable .dt-row-header .dt-cell.dt-cell--header .dt-cell__content {
+	background-color: var(--nbs-table-header-bg) !important;
+	color: var(--nbs-table-header-text) !important;
+	font-weight: 600 !important;
+}
+/* Header Filter row */
+.datatable .dt-row-filter .dt-cell.dt-cell--filter .dt-cell__content {
+	background-color: var(--nbs-table-header-bg) !important;
+	color: var(--nbs-primary) !important;
+	font-weight: 600 !important;
+}
+
+/* Total/footer row — keep neutral, don't colorize */
+.datatable .dt-row[data-is-total-row="1"] .dt-cell {
+	background-color: #f8fafc !important;
+	font-weight: 600 !important;
+}
+
+/* Datatable header dropdown toggle */
+.datatable .dt-row-header .dt-dropdown__toggle {
+	background: rgba(255, 255, 255, 0.15) !important;
+	border-radius: 4px;
+	padding: 2px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.datatable .dt-row-header .dt-dropdown__toggle:hover {
+	background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.datatable .dt-row-header .dt-dropdown__toggle svg {
+	color: var(--nbs-table-header-text) !important;
+	stroke: var(--nbs-table-header-text) !important;
+}
+
+/* ============================================================
    8. CHILD TABLES (FORM GRID)
    ============================================================ */
 
@@ -570,15 +570,21 @@ header.level.list-row-head.text-muted > div.level-right {
 	background-color: var(--nbs-table-even-bg) !important;
 }
 
-/* Add row button */
-.form-grid .grid-footer .btn-xs {
-	color: var(--nbs-primary) !important;
-	border-color: var(--nbs-primary) !important;
+/* Add Row Button */
+.btn.btn-secondary.grid-add-row {
+	background-color: var(--nbs-btn-primary-bg) !important;
+	border-color: var(--nbs-btn-primary-bg) !important;
+	color: var(--nbs-btn-primary-text) !important;
+	transition: all 0.18s ease;
 }
 
-.form-grid .grid-footer .btn-xs:hover {
-	background-color: var(--nbs-primary) !important;
-	color: #ffffff !important;
+.btn.btn-secondary.grid-add-row:hover,
+.btn.btn-secondary.grid-add-row:focus {
+	background-color: var(--nbs-btn-primary-hover) !important;
+	border-color: var(--nbs-btn-primary-hover) !important;
+	color: var(--nbs-btn-primary-text) !important;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 10px rgba(0, 27, 82, 0.28);
 }
 
 /* ============================================================
@@ -588,7 +594,16 @@ header.level.list-row-head.text-muted > div.level-right {
 .awesomplete > ul > li:hover,
 .awesomplete > ul > li[aria-selected="true"] {
 	background-color: var(--nbs-select-row-hover-bg) !important;
-	color: var(--nbs-primary) !important;
+	cursor: pointer;
+}
+
+.awesomplete > [role="listbox"] > [role="option"][aria-selected="true"] {
+	background-color: var(--nbs-select-row-hover-bg) !important;
+	cursor: pointer;
+}
+
+.awesomplete > [role="listbox"] > [role="option"]:not(:last-child):hover {
+	background-color: var(--nbs-select-row-hover-bg) !important;
 	cursor: pointer;
 }
 
@@ -600,7 +615,6 @@ header.level.list-row-head.text-muted > div.level-right {
 .dropdown-menu .dropdown-item:hover,
 .dropdown-menu .dropdown-item:focus {
 	background-color: var(--nbs-select-row-hover-bg) !important;
-	color: var(--nbs-primary) !important;
 }
 
 /* Frappe link field result list */
@@ -608,7 +622,6 @@ header.level.list-row-head.text-muted > div.level-right {
 .frappe-control .dropdown-results .link-result:hover,
 .frappe-result:hover {
 	background-color: var(--nbs-select-row-hover-bg) !important;
-	color: var(--nbs-primary) !important;
 }
 
 /* Universal search results (Ctrl+G) */
@@ -630,7 +643,7 @@ select.form-control option:checked {
 
 .modal-header {
 	background-color: #f0f4ff !important;
-	border-bottom: 2px solid var(--nbs-primary) !important;
+	border-bottom: 1px solid var(--nbs-primary) !important;
 }
 
 .modal-title {

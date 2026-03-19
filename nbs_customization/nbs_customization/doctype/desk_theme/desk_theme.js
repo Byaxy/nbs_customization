@@ -20,7 +20,7 @@ frappe.ui.form.on("Desk Theme", {
 				});
 			},
 			__("Actions"),
-		).addClass("btn-primary");
+		);
 
 		// ---- Reset to Defaults button ------------------------------------
 		frm.add_custom_button(
@@ -35,9 +35,9 @@ frappe.ui.form.on("Desk Theme", {
 									message: __("Theme reset to NBS defaults."),
 									indicator: "green",
 								});
-								frm.reload_doc();
 								localStorage.removeItem("nbs_theme_v1");
-								window.location.reload();
+								// Give the server a moment to commit, then reload
+								setTimeout(() => window.location.reload(), 500);
 							})
 							.catch(() => {
 								frappe.msgprint(__("Reset failed. Please try again."));

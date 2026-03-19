@@ -12,6 +12,7 @@ NBS_DEFAULTS = {
 	"primary_hover":                       "#001540",
 	"danger_color":                        "#dc2626",
 	"danger_hover":                        "#b91c1c",
+	"accent_color":				    "#00fdff",
 	"sidebar_background":                  "#e8e9e9",
 	"sidebar_text_color":                  "#001b52",
 	"active_item_background":              "#001b52",
@@ -19,8 +20,10 @@ NBS_DEFAULTS = {
 	"navbar_background":                   "#001b52",
 	"navbar_text_color":                   "#ffffff",
 	"navbar_icon_color":                   "#ffffff",
-	"header_background":                   "#001b52",
-	"header_text":                         "#ffffff",
+	"page_head_bg":                        "#e8e9e9",
+	"page_head_text":                      "#001b52",
+	"table_header_bg":                     "#001b52",
+	"table_header_text":                   "#ffffff",
 	"even_row_background":                 "#eff6ff",
 	"table_row_hover_background":          "#dbeafe",
 	"selectdropdown_row_hover_background": "#e0f2fe",
@@ -31,7 +34,6 @@ NBS_DEFAULTS = {
 	"primary_button_text":                 "#ffffff",
 	"danger_button_bg":                    "#dc2626",
 	"danger_button_hover":                 "#b91c1c",
-	"login_title":                         "NBS",
 	"login_title_color":                   "#001b52",
 	"login_button_color":                  "#001b52",
 	"login_bg_color":                      "#f1f5f9",
@@ -42,8 +44,7 @@ NBS_DEFAULTS = {
 class DeskTheme(Document):
 
 	def on_update(self):
-		"""Clear theme cache and notify all connected clients on save."""
-		frappe.cache().delete_key(CACHE_KEY)
+		frappe.cache().delete_value(CACHE_KEY)
 		frappe.publish_realtime(
 			"nbs_theme_updated",
 			message={"reload": True},
@@ -51,8 +52,7 @@ class DeskTheme(Document):
 
 	@frappe.whitelist()
 	def reset_to_defaults(self):
-		"""Reset all color fields to the NBS default values."""
 		for fieldname, value in NBS_DEFAULTS.items():
 			self.set(fieldname, value)
 		self.save()
-		frappe.cache().delete_key(CACHE_KEY)
+		frappe.cache().delete_value(CACHE_KEY)

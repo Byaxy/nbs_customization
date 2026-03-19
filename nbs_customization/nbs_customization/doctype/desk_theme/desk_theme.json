@@ -1,6 +1,5 @@
 {
  "actions": [],
- "allow_rename": 1,
  "creation": "2026-03-09 15:06:12.116456",
  "doctype": "DocType",
  "editable_grid": 1,
@@ -24,12 +23,14 @@
   "navbar_icon_color",
   "column_break_szbb",
   "navbar_text_color",
+  "page_head_bg",
+  "page_head_text",
   "tables_and_lists",
-  "header_background",
+  "table_header_bg",
   "even_row_background",
   "selectdropdown_row_hover_background",
   "column_break_tthc",
-  "header_text",
+  "table_header_text",
   "table_row_hover_background",
   "child_table_header_background",
   "child_table_header_text",
@@ -40,14 +41,7 @@
   "primary_button_text",
   "danger_button_bg",
   "danger_button_hover",
-  "forms_and_inputs_tab",
-  "form_background",
-  "input_border_color",
-  "column_break_zydu",
-  "input_focus_color",
-  "label_color",
   "login_page_tab",
-  "login_title",
   "login_title_color",
   "login_button_color",
   "column_break_tzxy",
@@ -89,11 +83,6 @@
    "fieldname": "buttons_tab",
    "fieldtype": "Tab Break",
    "label": "Buttons"
-  },
-  {
-   "fieldname": "forms_and_inputs_tab",
-   "fieldtype": "Tab Break",
-   "label": "Forms And Inputs"
   },
   {
    "fieldname": "login_page_tab",
@@ -163,11 +152,6 @@
    "label": "Navbar Text Color"
   },
   {
-   "fieldname": "header_background",
-   "fieldtype": "Color",
-   "label": "Header Background"
-  },
-  {
    "fieldname": "even_row_background",
    "fieldtype": "Color",
    "label": "Even Row Background"
@@ -175,11 +159,6 @@
   {
    "fieldname": "column_break_tthc",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "header_text",
-   "fieldtype": "Color",
-   "label": "Header Text"
   },
   {
    "fieldname": "table_row_hover_background",
@@ -231,35 +210,6 @@
    "label": "Danger Button Hover"
   },
   {
-   "fieldname": "form_background",
-   "fieldtype": "Color",
-   "label": "Form Background"
-  },
-  {
-   "fieldname": "input_border_color",
-   "fieldtype": "Color",
-   "label": "Input Border Color"
-  },
-  {
-   "fieldname": "column_break_zydu",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "input_focus_color",
-   "fieldtype": "Color",
-   "label": "Input Focus Color"
-  },
-  {
-   "fieldname": "label_color",
-   "fieldtype": "Color",
-   "label": "Label Color"
-  },
-  {
-   "fieldname": "login_title",
-   "fieldtype": "Data",
-   "label": "Login Title"
-  },
-  {
    "fieldname": "login_title_color",
    "fieldtype": "Color",
    "label": "Login Title Color"
@@ -282,12 +232,33 @@
    "fieldname": "login_box_bg",
    "fieldtype": "Color",
    "label": "Login Box BG"
+  },
+  {
+   "fieldname": "page_head_bg",
+   "fieldtype": "Color",
+   "label": "Page Head Bg"
+  },
+  {
+   "fieldname": "table_header_bg",
+   "fieldtype": "Color",
+   "label": "Table Header Background"
+  },
+  {
+   "fieldname": "table_header_text",
+   "fieldtype": "Color",
+   "label": "Table Header Text"
+  },
+  {
+   "fieldname": "page_head_text",
+   "fieldtype": "Color",
+   "label": "Page Head Text"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "issingle": 1,
  "links": [],
- "modified": "2026-03-09 15:51:38.550761",
+ "modified": "2026-03-19 08:46:20.701632",
  "modified_by": "charlesbyaxy@gmail.com",
  "module": "NBS Customization",
  "name": "Desk Theme",
@@ -297,11 +268,29 @@
    "create": 1,
    "delete": 1,
    "email": 1,
-   "export": 1,
    "print": 1,
    "read": 1,
-   "report": 1,
    "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Maintenance Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Administrator",
    "share": 1,
    "write": 1
   }
