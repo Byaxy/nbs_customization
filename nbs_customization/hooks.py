@@ -292,7 +292,11 @@ fixtures = [
 
 doctype_js = {
     "Sales Order": "public/js/sales_order.js",
-    "Delivery Note": "public/js/delivery_note.js"
+    "Delivery Note": "public/js/delivery_note.js",
+}
+
+doctype_list_js = {
+    "Expense": "public/js/expense_list.js"
 }
 
 doc_events = {
@@ -322,3 +326,4 @@ doc_events = {
         "validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
     }
 }
+

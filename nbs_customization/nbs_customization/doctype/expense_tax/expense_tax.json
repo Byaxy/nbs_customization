@@ -1,0 +1,78 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:tax_description",
+ "creation": "2026-03-20 16:14:53.882676",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tax_description",
+  "tax_percentage",
+  "tax_account"
+ ],
+ "fields": [
+  {
+   "fieldname": "tax_description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tax Description",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "tax_percentage",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Tax Percentage (%)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tax_account",
+   "fieldtype": "Link",
+   "label": "Tax Account",
+   "options": "Account"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-20 16:14:53.882676",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Expense Tax",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

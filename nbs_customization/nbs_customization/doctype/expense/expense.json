@@ -1,0 +1,197 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-03-23 13:41:11.856789",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "expense_description",
+  "amount",
+  "payee",
+  "column_break_edym",
+  "expense_date",
+  "expense_category",
+  "paying_account",
+  "account_balance",
+  "section_break_fnba",
+  "is_accompanying",
+  "linked_purchase",
+  "journal_entry",
+  "column_break_ikgm",
+  "landed_cost_voucher",
+  "section_break_kkex",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "NBSEXP-.YYYY./.MM./.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "NBSEXP-.YYYY./.MM./.####",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "expense_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expense Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Expense",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_edym",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_kkex",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "expense_description",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Expense Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "paying_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Paying Account",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "account_balance",
+   "fieldtype": "Currency",
+   "label": "Account Balance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payee",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Payee",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_fnba",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_accompanying",
+   "fieldtype": "Check",
+   "label": "Is Accompanying Expense"
+  },
+  {
+   "depends_on": "eval:doc.is_accompanying == 1",
+   "fieldname": "linked_purchase",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Linked Purchase",
+   "mandatory_depends_on": "eval:doc.is_accompanying == 1",
+   "options": "Purchase Receipt"
+  },
+  {
+   "fieldname": "column_break_ikgm",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "landed_cost_voucher",
+   "fieldtype": "Link",
+   "label": "Landed Cost Voucher",
+   "options": "Landed Cost Voucher",
+   "read_only": 1
+  },
+  {
+   "fieldname": "expense_category",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Expense Category",
+   "options": "Expense Category",
+   "reqd": 1
+  },
+  {
+   "fieldname": "journal_entry",
+   "fieldtype": "Link",
+   "label": "Journal Entry",
+   "options": "Journal Entry",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-03-23 18:07:21.597453",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Expense",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

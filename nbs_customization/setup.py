@@ -1,6 +1,7 @@
 import frappe
 
-# The four items to inject, in display order after 'Sales Invoice'
+# ─── Selling sidebar items ────────────────────────────────────────────────────
+
 NBS_SELLING_SIDEBAR_ITEMS = [
     {
         "label": "Customer Delivery Note",
@@ -49,41 +50,66 @@ NBS_SELLING_SIDEBAR_ITEMS = [
 ]
 
 NBS_LABELS = [item["label"] for item in NBS_SELLING_SIDEBAR_ITEMS]
-
-
 NBS_EXPECTED = {item["label"]: item for item in NBS_SELLING_SIDEBAR_ITEMS}
 
 
+# ─── Accounting / Invoicing sidebar items ─────────────────────────────────────
+
+NBS_EXPENSE_SIDEBAR_ITEMS = [
+    {
+        "label": "Expenses",
+        "type": "Section Break",
+        "icon": "badge-dollar-sign",
+        "child": 0,
+        "indent": 0,
+        "collapsible": 1,
+        "keep_closed": 1,
+        "link_type": "DocType",
+    },
+    {
+        "label": "Expense",
+        "type": "Link",
+        "icon": "",
+        "link_to": "Expense",
+        "link_type": "DocType",
+        "child": 1,
+        "indent": 1,
+        "collapsible": 1,
+        "keep_closed": 0,
+    }
+   
+]
+
+NBS_EXPENSE_LABELS = [item["label"] for item in NBS_EXPENSE_SIDEBAR_ITEMS]
+NBS_EXPENSE_EXPECTED = {item["label"]: item for item in NBS_EXPENSE_SIDEBAR_ITEMS}
+
+# The anchor — inject after this item in both Accounting and Invoicing
+EXPENSE_ANCHOR = "Repost Payment Ledger"
+
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
 def _is_correctly_placed(items):
     """
-    Returns True only if all four NBS items are:
-    - present with no duplicates
-    - in the correct order immediately after 'Sales Invoice'
-    - have the correct icon, link_to, and link_type
-    Any mismatch (including stale icons) triggers a reinject.
+    Returns True only if all four NBS selling items are present,
+    in correct order immediately after 'Sales Invoice'.
     """
-    # Check for duplicates
     nbs_rows = [row for row in items if row.label in set(NBS_LABELS)]
     if len(nbs_rows) != len(NBS_LABELS):
         return False
 
-    # Find Sales Invoice position
     sales_invoice_idx = next(
         (i for i, row in enumerate(items) if row.label == "Sales Invoice"), None
     )
     if sales_invoice_idx is None:
         return False
 
-    # Check our four items occupy exactly the four slots after Sales Invoice
-    # and that each row matches the expected definition
     for j, expected_label in enumerate(NBS_LABELS):
         slot_idx = sales_invoice_idx + 1 + j
         if slot_idx >= len(items):
             return False
-
         row = items[slot_idx]
         expected = NBS_EXPECTED[expected_label]
-
         if (
             row.label != expected["label"]
             or row.icon != expected["icon"]
@@ -95,40 +121,69 @@ def _is_correctly_placed(items):
     return True
 
 
-def after_migrate():
-    """
-    Ensure NBS custom items are present in the Selling workspace sidebar,
-    positioned immediately after 'Sales Invoice' and before 'POS'.
+def _is_expense_correctly_placed(items):
+    nbs_rows = [row for row in items if row.label in set(NBS_EXPENSE_LABELS)]
+    if len(nbs_rows) != len(NBS_EXPENSE_LABELS):
+        return False
 
-    Checks the current state first — if everything is already correct,
-    does nothing. Only writes to the database when a change is needed.
-    Idempotent and upgrade-safe.
+    anchor_idx = next(
+        (i for i, row in enumerate(items) if row.label == EXPENSE_ANCHOR), None
+    )
+    if anchor_idx is None:
+        return False
+
+    for j, expected_label in enumerate(NBS_EXPENSE_LABELS):
+        slot_idx = anchor_idx + 1 + j
+        if slot_idx >= len(items):
+            return False
+        row = items[slot_idx]
+        expected = NBS_EXPENSE_EXPECTED[expected_label]
+
+        # Section break rows don't have link_to — only check label and icon
+        if expected.get("type") == "Section Break":
+            if row.label != expected["label"] or row.icon != expected["icon"]:
+                return False
+        else:
+            if (
+                row.label != expected["label"]
+                or row.icon != expected["icon"]
+                or row.link_to != expected["link_to"]
+                or row.link_type != expected["link_type"]
+            ):
+                return False
+
+    return True
+
+
+def _inject_expense_items(sidebar_name):
     """
-    if not frappe.db.exists("Workspace Sidebar", "Selling"):
+    Injects the Expenses collapsible group after EXPENSE_ANCHOR
+    in the given Workspace Sidebar. Idempotent and upgrade-safe.
+    """
+    if not frappe.db.exists("Workspace Sidebar", sidebar_name):
         return
 
-    sidebar = frappe.get_doc("Workspace Sidebar", "Selling")
+    sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 
-    if _is_correctly_placed(sidebar.items):
+    if _is_expense_correctly_placed(sidebar.items):
         return
 
-    # Remove all NBS-managed rows (handles stale/duplicate/misplaced entries)
-    nbs_label_set = set(NBS_LABELS)
-    sidebar.items = [row for row in sidebar.items if row.label not in nbs_label_set]
+    # Remove stale NBS expense rows
+    label_set = set(NBS_EXPENSE_LABELS)
+    sidebar.items = [row for row in sidebar.items if row.label not in label_set]
 
-    # Find insertion point — immediately after 'Sales Invoice'
+    # Find insertion point — immediately after anchor
     insert_idx = next(
-        (i + 1 for i, row in enumerate(sidebar.items) if row.label == "Sales Invoice"),
+        (i + 1 for i, row in enumerate(sidebar.items) if row.label == EXPENSE_ANCHOR),
         len(sidebar.items),  # fallback: append at end
     )
 
-    # Splice in our four items
     new_items = sidebar.items[:insert_idx]
 
-    for item_data in NBS_SELLING_SIDEBAR_ITEMS:
+    for item_data in NBS_EXPENSE_SIDEBAR_ITEMS:
         new_row = frappe.new_doc("Workspace Sidebar Item")
         new_row.update(item_data)
-        new_row.parent = "Selling"
+        new_row.parent = sidebar_name
         new_row.parenttype = "Workspace Sidebar"
         new_row.parentfield = "items"
         new_items.append(new_row)
@@ -136,10 +191,64 @@ def after_migrate():
     new_items += sidebar.items[insert_idx:]
     sidebar.items = new_items
 
-    # Re-index rows sequentially
     for i, row in enumerate(sidebar.items):
         row.idx = i + 1
 
     sidebar.flags.ignore_permissions = True
+    sidebar.flags.ignore_links = True
     sidebar.save()
     frappe.db.commit()
+
+
+# ─── after_migrate entry point ────────────────────────────────────────────────
+
+def after_migrate():
+    """
+    1. Inject NBS selling items into the Selling sidebar.
+    2. Inject NBS expense group into both Accounting and Invoicing sidebars.
+    Idempotent — only writes when a change is actually needed.
+    """
+
+    # ── Selling sidebar ──────────────────────────────────────────────────────
+    if frappe.db.exists("Workspace Sidebar", "Selling"):
+        sidebar = frappe.get_doc("Workspace Sidebar", "Selling")
+
+        if not _is_correctly_placed(sidebar.items):
+            nbs_label_set = set(NBS_LABELS)
+            sidebar.items = [
+                row for row in sidebar.items if row.label not in nbs_label_set
+            ]
+
+            insert_idx = next(
+                (
+                    i + 1
+                    for i, row in enumerate(sidebar.items)
+                    if row.label == "Sales Invoice"
+                ),
+                len(sidebar.items),
+            )
+
+            new_items = sidebar.items[:insert_idx]
+            for item_data in NBS_SELLING_SIDEBAR_ITEMS:
+                new_row = frappe.new_doc("Workspace Sidebar Item")
+                new_row.update(item_data)
+                new_row.parent = "Selling"
+                new_row.parenttype = "Workspace Sidebar"
+                new_row.parentfield = "items"
+                new_items.append(new_row)
+
+            new_items += sidebar.items[insert_idx:]
+            sidebar.items = new_items
+
+            for i, row in enumerate(sidebar.items):
+                row.idx = i + 1
+
+            sidebar.flags.ignore_permissions = True
+            sidebar.save()
+            frappe.db.commit()
+
+    # ── Accounting sidebar ───────────────────────────────────────────────────
+    _inject_expense_items("Accounting")
+
+    # ── Invoicing sidebar (v16 experimental) ────────────────────────────────
+    _inject_expense_items("Invoicing")
