@@ -367,6 +367,7 @@
 .btn-danger,
 .btn-red,
 .btn-cancel,
+.btn.btn-danger.btn-default.btn-sm,
 .btn.btn-secondary.btn-sm.btn-modal-secondary,
 .btn.btn-secondary.btn-default.btn-sm[data-label="Cancel"],
 .btn.btn-secondary.btn-default[data-label="Cancel"],
@@ -384,6 +385,8 @@
 }
 
 /* Text spans inside cancel button */
+.btn.btn-danger.btn-default.btn-sm span,
+.btn.btn-danger.btn-default.btn-sm span span,
 .btn.btn-secondary.btn-default[data-label="Cancel"] span,
 .btn.btn-secondary.btn-default[data-label="Cancel"] span span {
 	color: #ffffff !important;
@@ -392,6 +395,7 @@
 .btn-danger:hover,
 .btn-red:hover,
 .btn-cancel:hover,
+.btn.btn-danger.btn-default.btn-sm:hover,
 .btn.btn-secondary.btn-sm.btn-modal-secondary:hover,
 .btn.btn-secondary.btn-default.btn-sm[data-label="Cancel"]:hover,
 .btn.btn-secondary.btn-default[data-label="Cancel"]:hover,
@@ -406,6 +410,7 @@
 
 .btn-danger:active,
 .btn-cancel:active,
+.btn.btn-danger.btn-default.btn-sm:active,
 .btn.btn-secondary.btn-default[data-label="Cancel"]:active {
 	transform: translateY(0) !important;
 	box-shadow: none !important;

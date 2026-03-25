@@ -9,19 +9,28 @@
  "field_order": [
   "naming_series",
   "expense_description",
+  "payment_type",
   "amount",
   "payee",
   "column_break_edym",
   "expense_date",
   "expense_category",
+  "purchase_invoice",
   "paying_account",
   "account_balance",
+  "section_break_xgyb",
+  "company",
+  "column_break_pkqg",
+  "cost_center",
   "section_break_fnba",
   "is_accompanying",
   "linked_purchase",
-  "journal_entry",
   "column_break_ikgm",
   "landed_cost_voucher",
+  "section_break_hcwr",
+  "journal_entry",
+  "column_break_xidx",
+  "payment_entry",
   "section_break_kkex",
   "notes",
   "amended_from"
@@ -104,7 +113,8 @@
   },
   {
    "fieldname": "section_break_fnba",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Accompanying Expense Details"
   },
   {
    "default": "0",
@@ -117,7 +127,7 @@
    "fieldname": "linked_purchase",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Linked Purchase",
+   "label": "Linked Purchase Receipt",
    "mandatory_depends_on": "eval:doc.is_accompanying == 1",
    "options": "Purchase Receipt"
   },
@@ -146,13 +156,69 @@
    "label": "Journal Entry",
    "options": "Journal Entry",
    "read_only": 1
+  },
+  {
+   "default": "Northland Biomedical Solutions",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "section_break_xgyb",
+   "fieldtype": "Section Break",
+   "label": "Company Details"
+  },
+  {
+   "default": "Direct Payment",
+   "fieldname": "payment_type",
+   "fieldtype": "Select",
+   "label": "Payment Type",
+   "options": "Direct Payment\nAgainst Purchase Invoice",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_pkqg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.payment_type == 'Against Purchase Invoice'",
+   "fieldname": "purchase_invoice",
+   "fieldtype": "Link",
+   "label": "Purchase Invoice",
+   "mandatory_depends_on": "eval:doc.payment_type == 'Against Purchase Invoice'",
+   "options": "Purchase Invoice"
+  },
+  {
+   "fieldname": "section_break_hcwr",
+   "fieldtype": "Section Break",
+   "label": "Payment/Journal Entry Details",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_xidx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-03-23 18:07:21.597453",
+ "modified": "2026-03-25 13:32:04.109216",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Expense",

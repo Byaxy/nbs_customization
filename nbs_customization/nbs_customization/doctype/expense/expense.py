@@ -8,23 +8,38 @@ from frappe.model.document import Document
 class Expense(Document):
 
 	def validate(self):
+		self._set_company_defaults()
 		self._fetch_account_balance()
 		self._validate_accompanying()
-		self._validate_account_balance()
+		self._validate_invoice_link()
 
 	def before_submit(self):
 		self._validate_account_balance()
 
 	def on_submit(self):
-		self._create_journal_entry()
+		if self.payment_type == "Direct Payment":
+			self._create_journal_entry()
+		else:
+			self._create_payment_entry()
 
 	def on_cancel(self):
 		self._cancel_or_delete_lcv()
-		self._reverse_journal_entry()
+		if self.payment_type == "Direct Payment":
+			self._reverse_journal_entry()
+		else:
+			self._reverse_payment_entry()
 
 	# ------------------------------------------------------------------ #
 	# Validation helpers                                                   #
 	# ------------------------------------------------------------------ #
+
+	def _set_company_defaults(self):
+		if not self.company:
+			self.company = frappe.defaults.get_user_default("Company")
+		if not self.cost_center:
+			self.cost_center = frappe.db.get_value(
+				"Company", self.company, "cost_center"
+			)
 
 	def _fetch_account_balance(self):
 		"""Fetch current balance of the paying account and store it."""
@@ -36,6 +51,7 @@ class Expense(Document):
 			self.paying_account, self.expense_date
 		)
 
+
 	def _validate_accompanying(self):
 		if self.is_accompanying:
 			if not self.linked_purchase:
@@ -43,7 +59,21 @@ class Expense(Document):
 					"Linked Purchase Receipt is required for accompanying expenses."
 				)
 
-			# Validate that the expense category maps to a valuation account
+			# Validate using the category checkbox instead of account_type
+			is_accompanying_category = frappe.db.get_value(
+				"Expense Category",
+				self.expense_category,
+				"is_accompanying_expense"
+			)
+			if not is_accompanying_category:
+				frappe.throw(
+					f"The Expense Category <b>{self.expense_category}</b> is not marked "
+					f"as an Accompanying Expense Category. Please either: <br>"
+					f"1. Use a category that has <b>Is Accompanying Expense Category</b> checked, or <br>"
+					f"2. Uncheck <b>Is Accompanying Expense</b> on this expense."
+				)
+
+			# Validate that the expense account has correct account type
 			expense_account = frappe.db.get_value(
 				"Expense Category", self.expense_category, "expense_account"
 			)
@@ -51,18 +81,85 @@ class Expense(Document):
 				account_type = frappe.db.get_value(
 					"Account", expense_account, "account_type"
 				)
-				# Case-insensitive comparison to handle ERPNext version differences
-				if (account_type or "").lower() != "expenses included in valuation":
+				if account_type != "Expenses Included In Valuation":
 					frappe.throw(
-						f"For accompanying expenses, the Expense Category must map to "
-						f"an <b>Expenses Included in Valuation</b> account. "
-						f"<b>{self.expense_category}</b> maps to a "
-						f"<b>{account_type}</b> account. "
-						f"Please use a category linked to your valuation clearing account."
+						f"The Expense Account <b>{expense_account}</b> for category "
+						f"<b>{self.expense_category}</b> must have Account Type "
+						f"<b>'Expenses Included In Valuation'</b> to be used with "
+						f"Landed Cost Vouchers. Current type: <b>{account_type or 'None'}</b>."
 					)
 		else:
+			# Validate using the category checkbox instead of account_type
+			is_accompanying_category = frappe.db.get_value(
+				"Expense Category",
+				self.expense_category,
+				"is_accompanying_expense"
+			)
+			if is_accompanying_category:
+				frappe.throw(
+					f"The Expense Category <b>{self.expense_category}</b> is marked "
+					f"as an Accompanying Expense Category. Please either: <br>"
+					f"1. Use a category that has <b>Is Accompanying Expense Category</b> Not Checked, or <br>"
+					f"2. Check <b>Is Accompanying Expense</b> on this expense."
+				)
+
+			# Validate that the expense account has correct account type
+			expense_account = frappe.db.get_value(
+				"Expense Category", self.expense_category, "expense_account"
+			)
+			if expense_account:
+				account_type = frappe.db.get_value(
+					"Account", expense_account, "account_type"
+				)
+				if account_type == "Expenses Included In Valuation":
+					frappe.throw(
+						f"The Expense Account <b>{expense_account}</b> for category "
+						f"<b>{self.expense_category}</b> must Not have Account Type "
+						f"<b>'Expenses Included In Valuation'</b>."
+					)
 			self.linked_purchase = None
 			self.landed_cost_voucher = None
+
+	def _validate_invoice_link(self):
+		"""Validates the linked Purchase Invoice for Flow B."""
+		if self.payment_type != "Against Purchase Invoice":
+			self.purchase_invoice = None
+			return
+
+		if not self.purchase_invoice:
+			frappe.throw("Purchase Invoice is required for Against Purchase Invoice payment type.")
+
+		pi = frappe.db.get_value(
+			"Purchase Invoice",
+			self.purchase_invoice,
+			["docstatus", "outstanding_amount", "company", "supplier"],
+			as_dict=True
+		)
+
+		if not pi:
+			frappe.throw(f"Purchase Invoice {self.purchase_invoice} not found.")
+
+		if pi.docstatus != 1:
+			frappe.throw(
+				f"Purchase Invoice <b>{self.purchase_invoice}</b> must be submitted "
+				f"before it can be paid."
+			)
+
+		if pi.outstanding_amount <= 0:
+			frappe.throw(
+				f"Purchase Invoice <b>{self.purchase_invoice}</b> has no outstanding "
+				f"amount. It may already be fully paid."
+			)
+
+		if pi.company != self.company:
+			frappe.throw(
+				f"Purchase Invoice <b>{self.purchase_invoice}</b> belongs to company "
+				f"<b>{pi.company}</b> but this expense is for <b>{self.company}</b>."
+			)
+
+		# Auto-set amount from invoice outstanding if not set
+		if not self.amount:
+			self.amount = pi.outstanding_amount
 
 	def _validate_account_balance(self):
 		"""
@@ -86,7 +183,7 @@ class Expense(Document):
 			)
 
 	# ------------------------------------------------------------------ #
-	# Journal Entry                                                        #
+	# Flow A — Direct Payment via Journal Entry                           #
 	# ------------------------------------------------------------------ #
 
 	def _create_journal_entry(self):
@@ -106,7 +203,7 @@ class Expense(Document):
 
 		je = frappe.new_doc("Journal Entry")
 		je.voucher_type = "Journal Entry"
-		je.company = frappe.defaults.get_user_default("Company")
+		je.company = self.company
 		je.posting_date = self.expense_date
 		je.user_remark = (
 			f"Expense: {self.name} — {self.expense_description} "
@@ -135,6 +232,82 @@ class Expense(Document):
 
 		# Store JE reference on this expense
 		self.db_set("journal_entry", je.name)
+
+	def _reverse_journal_entry(self):
+		"""
+		On cancel: cancel the linked Journal Entry.
+		"""
+		if not self.get("journal_entry"):
+			return
+
+		je = frappe.get_doc("Journal Entry", self.journal_entry)
+		if je.docstatus == 1:
+			je.cancel()
+
+		self.db_set("journal_entry", None)
+
+	# ------------------------------------------------------------------ #
+	# Flow B — Against Purchase Invoice via Payment Entry                 #
+	# ------------------------------------------------------------------ #
+
+	def _create_payment_entry(self):
+		"""
+		Creates a Payment Entry to pay the linked Purchase Invoice.
+		This is ERPNext-native and correctly reconciles AP.
+		"""
+		pi = frappe.get_doc("Purchase Invoice", self.purchase_invoice)
+
+		# Guard: warn if currencies differ
+		paying_account_currency = frappe.db.get_value(
+			"Account", self.paying_account, "account_currency"
+		)
+		if pi.currency != paying_account_currency:
+			frappe.throw(
+				f"Currency mismatch: Purchase Invoice is in <b>{pi.currency}</b> "
+				f"but Paying Account is in <b>{paying_account_currency}</b>. "
+				f"Multi-currency payments are not yet supported in this flow. "
+				f"Please use a Payment Entry directly."
+			)
+
+		# Use ERPNext's built-in payment entry creation from invoice
+		from erpnext.accounts.doctype.payment_entry.payment_entry import (
+			get_payment_entry,
+		)
+
+		pe = get_payment_entry("Purchase Invoice", self.purchase_invoice)
+		pe.posting_date = self.expense_date
+		pe.paid_from = self.paying_account
+		pe.paid_amount = self.amount
+		pe.received_amount = self.amount
+		pe.source_exchange_rate = 1
+		pe.target_exchange_rate = 1
+		pe.reference_no = self.name
+		pe.reference_date = self.expense_date
+		pe.remarks = (
+			f"Payment via Expense {self.name} — {self.expense_description} "
+			f"| Payee: {self.payee or pi.supplier}"
+		)
+
+		# Set the allocated amount on the reference row
+		for ref in pe.references:
+			if ref.reference_name == self.purchase_invoice:
+				ref.allocated_amount = min(self.amount, ref.outstanding_amount)
+
+		pe.insert(ignore_permissions=True)
+		pe.submit()
+		self.db_set("payment_entry", pe.name)
+
+	def _reverse_payment_entry(self):
+		if not self.get("payment_entry"):
+			return
+		pe = frappe.get_doc("Payment Entry", self.payment_entry)
+		if pe.docstatus == 1:
+			pe.cancel()
+		self.db_set("payment_entry", None)
+
+	# ------------------------------------------------------------------ #
+	# LCV handling                                                        #
+	# ------------------------------------------------------------------ #
 
 	def _cancel_or_delete_lcv(self):
 		"""
@@ -173,19 +346,6 @@ class Expense(Document):
 
 		self.db_set("landed_cost_voucher", None)
 
-	def _reverse_journal_entry(self):
-		"""
-		On cancel: cancel the linked Journal Entry.
-		"""
-		if not self.get("journal_entry"):
-			return
-
-		je = frappe.get_doc("Journal Entry", self.journal_entry)
-		if je.docstatus == 1:
-			je.cancel()
-
-		self.db_set("journal_entry", None)
-
 
 # ------------------------------------------------------------------ #
 # Whitelisted helpers (called from JS)                                #
@@ -200,62 +360,80 @@ def get_account_balance(account, date=None):
 	from erpnext.accounts.utils import get_balance_on
 	return get_balance_on(account=account, date=date)
 
+@frappe.whitelist()
+def get_invoice_details(purchase_invoice):
+	"""
+	Returns key details of a Purchase Invoice for prefilling the Expense form.
+	Called from JS when a Purchase Invoice is selected.
+	"""
+	pi = frappe.db.get_value(
+		"Purchase Invoice",
+		purchase_invoice,
+		["outstanding_amount", "supplier", "company", "bill_no", "docstatus"],
+		as_dict=True
+	)
+	if not pi:
+		frappe.throw(f"Purchase Invoice {purchase_invoice} not found.")
+	if pi.docstatus != 1:
+		frappe.throw(f"Purchase Invoice {purchase_invoice} is not submitted.")
+	if pi.outstanding_amount <= 0:
+		frappe.throw(
+			f"Purchase Invoice {purchase_invoice} has no outstanding amount."
+		)
+	return pi
 
 @frappe.whitelist()
 def make_landed_cost_voucher(expense_name):
-    expense = frappe.get_doc("Expense", expense_name)
+	expense = frappe.get_doc("Expense", expense_name)
 
-    if not expense.is_accompanying:
-        frappe.throw("This expense is not marked as an accompanying expense.")
-    if not expense.linked_purchase:
-        frappe.throw("No linked Purchase Receipt found on this expense.")
-    if expense.landed_cost_voucher:
-        frappe.throw(
-            f"A Landed Cost Voucher already exists for this expense: "
-            f"{expense.landed_cost_voucher}"
-        )
-    if expense.docstatus != 1:
-        frappe.throw("The expense must be submitted before creating an LCV.")
+	if not expense.is_accompanying:
+		frappe.throw("This expense is not marked as an accompanying expense.")
+	if not expense.linked_purchase:
+		frappe.throw("No linked Purchase Receipt found on this expense.")
+	if expense.landed_cost_voucher:
+		frappe.throw(
+			f"A Landed Cost Voucher already exists for this expense: "
+			f"{expense.landed_cost_voucher}"
+		)
+	if expense.docstatus != 1:
+		frappe.throw("The expense must be submitted before creating an LCV.")
 
-    pr = frappe.db.get_value(
-        "Purchase Receipt",
-        expense.linked_purchase,
-        ["supplier", "grand_total"],
-        as_dict=True
-    )
-    if not pr:
-        frappe.throw(f"Purchase Receipt {expense.linked_purchase} not found.")
+	pr = frappe.db.get_value(
+		"Purchase Receipt",
+		expense.linked_purchase,
+		["supplier", "grand_total"],
+		as_dict=True
+	)
+	if not pr:
+		frappe.throw(f"Purchase Receipt {expense.linked_purchase} not found.")
 
-    # Get expense account from Expense Category
-    expense_account = frappe.db.get_value(
-        "Expense Category", expense.expense_category, "expense_account"
-    )
-    if not expense_account:
-        frappe.throw(
-            f"No GL account configured for Expense Category: "
-            f"{expense.expense_category}."
-        )
+	expense_account = frappe.db.get_value(
+		"Expense Category", expense.expense_category, "expense_account"
+	)
+	if not expense_account:
+		frappe.throw(
+			f"No GL account configured for Expense Category: "
+			f"{expense.expense_category}."
+		)
 
-    company = frappe.defaults.get_user_default("Company")
+	lcv = frappe.new_doc("Landed Cost Voucher")
+	lcv.company = expense.company
+	lcv.distribute_charges_based_on = "Qty"
 
-    lcv = frappe.new_doc("Landed Cost Voucher")
-    lcv.company = company
-    lcv.distribute_charges_based_on = "Qty"
+	lcv.append("purchase_receipts", {
+		"receipt_document_type": "Purchase Receipt",
+		"receipt_document": expense.linked_purchase,
+		"supplier": pr.supplier,
+		"grand_total": pr.grand_total,
+	})
 
-    lcv.append("purchase_receipts", {
-        "receipt_document_type": "Purchase Receipt",
-        "receipt_document": expense.linked_purchase,
-        "supplier": pr.supplier,
-        "grand_total": pr.grand_total,
-    })
+	lcv.append("taxes", {
+		"description": expense.expense_category,
+		"expense_account": expense_account,
+		"amount": expense.amount,
+	})
 
-    lcv.append("taxes", {
-        "description": expense.expense_category,
-        "expense_account": expense_account,
-        "amount": expense.amount,
-    })
+	lcv.insert(ignore_permissions=True)
+	frappe.db.set_value("Expense", expense_name, "landed_cost_voucher", lcv.name)
 
-    lcv.insert(ignore_permissions=True)
-    frappe.db.set_value("Expense", expense_name, "landed_cost_voucher", lcv.name)
-
-    return lcv.name
+	return lcv.name

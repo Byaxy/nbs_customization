@@ -17,9 +17,11 @@ frappe.listview_settings["Expense"] = {
 // ------------------------------------------------------------------ //
 
 function open_bulk_expense_dialog(listview) {
+	const company = frappe.defaults.get_user_default("Company");
+
 	Promise.all([
 		frappe.db.get_list("Expense Category", {
-			fields: ["name", "expense_account"],
+			fields: ["name", "expense_account", "is_accompanying_expense"],
 			limit: 100,
 		}),
 		frappe.call({
@@ -28,7 +30,7 @@ function open_bulk_expense_dialog(listview) {
 				doctype: "Account",
 				filters: {
 					account_type: ["in", ["Cash", "Bank"]],
-					company: frappe.defaults.get_user_default("Company"),
+					company: company,
 					is_group: 0,
 				},
 				fields: ["name"],
@@ -37,43 +39,42 @@ function open_bulk_expense_dialog(listview) {
 		}),
 		frappe.db.get_list("Purchase Receipt", {
 			fields: ["name"],
-			filters: { docstatus: 1 },
+			filters: { docstatus: 1, company: company },
 			limit: 100,
 		}),
-	]).then(([categories, accounts_r, purchases]) => {
+		frappe.db.get_list("Purchase Invoice", {
+			fields: ["name", "supplier", "outstanding_amount"],
+			filters: {
+				docstatus: 1,
+				company: company,
+				status: ["not in", ["Paid", "Cancelled"]],
+			},
+			limit: 100,
+		}),
+	]).then(([categories, accounts_r, purchases, invoices]) => {
 		const accounts = (accounts_r.message || []).map((a) => a.name);
-		const category_names = categories.map((c) => c.name);
 		const purchase_names = purchases.map((p) => p.name);
 
 		const dialog = new frappe.ui.Dialog({
 			title: __("Add Multiple Expenses"),
 			size: "extra-large",
 			fields: [
-				{
-					fieldtype: "HTML",
-					fieldname: "expense_table_html",
-				},
-				{
-					fieldtype: "Section Break",
-				},
-				{
-					fieldtype: "HTML",
-					fieldname: "summary_html",
-				},
+				{ fieldtype: "HTML", fieldname: "expense_table_html" },
+				{ fieldtype: "Section Break" },
+				{ fieldtype: "HTML", fieldname: "summary_html" },
 			],
 			primary_action_label: __("Submit All"),
 			primary_action() {
-				submit_bulk_expenses(dialog, listview);
+				submit_bulk_expenses(dialog, listview, company);
 			},
 		});
 
-		// Force wider than extra-large
 		dialog.$wrapper.find(".modal-dialog").css({
-			"max-width": "80vw",
-			width: "80vw",
+			"max-width": "95vw",
+			width: "95vw",
 		});
 
-		build_expense_table(dialog, category_names, accounts, purchase_names);
+		build_expense_table(dialog, categories, accounts, purchase_names, invoices);
 		dialog.show();
 	});
 }
@@ -82,24 +83,26 @@ function open_bulk_expense_dialog(listview) {
 // Table builder                                                       //
 // ------------------------------------------------------------------ //
 
-function build_expense_table(dialog, categories, accounts, purchases) {
+function build_expense_table(dialog, categories, accounts, purchases, invoices) {
 	const wrapper = dialog.fields_dict.expense_table_html.$wrapper;
 
 	wrapper.html(`
 		<div class="bulk-expense-wrapper" style="overflow-x: auto;">
 			<table class="table table-bordered table-sm bulk-expense-table"
-				style="min-width: 1000px; font-size: 12px;">
+				style="min-width: 1400px; font-size: 12px;">
 				<thead class="thead-light">
 					<tr>
-						<th style="min-width:160px;">${__("Description")} *</th>
-						<th style="min-width:110px;">${__("Date")} *</th>
-						<th style="min-width:110px;">${__("Amount")} *</th>
-						<th style="min-width:160px;">${__("Category")} *</th>
-						<th style="min-width:170px;">${__("Paying Account")} *</th>
-						<th style="min-width:110px;">${__("Balance")}</th>
-						<th style="min-width:110px;">${__("Payee")} *</th>
-						<th style="min-width:80px;">${__("Accompanying")}</th>
-						<th style="min-width:180px;">${__("Purchase Receipt")}</th>
+						<th style="min-width:150px;">${__("Description")} *</th>
+						<th style="min-width:105px;">${__("Date")} *</th>
+						<th style="min-width:105px;">${__("Amount")} *</th>
+						<th style="min-width:155px;">${__("Category")} *</th>
+						<th style="min-width:155px;">${__("Paying Account")} *</th>
+						<th style="min-width:100px;">${__("Balance")}</th>
+						<th style="min-width:105px;">${__("Payee")} *</th>
+						<th style="min-width:150px;">${__("Payment Type")} *</th>
+						<th style="min-width:180px;">${__("Purchase Invoice")}</th>
+						<th style="min-width:75px;">${__("Accompanying")}</th>
+						<th style="min-width:170px;">${__("Purchase Receipt")}</th>
 						<th style="min-width:40px;"></th>
 					</tr>
 				</thead>
@@ -111,33 +114,45 @@ function build_expense_table(dialog, categories, accounts, purchases) {
 		</div>
 	`);
 
-	add_expense_row(wrapper, categories, accounts, purchases);
+	add_expense_row(wrapper, categories, accounts, purchases, invoices);
 
 	wrapper.find("#add-expense-row").on("click", function () {
-		add_expense_row(wrapper, categories, accounts, purchases);
+		add_expense_row(wrapper, categories, accounts, purchases, invoices);
 	});
 
 	dialog._expense_wrapper = wrapper;
 	dialog._categories = categories;
 	dialog._accounts = accounts;
 	dialog._purchases = purchases;
+	dialog._invoices = invoices;
 }
 
 // ------------------------------------------------------------------ //
 // Row builder                                                         //
 // ------------------------------------------------------------------ //
 
-function add_expense_row(wrapper, categories, accounts, purchases) {
+function add_expense_row(wrapper, categories, accounts, purchases, invoices) {
 	const tbody = wrapper.find("#bulk-expense-rows");
 	const today = frappe.datetime.get_today();
 
-	const category_options = categories.map((c) => `<option value="${c}">${c}</option>`).join("");
+	const category_options = categories
+		.map(
+			(c) =>
+				`<option value="${c.name}" data-accompanying="${c.is_accompanying_expense}">${c.name}</option>`,
+		)
+		.join("");
 
 	const account_options = accounts.map((a) => `<option value="${a}">${a}</option>`).join("");
 
 	const purchase_options =
 		`<option value=""></option>` +
 		purchases.map((p) => `<option value="${p}">${p}</option>`).join("");
+
+	const invoice_options =
+		`<option value=""></option>` +
+		invoices
+			.map((i) => `<option value="${i.name}">${i.name} — ${i.supplier}</option>`)
+			.join("");
 
 	const row = $(`
 		<tr class="expense-row">
@@ -172,6 +187,18 @@ function add_expense_row(wrapper, categories, accounts, purchases) {
 				<input type="text" class="form-control form-control-sm exp-payee"
 					placeholder="${__("e.g. DHL")}" required>
 			</td>
+			<td>
+				<select class="form-control form-control-sm exp-payment-type" required>
+					<option value="Direct Payment">${__("Direct Payment")}</option>
+					<option value="Against Purchase Invoice">${__("Against Invoice")}</option>
+				</select>
+			</td>
+			<td>
+				<select class="form-control form-control-sm exp-invoice" disabled>
+					${invoice_options}
+				</select>
+				<small class="exp-invoice-outstanding text-muted"></small>
+			</td>
 			<td class="text-center">
 				<input type="checkbox" class="exp-accompanying"
 					style="width:16px; height:16px; margin-top:6px;">
@@ -189,7 +216,67 @@ function add_expense_row(wrapper, categories, accounts, purchases) {
 		</tr>
 	`);
 
-	// Toggle accompanying fields
+	// ---------------------------------------------------------------- //
+	// Payment Type toggle — enable/disable invoice selector            //
+	// ---------------------------------------------------------------- //
+	row.find(".exp-payment-type").on("change", function () {
+		const is_invoice = $(this).val() === "Against Purchase Invoice";
+		row.find(".exp-invoice").prop("disabled", !is_invoice);
+		if (!is_invoice) {
+			row.find(".exp-invoice").val("");
+			row.find(".exp-invoice-outstanding").text("");
+		}
+	});
+
+	// When invoice is selected — prefill amount and payee
+	row.find(".exp-invoice").on("change", function () {
+		const invoice_name = $(this).val();
+		if (!invoice_name) {
+			row.find(".exp-invoice-outstanding").text("");
+			return;
+		}
+
+		frappe.call({
+			method: "nbs_customization.nbs_customization.doctype.expense.expense.get_invoice_details",
+			args: { purchase_invoice: invoice_name },
+			callback(r) {
+				if (r.message) {
+					const pi = r.message;
+					// Prefill amount if empty
+					const current_amount = parseFloat(row.find(".exp-amount").val()) || 0;
+					if (!current_amount) {
+						row.find(".exp-amount").val(pi.outstanding_amount);
+					}
+					// Prefill payee if empty
+					const current_payee = row.find(".exp-payee").val()?.trim();
+					if (!current_payee) {
+						row.find(".exp-payee").val(pi.supplier);
+					}
+					// Show outstanding amount
+					row.find(".exp-invoice-outstanding").text(
+						`Outstanding: ${frappe.format_value(pi.outstanding_amount, {
+							fieldtype: "Currency",
+						})}`,
+					);
+				}
+			},
+		});
+	});
+
+	// ---------------------------------------------------------------- //
+	// Category change — auto-check accompanying if category is tagged  //
+	// ---------------------------------------------------------------- //
+	row.find(".exp-category").on("change", function () {
+		const selected = $(this).find("option:selected");
+		const is_acc = selected.data("accompanying") == 1;
+		if (is_acc) {
+			row.find(".exp-accompanying").prop("checked", true).trigger("change");
+		}
+	});
+
+	// ---------------------------------------------------------------- //
+	// Accompanying toggle                                               //
+	// ---------------------------------------------------------------- //
 	row.find(".exp-accompanying").on("change", function () {
 		const is_acc = $(this).is(":checked");
 		row.find(".exp-purchase").prop("disabled", !is_acc);
@@ -198,7 +285,9 @@ function add_expense_row(wrapper, categories, accounts, purchases) {
 		}
 	});
 
-	// Fetch balance when paying account changes
+	// ---------------------------------------------------------------- //
+	// Fetch balance when paying account changes                        //
+	// ---------------------------------------------------------------- //
 	row.find(".exp-paying-account").on("change", function () {
 		const account = $(this).val();
 		const date = row.find(".exp-date").val() || today;
@@ -251,7 +340,7 @@ function add_expense_row(wrapper, categories, accounts, purchases) {
 // Submit                                                              //
 // ------------------------------------------------------------------ //
 
-function submit_bulk_expenses(dialog, listview) {
+function submit_bulk_expenses(dialog, listview, company) {
 	const wrapper = dialog._expense_wrapper;
 	const rows = wrapper.find(".expense-row");
 
@@ -271,15 +360,24 @@ function submit_bulk_expenses(dialog, listview) {
 		const category = row.find(".exp-category").val();
 		const paying_account = row.find(".exp-paying-account").val();
 		const payee = row.find(".exp-payee").val()?.trim();
+		const payment_type = row.find(".exp-payment-type").val();
+		const purchase_invoice = row.find(".exp-invoice").val() || null;
 		const is_accompanying = row.find(".exp-accompanying").is(":checked");
 		const linked_purchase = row.find(".exp-purchase").val() || null;
 
 		// Client-side validation
 		const missing_basic =
-			!description || !date || !amount || !category || !paying_account || !payee;
+			!description ||
+			!date ||
+			!amount ||
+			!category ||
+			!paying_account ||
+			!payee ||
+			!payment_type;
+		const missing_invoice = payment_type === "Against Purchase Invoice" && !purchase_invoice;
 		const missing_accompanying = is_accompanying && !linked_purchase;
 
-		if (missing_basic || amount <= 0 || missing_accompanying) {
+		if (missing_basic || amount <= 0 || missing_invoice || missing_accompanying) {
 			row.addClass("table-danger");
 			has_error = true;
 			return;
@@ -294,8 +392,11 @@ function submit_bulk_expenses(dialog, listview) {
 			expense_category: category,
 			paying_account,
 			payee,
+			payment_type,
+			purchase_invoice,
 			is_accompanying: is_accompanying ? 1 : 0,
 			linked_purchase,
+			company,
 		});
 	});
 
@@ -321,7 +422,7 @@ function submit_bulk_expenses(dialog, listview) {
 }
 
 // ------------------------------------------------------------------ //
-// Sequential submission with progress                                 //
+// Sequential submission with progress                                //
 // ------------------------------------------------------------------ //
 
 function submit_expenses_sequentially(expenses, listview) {
@@ -387,10 +488,8 @@ function submit_expenses_sequentially(expenses, listview) {
 				});
 			}
 		} catch (err) {
-			// Extract clean error message from Frappe's response
 			let error_msg = err.message || err.toString();
 			if (err.exc) {
-				// Frappe wraps server errors in exc — extract the last line
 				const lines = err.exc.trim().split("\n");
 				error_msg = lines[lines.length - 1] || error_msg;
 			}
@@ -439,14 +538,10 @@ function show_bulk_results(results, listview) {
 							(r) => `
 						<tr>
 							<td>
-								<a href="/app/expense/${r.name}" target="_blank">
-									${r.name}
-								</a>
+								<a href="/app/expense/${r.name}" target="_blank">${r.name}</a>
 							</td>
 							<td>${r.description}</td>
-							<td>
-								${frappe.format_value(r.amount, { fieldtype: "Currency" })}
-							</td>
+							<td>${frappe.format_value(r.amount, { fieldtype: "Currency" })}</td>
 						</tr>
 					`,
 						)
@@ -479,9 +574,7 @@ function show_bulk_results(results, listview) {
 							(r) => `
 						<tr class="table-danger">
 							<td>${r.description}</td>
-							<td>
-								${frappe.format_value(r.amount, { fieldtype: "Currency" })}
-							</td>
+							<td>${frappe.format_value(r.amount, { fieldtype: "Currency" })}</td>
 							<td><small class="text-danger">${r.error}</small></td>
 						</tr>
 					`,

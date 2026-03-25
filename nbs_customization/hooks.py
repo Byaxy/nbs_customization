@@ -293,6 +293,7 @@ fixtures = [
 doctype_js = {
     "Sales Order": "public/js/sales_order.js",
     "Delivery Note": "public/js/delivery_note.js",
+    "Landed Cost Voucher": "public/js/landed_cost_voucher.js",
 }
 
 doctype_list_js = {

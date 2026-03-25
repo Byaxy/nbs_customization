@@ -10,6 +10,7 @@
   "category_name",
   "column_break_rjcu",
   "expense_account",
+  "is_accompanying_expense",
   "section_break_qvjh",
   "description"
  ],
@@ -43,12 +44,20 @@
    "fieldtype": "Small Text",
    "in_list_view": 1,
    "label": "Description"
+  },
+  {
+   "default": "0",
+   "description": "Check this if expenses using this category are landed costs that should flow through an LCV to adjust inventory valuation.",
+   "fieldname": "is_accompanying_expense",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Accompanying Expense Category"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-23 18:03:28.769255",
+ "modified": "2026-03-25 11:09:00.803977",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Expense Category",

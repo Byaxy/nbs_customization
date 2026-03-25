@@ -461,7 +461,7 @@ function check_and_show_pending_loan_button(frm) {
 			if (r.message === true) {
 				frm.add_custom_button(__("Check Pending Loan Waybills"), () =>
 					check_pending_loans(frm),
-				).addClass("btn-danger");
+				).addClass("btn btn-danger btn-default btn-sm");
 			}
 		},
 		error: function (err) {
