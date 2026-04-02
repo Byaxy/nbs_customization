@@ -282,11 +282,16 @@ fixtures = [
                     "Delivery Note-custom_delivered_by",
                     "Delivery Note-custom_officer_column_break",
                     "Delivery Note-custom_received_by",
-                    "Stock Entry-custom_is_loan"
+                    "Stock Entry-custom_is_loan",
+                    "Purchase Receipt-custom_inbound_shipment",
+                    "Landed Cost Voucher-custom_linked_shipment",
                 ]
             ]
         ]
-    }
+    },
+	{
+		"dt": "Carrier",
+	},
 ]
 
 
@@ -294,6 +299,7 @@ doctype_js = {
     "Sales Order": "public/js/sales_order.js",
     "Delivery Note": "public/js/delivery_note.js",
     "Landed Cost Voucher": "public/js/landed_cost_voucher.js",
+    "Purchase Receipt":    "public/js/purchase_receipt.js",
 }
 
 doctype_list_js = {
@@ -325,6 +331,11 @@ doc_events = {
     },
     "Loan Waybill": {
         "validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
+    },
+    "Purchase Receipt": {
+        "validate": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.validate_purchase_receipt_shipment_link",
+        "on_submit": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
+        "on_cancel":  "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel",
     }
 }
 

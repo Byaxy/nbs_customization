@@ -1,0 +1,146 @@
+[
+ {
+  "carrier_name": "Air France Cargo",
+  "carrier_type": "Air Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.655881",
+  "name": "Air France Cargo"
+ },
+ {
+  "carrier_name": "Lufthansa Cargo",
+  "carrier_type": "Air Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.667514",
+  "name": "Lufthansa Cargo"
+ },
+ {
+  "carrier_name": "Emirates Sky Cargo",
+  "carrier_type": "Air Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.671150",
+  "name": "Emirates Sky Cargo"
+ },
+ {
+  "carrier_name": "Qatar Airways Cargo",
+  "carrier_type": "Air Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.676029",
+  "name": "Qatar Airways Cargo"
+ },
+ {
+  "carrier_name": "Turkish Cargo",
+  "carrier_type": "Air Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.680680",
+  "name": "Turkish Cargo"
+ },
+ {
+  "carrier_name": "Brussels Airlines Cargo",
+  "carrier_type": "Air Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.684047",
+  "name": "Brussels Airlines Cargo"
+ },
+ {
+  "carrier_name": "DHL Express",
+  "carrier_type": "Express Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.687371",
+  "name": "DHL Express"
+ },
+ {
+  "carrier_name": "FedEx Express",
+  "carrier_type": "Express Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.691274",
+  "name": "FedEx Express"
+ },
+ {
+  "carrier_name": "UPS Express",
+  "carrier_type": "Express Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.697479",
+  "name": "UPS Express"
+ },
+ {
+  "carrier_name": "TNT Express",
+  "carrier_type": "Express Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.701067",
+  "name": "TNT Express"
+ },
+ {
+  "carrier_name": "USPS Express",
+  "carrier_type": "Express Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.704251",
+  "name": "USPS Express"
+ },
+ {
+  "carrier_name": "Maersk Line",
+  "carrier_type": "Sea Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.707569",
+  "name": "Maersk Line"
+ },
+ {
+  "carrier_name": "MSC",
+  "carrier_type": "Sea Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.712280",
+  "name": "MSC"
+ },
+ {
+  "carrier_name": "COSCO Shipping",
+  "carrier_type": "Sea Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.716180",
+  "name": "COSCO Shipping"
+ },
+ {
+  "carrier_name": "OOCL",
+  "carrier_type": "Sea Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.722903",
+  "name": "OOCL"
+ },
+ {
+  "carrier_name": "Evergreen Line",
+  "carrier_type": "Sea Cargo",
+  "docstatus": 0,
+  "doctype": "Carrier",
+  "is_active": 1,
+  "modified": "2026-03-31 10:07:52.719543",
+  "name": "Evergreen Line"
+ }
+]

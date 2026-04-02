@@ -1,0 +1,193 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-03-30 08:23:27.960584",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "package_number",
+  "column_break_acfk",
+  "package_type",
+  "column_break_cvrv",
+  "volumetric_divisor",
+  "section_break_lzwr",
+  "length",
+  "column_break_noyh",
+  "width",
+  "column_break_bxvz",
+  "height",
+  "weights_section",
+  "volumetric_weight",
+  "gross_weight",
+  "column_break_eoes",
+  "net_weight",
+  "chargeable_weight",
+  "section_break_rlys",
+  "unit_price_per_kg",
+  "column_break_yqgz",
+  "freight_charge",
+  "section_break_cjgf",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "package_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Package No.",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "package_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Package Type",
+   "options": "Box\nCarton\nCrate\nPallet\nBag\nDrum\nRoll",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_acfk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_lzwr",
+   "fieldtype": "Section Break",
+   "label": "Dimensions"
+  },
+  {
+   "fieldname": "length",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Length (cm)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_noyh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "width",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Width (cm)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_bxvz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "height",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Height (cm)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "5000",
+   "fieldname": "volumetric_divisor",
+   "fieldtype": "Float",
+   "label": "Volumetric Divisor",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_cvrv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "weights_section",
+   "fieldtype": "Section Break",
+   "label": "Weights"
+  },
+  {
+   "fieldname": "volumetric_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Volumetric Weight (kg)",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_eoes",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "net_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Net Weight (kg)",
+   "precision": "3",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Gross Weight (kg)",
+   "precision": "3",
+   "reqd": 1
+  },
+  {
+   "fieldname": "chargeable_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Chargeable Weight (kg)",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_rlys",
+   "fieldtype": "Section Break",
+   "label": "Price"
+  },
+  {
+   "fieldname": "unit_price_per_kg",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Unit Price / kg",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_yqgz",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "freight_charge",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Freight Charge",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_cjgf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-04-01 08:41:45.955176",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Inbound Shipment Package",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

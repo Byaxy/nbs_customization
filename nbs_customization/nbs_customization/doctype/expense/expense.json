@@ -24,7 +24,9 @@
   "cost_center",
   "section_break_fnba",
   "is_accompanying",
+  "expense_scope",
   "linked_purchase",
+  "linked_shipment",
   "column_break_ikgm",
   "landed_cost_voucher",
   "section_break_hcwr",
@@ -123,12 +125,12 @@
    "label": "Is Accompanying Expense"
   },
   {
-   "depends_on": "eval:doc.is_accompanying == 1",
+   "depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Single Purchase Receipt'",
    "fieldname": "linked_purchase",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Linked Purchase Receipt",
-   "mandatory_depends_on": "eval:doc.is_accompanying == 1",
+   "mandatory_depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Single Purchase Receipt'",
    "options": "Purchase Receipt"
   },
   {
@@ -212,13 +214,29 @@
    "label": "Payment Entry",
    "options": "Payment Entry",
    "read_only": 1
+  },
+  {
+   "default": "Single Purchase Receipt",
+   "depends_on": "eval:doc.is_accompanying == 1",
+   "fieldname": "expense_scope",
+   "fieldtype": "Select",
+   "label": "Expense Scope",
+   "options": "Single Purchase Receipt\nInbound Shipment"
+  },
+  {
+   "depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Inbound Shipment'",
+   "fieldname": "linked_shipment",
+   "fieldtype": "Link",
+   "label": "Linked Inbound Shipment",
+   "mandatory_depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Inbound Shipment'",
+   "options": "Inbound Shipment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-03-25 13:32:04.109216",
+ "modified": "2026-03-30 10:02:10.048343",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Expense",

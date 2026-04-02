@@ -2,6 +2,8 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
+from frappe.utils import flt
 from frappe.model.document import Document
 
 
@@ -53,72 +55,98 @@ class Expense(Document):
 
 
 	def _validate_accompanying(self):
-		if self.is_accompanying:
-			if not self.linked_purchase:
-				frappe.throw(
-					"Linked Purchase Receipt is required for accompanying expenses."
-				)
-
-			# Validate using the category checkbox instead of account_type
-			is_accompanying_category = frappe.db.get_value(
-				"Expense Category",
-				self.expense_category,
-				"is_accompanying_expense"
-			)
-			if not is_accompanying_category:
-				frappe.throw(
-					f"The Expense Category <b>{self.expense_category}</b> is not marked "
-					f"as an Accompanying Expense Category. Please either: <br>"
-					f"1. Use a category that has <b>Is Accompanying Expense Category</b> checked, or <br>"
-					f"2. Uncheck <b>Is Accompanying Expense</b> on this expense."
-				)
-
-			# Validate that the expense account has correct account type
-			expense_account = frappe.db.get_value(
-				"Expense Category", self.expense_category, "expense_account"
-			)
-			if expense_account:
-				account_type = frappe.db.get_value(
-					"Account", expense_account, "account_type"
-				)
-				if account_type != "Expenses Included In Valuation":
-					frappe.throw(
-						f"The Expense Account <b>{expense_account}</b> for category "
-						f"<b>{self.expense_category}</b> must have Account Type "
-						f"<b>'Expenses Included In Valuation'</b> to be used with "
-						f"Landed Cost Vouchers. Current type: <b>{account_type or 'None'}</b>."
-					)
-		else:
-			# Validate using the category checkbox instead of account_type
-			is_accompanying_category = frappe.db.get_value(
-				"Expense Category",
-				self.expense_category,
-				"is_accompanying_expense"
-			)
-			if is_accompanying_category:
-				frappe.throw(
-					f"The Expense Category <b>{self.expense_category}</b> is marked "
-					f"as an Accompanying Expense Category. Please either: <br>"
-					f"1. Use a category that has <b>Is Accompanying Expense Category</b> Not Checked, or <br>"
-					f"2. Check <b>Is Accompanying Expense</b> on this expense."
-				)
-
-			# Validate that the expense account has correct account type
-			expense_account = frappe.db.get_value(
-				"Expense Category", self.expense_category, "expense_account"
-			)
-			if expense_account:
-				account_type = frappe.db.get_value(
-					"Account", expense_account, "account_type"
-				)
-				if account_type == "Expenses Included In Valuation":
-					frappe.throw(
-						f"The Expense Account <b>{expense_account}</b> for category "
-						f"<b>{self.expense_category}</b> must Not have Account Type "
-						f"<b>'Expenses Included In Valuation'</b>."
-					)
-			self.linked_purchase = None
+		if not self.is_accompanying:
+			# Non-accompanying: clear shipment fields, validate category
+			self.expense_scope    = None
+			self.linked_shipment  = None
+			self.linked_purchase  = None
 			self.landed_cost_voucher = None
+
+			is_acc_cat = frappe.db.get_value(
+				"Expense Category", self.expense_category, "is_accompanying_expense"
+			)
+			if is_acc_cat:
+				frappe.throw(
+					_(f"The Expense Category <b>{self.expense_category}</b> is marked "
+					f"as an Accompanying Expense Category. Either use a non-accompanying "
+					f"category or check <b>Is Accompanying Expense</b> on this expense.")
+				)
+			self._validate_expense_account_type(must_be_valuation=False)
+			return
+
+		# --- is_accompanying = True ---
+		scope = self.expense_scope or "Single Purchase Receipt"
+
+		# Validate category is accompanying
+		is_acc_cat = frappe.db.get_value(
+			"Expense Category", self.expense_category, "is_accompanying_expense"
+		)
+		if not is_acc_cat:
+			frappe.throw(
+				_(f"The Expense Category <b>{self.expense_category}</b> is not marked "
+				f"as an Accompanying Expense Category. Please use a category with "
+				f"<b>Is Accompanying Expense Category</b> checked.")
+			)
+		self._validate_expense_account_type(must_be_valuation=True)
+
+		if scope == "Single Purchase Receipt":
+			self.linked_shipment = None
+			if not self.linked_purchase:
+				frappe.throw(_("Linked Purchase Receipt is required for accompanying expenses."))
+			# Validate PR belongs to same company
+			pr_company = frappe.db.get_value(
+				"Purchase Receipt", self.linked_purchase, "company"
+			)
+			if pr_company and pr_company != self.company:
+				frappe.throw(
+					_(f"Purchase Receipt <b>{self.linked_purchase}</b> belongs to "
+					f"company <b>{pr_company}</b>, not <b>{self.company}</b>.")
+				)
+
+		elif scope == "Inbound Shipment":
+			self.linked_purchase = None
+			if not self.linked_shipment:
+				frappe.throw(_("Linked Inbound Shipment is required when Expense Scope is 'Inbound Shipment'."))
+
+			ship = frappe.db.get_value(
+				"Inbound Shipment",
+				self.linked_shipment,
+				["company", "docstatus", "shipment_status"],
+				as_dict=True,
+			)
+			if not ship:
+				frappe.throw(_(f"Inbound Shipment <b>{self.linked_shipment}</b> not found."))
+			if ship.docstatus != 1:
+				frappe.throw(
+					_(f"Inbound Shipment <b>{self.linked_shipment}</b> must be submitted "
+					f"before linking it to an expense.")
+				)
+			if ship.company != self.company:
+				frappe.throw(
+					_(f"Inbound Shipment <b>{self.linked_shipment}</b> belongs to "
+					f"company <b>{ship.company}</b>, not <b>{self.company}</b>.")
+				)
+
+	def _validate_expense_account_type(self, must_be_valuation: bool):
+		expense_account = frappe.db.get_value(
+			"Expense Category", self.expense_category, "expense_account"
+		)
+		if not expense_account:
+			return
+		account_type = frappe.db.get_value("Account", expense_account, "account_type")
+		if must_be_valuation and account_type != "Expenses Included In Valuation":
+			frappe.throw(
+				_(f"The Expense Account <b>{expense_account}</b> for category "
+				f"<b>{self.expense_category}</b> must have Account Type "
+				f"<b>'Expenses Included In Valuation'</b> for accompanying expenses. "
+				f"Current type: <b>{account_type or 'None'}</b>.")
+			)
+		if not must_be_valuation and account_type == "Expenses Included In Valuation":
+			frappe.throw(
+				_(f"The Expense Account <b>{expense_account}</b> for category "
+				f"<b>{self.expense_category}</b> must NOT have Account Type "
+				f"<b>'Expenses Included In Valuation'</b> for non-accompanying expenses.")
+			)
 
 	def _validate_invoice_link(self):
 		"""Validates the linked Purchase Invoice for Flow B."""
@@ -360,6 +388,7 @@ def get_account_balance(account, date=None):
 	from erpnext.accounts.utils import get_balance_on
 	return get_balance_on(account=account, date=date)
 
+
 @frappe.whitelist()
 def get_invoice_details(purchase_invoice):
 	"""
@@ -383,55 +412,186 @@ def get_invoice_details(purchase_invoice):
 	return pi
 
 @frappe.whitelist()
+def check_shipment_fully_received(shipment_name):
+	"""
+	Checks whether all items in the shipment's package_items have been
+	fully received in submitted PRs tagged to this shipment via the
+	inbound_shipment field on Purchase Receipt.
+	"""
+	shipment_items = frappe.db.sql(
+		"""
+		SELECT
+			purchase_order,
+			item_code,
+			SUM(qty) AS expected_qty
+		FROM `tabInbound Shipment Package Item`
+		WHERE parent       = %(shipment)s
+		AND purchase_order IS NOT NULL AND purchase_order != ''
+		AND item_code      IS NOT NULL AND item_code      != ''
+		GROUP BY purchase_order, item_code
+		""",
+		{"shipment": shipment_name},
+		as_dict=True,
+	)
+
+	if not shipment_items:
+		return {
+			"ready":            False,
+			"message":          "No package items with Purchase Order references found on this shipment.",
+			"unreceived_items": [],
+		}
+
+	unreceived = []
+
+	for row in shipment_items:
+		result = frappe.db.sql(
+			"""
+			SELECT COALESCE(SUM(pri.qty), 0)
+			FROM `tabPurchase Receipt Item` pri
+			INNER JOIN `tabPurchase Receipt` pr ON pr.name = pri.parent
+			WHERE pr.custom_inbound_shipment = %(shipment)s
+			AND pri.purchase_order  = %(po)s
+			AND pri.item_code       = %(item_code)s
+			AND pr.docstatus        = 1
+			""",
+			{
+				"shipment":  shipment_name,
+				"po":        row.purchase_order,
+				"item_code": row.item_code,
+			},
+		)
+
+		received_qty = flt(result[0][0]) if result else 0.0
+		expected     = flt(row.expected_qty)
+
+		if received_qty < expected:
+			unreceived.append({
+				"purchase_order": row.purchase_order,
+				"item_code":      row.item_code,
+				"expected_qty":   expected,
+				"received_qty":   received_qty,
+				"pending_qty":    flt(expected - received_qty, 3),
+			})
+
+	if unreceived:
+		lines = "".join([
+			f"<li><b>{r['item_code']}</b> from <b>{r['purchase_order']}</b> — "
+			f"expected {r['expected_qty']}, received {r['received_qty']}, "
+			f"pending {r['pending_qty']}</li>"
+			for r in unreceived
+		])
+		message = (
+			f"The following items have not been fully received for this shipment:<br>"
+			f"<ul>{lines}</ul>"
+			f"All shipment items must be received before creating a Landed Cost Voucher."
+		)
+	else:
+		message = None
+
+	return {
+		"ready":            len(unreceived) == 0,
+		"unreceived_items": unreceived,
+		"message":          message,
+	}
+
+
+@frappe.whitelist()
 def make_landed_cost_voucher(expense_name):
+	"""
+	Creates a Landed Cost Voucher for an accompanying expense.
+	Supports both scope types:
+		- 'Single Purchase Receipt' → one PR on the LCV
+		- 'Inbound Shipment'        → all PRs from the shipment on the LCV
+	"""
 	expense = frappe.get_doc("Expense", expense_name)
 
+	# --- Guards ---
 	if not expense.is_accompanying:
-		frappe.throw("This expense is not marked as an accompanying expense.")
-	if not expense.linked_purchase:
-		frappe.throw("No linked Purchase Receipt found on this expense.")
+		frappe.throw(_("This expense is not marked as an accompanying expense."))
+	if expense.docstatus != 1:
+		frappe.throw(_("The expense must be submitted before creating an LCV."))
 	if expense.landed_cost_voucher:
 		frappe.throw(
-			f"A Landed Cost Voucher already exists for this expense: "
-			f"{expense.landed_cost_voucher}"
+			_(f"A Landed Cost Voucher already exists for this expense: "
+			f"<b>{expense.landed_cost_voucher}</b>")
 		)
-	if expense.docstatus != 1:
-		frappe.throw("The expense must be submitted before creating an LCV.")
 
-	pr = frappe.db.get_value(
-		"Purchase Receipt",
-		expense.linked_purchase,
-		["supplier", "grand_total"],
-		as_dict=True
-	)
-	if not pr:
-		frappe.throw(f"Purchase Receipt {expense.linked_purchase} not found.")
+	scope = expense.expense_scope or "Single Purchase Receipt"
+
+	# --- Shipment fully received guard (Inbound Shipment scope only) ---
+	if scope == "Inbound Shipment" and expense.linked_shipment:
+		receipt_check = check_shipment_fully_received(expense.linked_shipment)
+		if not receipt_check["ready"]:
+			frappe.throw(_(receipt_check["message"]))
 
 	expense_account = frappe.db.get_value(
 		"Expense Category", expense.expense_category, "expense_account"
 	)
 	if not expense_account:
 		frappe.throw(
-			f"No GL account configured for Expense Category: "
-			f"{expense.expense_category}."
+			_(f"No GL account configured for Expense Category: "
+			f"<b>{expense.expense_category}</b>.")
 		)
 
+	# --- Collect purchase receipts for LCV ---
+	if scope == "Single Purchase Receipt":
+		if not expense.linked_purchase:
+			frappe.throw(_("No linked Purchase Receipt found on this expense."))
+		pr_doc = frappe.db.get_value(
+			"Purchase Receipt",
+			expense.linked_purchase,
+			["supplier", "grand_total"],
+			as_dict=True,
+		)
+		if not pr_doc:
+			frappe.throw(_(f"Purchase Receipt {expense.linked_purchase} not found."))
+		pr_rows = [{
+			"receipt_document":      expense.linked_purchase,
+			"supplier":              pr_doc.supplier,
+			"grand_total":           pr_doc.grand_total,
+		}]
+
+	elif scope == "Inbound Shipment":
+		if not expense.linked_shipment:
+			frappe.throw(_("No Inbound Shipment linked to this expense."))
+		pr_rows = frappe.db.get_all(
+			"Inbound Shipment Purchase Receipt",
+			filters={"parent": expense.linked_shipment},
+			fields=["receipt_document", "supplier", "grand_total"],
+			order_by="idx asc",
+		)
+		if not pr_rows:
+			frappe.throw(
+				_(f"Inbound Shipment <b>{expense.linked_shipment}</b> has no linked "
+				f"Purchase Receipts.")
+			)
+	else:
+		frappe.throw(_(f"Unknown expense scope: {scope}"))
+
+	# --- Build LCV ---
 	lcv = frappe.new_doc("Landed Cost Voucher")
 	lcv.company = expense.company
-	lcv.distribute_charges_based_on = "Qty"
+	
+	if scope == "Inbound Shipment":
+		# Lock to manual so ERPNext never auto-overrides our weight distribution
+		lcv.distribute_charges_based_on = "Distribute Manually"
 
-	lcv.append("purchase_receipts", {
-		"receipt_document_type": "Purchase Receipt",
-		"receipt_document": expense.linked_purchase,
-		"supplier": pr.supplier,
-		"grand_total": pr.grand_total,
-	})
+	for row in pr_rows:
+		lcv.append("purchase_receipts", {
+			"receipt_document_type": "Purchase Receipt",
+			"receipt_document": row["receipt_document"],
+			"supplier": row["supplier"],
+			"grand_total": row["grand_total"],
+		})
 
 	lcv.append("taxes", {
 		"description": expense.expense_category,
 		"expense_account": expense_account,
 		"amount": expense.amount,
 	})
+
+	if scope == "Inbound Shipment" and expense.linked_shipment:
+		lcv.custom_linked_shipment = expense.linked_shipment
 
 	lcv.insert(ignore_permissions=True)
 	frappe.db.set_value("Expense", expense_name, "landed_cost_voucher", lcv.name)

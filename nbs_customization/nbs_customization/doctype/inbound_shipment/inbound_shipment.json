@@ -1,0 +1,440 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-03-30 08:52:23.276751",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "shipment_identity_section",
+  "naming_series",
+  "external_ref_no",
+  "shipment_status",
+  "column_break_hcrv",
+  "shipping_date",
+  "estimated_arrival_date",
+  "actual_arrival_date",
+  "shipping_mode_and_carrier_section",
+  "shipping_mode",
+  "tracking_number",
+  "column_break_redv",
+  "carrier",
+  "carrier_type",
+  "section_break_pqhi",
+  "shipper_type",
+  "shipper_name",
+  "column_break_lumc",
+  "shipper_supplier",
+  "section_break_ktdd",
+  "shipper_address",
+  "shipper_address_display",
+  "route_section",
+  "origin_port",
+  "container_number",
+  "column_break_ylgh",
+  "destination_port",
+  "flight_number",
+  "suppliers_section",
+  "suppliers",
+  "purchase_orders_section",
+  "purchase_orders",
+  "packages_section",
+  "packages",
+  "package_items",
+  "shipment_totals_section",
+  "total_packages",
+  "total_net_weight",
+  "total_chargeable_weight",
+  "column_break_llfe",
+  "total_items",
+  "total_gross_weight",
+  "total_freight_charges",
+  "company_details_section",
+  "company",
+  "column_break_fusw",
+  "cost_center",
+  "notes__miscellaneous_section",
+  "notes",
+  "amended_from",
+  "purchase_receipts_tab",
+  "linked_purchase_receipts_section",
+  "purchase_receipts"
+ ],
+ "fields": [
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Inbound Shipment",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "NBSSHP-.YYYY./.MM./.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Series",
+   "options": "NBSSHP-.YYYY./.MM./.####",
+   "reqd": 1
+  },
+  {
+   "description": "Optional external/carrier reference.",
+   "fieldname": "external_ref_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "External Ref No."
+  },
+  {
+   "default": "Pending",
+   "fieldname": "shipment_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Shipment Status",
+   "options": "Pending\nIn Transit\nDelivered\nCancelled",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_hcrv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "shipping_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Shipping Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_arrival_date",
+   "fieldtype": "Date",
+   "label": "Actual Arrival Date"
+  },
+  {
+   "fieldname": "estimated_arrival_date",
+   "fieldtype": "Date",
+   "label": "Est. Arrival Date"
+  },
+  {
+   "fieldname": "shipment_identity_section",
+   "fieldtype": "Section Break",
+   "label": "Shipment Identity"
+  },
+  {
+   "fieldname": "shipping_mode_and_carrier_section",
+   "fieldtype": "Section Break",
+   "label": "Shipping Mode & Carrier"
+  },
+  {
+   "fieldname": "shipping_mode",
+   "fieldtype": "Select",
+   "label": "Shipping Mode",
+   "options": "Air Cargo\nSea Cargo\nExpress Cargo",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tracking_number",
+   "fieldtype": "Data",
+   "label": "Tracking Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_redv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_pqhi",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "shipper_type",
+   "fieldtype": "Select",
+   "label": "Shipper Type",
+   "options": "Supplier\nCourier",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_lumc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "shipper_supplier",
+   "fieldtype": "Link",
+   "label": "Shipper (Supplier)",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "shipper_name",
+   "fieldtype": "Data",
+   "label": "Shipper Name"
+  },
+  {
+   "fieldname": "section_break_ktdd",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "route_section",
+   "fieldtype": "Section Break",
+   "label": "Route"
+  },
+  {
+   "fieldname": "origin_port",
+   "fieldtype": "Data",
+   "label": "Origin Port/Airport",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_ylgh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "destination_port",
+   "fieldtype": "Data",
+   "label": "Destination Port/Airport",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.shipping_mode == \"Sea Cargo\"",
+   "fieldname": "container_number",
+   "fieldtype": "Data",
+   "label": "Container No.",
+   "mandatory_depends_on": "eval:doc.shipping_mode == \"Sea Cargo\""
+  },
+  {
+   "depends_on": "eval:doc.shipping_mode == \"Air Cargo\" || doc.shipping_mode == \"Express Cargo\"",
+   "fieldname": "flight_number",
+   "fieldtype": "Data",
+   "label": "Flight No.",
+   "mandatory_depends_on": "eval:doc.shipping_mode == \"Air Cargo\" || doc.shipping_mode == \"Express Cargo\""
+  },
+  {
+   "fieldname": "packages_section",
+   "fieldtype": "Section Break",
+   "label": "Packages"
+  },
+  {
+   "fieldname": "packages",
+   "fieldtype": "Table",
+   "label": "Packages",
+   "options": "Inbound Shipment Package",
+   "reqd": 1
+  },
+  {
+   "fieldname": "package_items",
+   "fieldtype": "Table",
+   "label": "Package Items",
+   "options": "Inbound Shipment Package Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "linked_purchase_receipts_section",
+   "fieldtype": "Section Break",
+   "label": "Linked Purchase Receipts"
+  },
+  {
+   "fieldname": "purchase_receipts",
+   "fieldtype": "Table",
+   "label": "Purchase Receipts",
+   "options": "Inbound Shipment Purchase Receipt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shipment_totals_section",
+   "fieldtype": "Section Break",
+   "label": "Shipment Totals"
+  },
+  {
+   "fieldname": "total_packages",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total Packages",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_items",
+   "fieldtype": "Int",
+   "label": "Total Items",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_net_weight",
+   "fieldtype": "Float",
+   "label": "Total Net Weight (kg)",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_llfe",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_gross_weight",
+   "fieldtype": "Float",
+   "label": "Total Gross Weight (kg)",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_chargeable_weight",
+   "fieldtype": "Float",
+   "label": "Total Chargeable Weight (kg)",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_freight_charges",
+   "fieldtype": "Currency",
+   "label": "Total Freight Charges",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company_details_section",
+   "fieldtype": "Section Break",
+   "label": "Company Details"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_fusw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "notes__miscellaneous_section",
+   "fieldtype": "Section Break",
+   "label": "Notes / Miscellaneous"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "suppliers_section",
+   "fieldtype": "Section Break",
+   "label": "Suppliers"
+  },
+  {
+   "fieldname": "suppliers",
+   "fieldtype": "Table",
+   "label": "Suppliers",
+   "options": "Inbound Shipment Supplier",
+   "reqd": 1
+  },
+  {
+   "fieldname": "purchase_orders_section",
+   "fieldtype": "Section Break",
+   "label": "Purchase Orders"
+  },
+  {
+   "fieldname": "purchase_orders",
+   "fieldtype": "Table",
+   "label": "Purchase Orders",
+   "options": "Inbound Shipment Purchase Order",
+   "reqd": 1
+  },
+  {
+   "fieldname": "carrier",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Carrier",
+   "options": "Carrier",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "carrier.carrier_type",
+   "fieldname": "carrier_type",
+   "fieldtype": "Data",
+   "label": "Carrier Type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shipper_address_display",
+   "fieldtype": "Small Text",
+   "label": "Shipper Address Details",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shipper_address",
+   "fieldtype": "Link",
+   "label": "Shipper Address",
+   "options": "Address"
+  },
+  {
+   "fieldname": "purchase_receipts_tab",
+   "fieldtype": "Tab Break",
+   "label": "Purchase Receipts"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-04-01 08:43:40.599951",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Inbound Shipment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Purchase User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

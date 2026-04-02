@@ -13,6 +13,7 @@ NBS_SELLING_SIDEBAR_ITEMS = [
         "indent": 0,
         "collapsible": 1,
         "keep_closed": 0,
+        "open_in_new_tab": 0,
     },
     {
         "label": "Promissory Note",
@@ -24,6 +25,7 @@ NBS_SELLING_SIDEBAR_ITEMS = [
         "indent": 0,
         "collapsible": 1,
         "keep_closed": 0,
+        "open_in_new_tab": 0,
     },
     {
         "label": "Waybill",
@@ -35,6 +37,7 @@ NBS_SELLING_SIDEBAR_ITEMS = [
         "indent": 0,
         "collapsible": 1,
         "keep_closed": 0,
+        "open_in_new_tab": 0,
     },
     {
         "label": "Loan Waybill",
@@ -46,6 +49,7 @@ NBS_SELLING_SIDEBAR_ITEMS = [
         "indent": 0,
         "collapsible": 1,
         "keep_closed": 0,
+        "open_in_new_tab": 0,
     },
 ]
 
@@ -65,6 +69,7 @@ NBS_EXPENSE_SIDEBAR_ITEMS = [
         "collapsible": 1,
         "keep_closed": 1,
         "link_type": "DocType",
+        "open_in_new_tab": 0,
     },
     {
         "label": "Expense",
@@ -76,6 +81,7 @@ NBS_EXPENSE_SIDEBAR_ITEMS = [
         "indent": 1,
         "collapsible": 1,
         "keep_closed": 0,
+        "open_in_new_tab": 0,
     }
    
 ]
