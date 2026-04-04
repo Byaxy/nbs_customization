@@ -333,9 +333,15 @@ doc_events = {
         "validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
     },
     "Purchase Receipt": {
-        "validate": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.validate_purchase_receipt_shipment_link",
-        "on_submit": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
-        "on_cancel":  "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel",
-    }
+    "validate": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.validate_purchase_receipt_shipment_link",
+    "on_submit": [
+        "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
+        "nbs_customization.utils.pricing.on_purchase_receipt_submit",
+    ],
+    "on_cancel": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel",
+    },
+    "Landed Cost Voucher": {
+    "on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",
+    },
 }
 

@@ -771,7 +771,7 @@ def get_shipments_filtered_by_pos(doctype, txt, searchfield, start, page_len, fi
 	# and have at least one row in their 'purchase_orders' table matching the PR's POs.
 	return frappe.db.sql(
 		"""
-		SELECT DISTINCT s.name, s.shipping_mode, s.shipper_name, s.carrier
+		SELECT DISTINCT s.name, s.shipping_mode, s.shipper_name, s.carrier, s.shipment_status
 		FROM `tabInbound Shipment` s
 		JOIN `tabInbound Shipment Purchase Order` spo ON s.name = spo.parent
 		WHERE s.docstatus = 1
@@ -788,6 +788,40 @@ def get_shipments_filtered_by_pos(doctype, txt, searchfield, start, page_len, fi
 			"page_len": page_len,
 			"start": start
 		}
+	)
+
+
+@frappe.whitelist()
+def get_shipments_search(doctype, txt, searchfield, start, page_len, filters):
+	company = (filters or {}).get("company")
+
+	return frappe.db.sql(
+		"""
+		SELECT
+			s.name,
+			s.shipper_name,
+			s.carrier,
+			s.shipping_mode,
+			s.shipment_status
+		FROM `tabInbound Shipment` s
+		WHERE s.docstatus = 1
+			AND (%(company)s IS NULL OR s.company = %(company)s)
+			AND (
+				s.name LIKE %(txt)s
+				OR IFNULL(s.shipper_name, '') LIKE %(txt)s
+				OR IFNULL(s.carrier, '') LIKE %(txt)s
+				OR IFNULL(s.shipping_mode, '') LIKE %(txt)s
+				OR IFNULL(s.shipment_status, '') LIKE %(txt)s
+			)
+		ORDER BY s.creation DESC
+		LIMIT %(page_len)s OFFSET %(start)s
+		""",
+		{
+			"company": company,
+			"txt": f"%{txt}%",
+			"page_len": page_len,
+			"start": start,
+		},
 	)
 
 @frappe.whitelist()

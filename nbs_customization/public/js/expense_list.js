@@ -12,6 +12,40 @@ frappe.listview_settings["Expense"] = {
 	},
 };
 
+function make_link_control(parent, df) {
+	const control = frappe.ui.form.make_control({
+		df,
+		parent,
+		render_input: true,
+	});
+	control._mount = parent;
+	control.refresh();
+	if (control.$input) {
+		control.$input.addClass("form-control form-control-sm");
+	}
+	return control;
+}
+
+function set_control_enabled(control, enabled) {
+	if (!control) return;
+	if (typeof control.toggle_enable === "function") {
+		control.toggle_enable(enabled);
+	} else if (control.$input) {
+		control.$input.prop("disabled", !enabled);
+	}
+}
+
+function set_control_visible(control, visible) {
+	if (!control) return;
+	(control._mount || control.$wrapper || control.wrapper || $([])).toggle(!!visible);
+}
+
+function bind_control_change(control, handler) {
+	if (!control || !control.$input) return;
+	control.$input.on("change", handler);
+	control.$input.on("awesomplete-selectcomplete", handler);
+}
+
 // ------------------------------------------------------------------ //
 // Dialog                                                               //
 // ------------------------------------------------------------------ //
@@ -25,45 +59,7 @@ function open_bulk_expense_dialog(listview) {
 			fields: ["name", "expense_account", "is_accompanying_expense"],
 			limit: 200,
 		}),
-		// Cash/Bank accounts
-		frappe.call({
-			method: "frappe.client.get_list",
-			args: {
-				doctype: "Account",
-				filters: {
-					account_type: ["in", ["Cash", "Bank"]],
-					company: company,
-					is_group: 0,
-				},
-				fields: ["name"],
-				limit: 200,
-			},
-		}),
-		// Submitted Purchase Receipts
-		frappe.db.get_list("Purchase Receipt", {
-			fields: ["name", "supplier"],
-			filters: { docstatus: 1, company: company },
-			limit: 200,
-		}),
-		// Unpaid Purchase Invoices
-		frappe.db.get_list("Purchase Invoice", {
-			fields: ["name", "supplier", "outstanding_amount"],
-			filters: {
-				docstatus: 1,
-				company: company,
-				status: ["not in", ["Paid", "Cancelled"]],
-			},
-			limit: 200,
-		}),
-		// Submitted Inbound Shipments
-		frappe.db.get_list("Inbound Shipment", {
-			fields: ["name", "shipping_date", "shipment_status"],
-			filters: { docstatus: 1, company: company },
-			limit: 200,
-		}),
-	]).then(([categories, accounts_r, purchases, invoices, shipments]) => {
-		const accounts = (accounts_r.message || []).map((a) => a.name);
-
+	]).then(([categories]) => {
 		const dialog = new frappe.ui.Dialog({
 			title: __("Add Multiple Expenses"),
 			size: "extra-large",
@@ -84,7 +80,7 @@ function open_bulk_expense_dialog(listview) {
 			width: "94vw",
 		});
 
-		build_expense_table(dialog, categories, accounts, purchases, invoices, shipments);
+		build_expense_table(dialog, categories, company);
 		dialog.show();
 	});
 }
@@ -93,7 +89,7 @@ function open_bulk_expense_dialog(listview) {
 // Table builder                                                        //
 // ------------------------------------------------------------------ //
 
-function build_expense_table(dialog, categories, accounts, purchases, invoices, shipments) {
+function build_expense_table(dialog, categories, company) {
 	const wrapper = dialog.fields_dict.expense_table_html.$wrapper;
 
 	wrapper.html(`
@@ -126,10 +122,10 @@ function build_expense_table(dialog, categories, accounts, purchases, invoices, 
 	`);
 
 	// Start with one empty row
-	add_expense_row(wrapper, categories, accounts, purchases, invoices, shipments);
+	add_expense_row(wrapper, categories, company);
 
 	wrapper.find("#add-expense-row").on("click", () => {
-		add_expense_row(wrapper, categories, accounts, purchases, invoices, shipments);
+		add_expense_row(wrapper, categories, company);
 	});
 
 	// Store references for submit handler
@@ -141,45 +137,11 @@ function build_expense_table(dialog, categories, accounts, purchases, invoices, 
 // Row builder                                                          //
 // ------------------------------------------------------------------ //
 
-function add_expense_row(wrapper, categories, accounts, purchases, invoices, shipments) {
+function add_expense_row(wrapper, categories, company) {
 	const tbody = wrapper.find("#bulk-expense-rows");
 	const today = frappe.datetime.get_today();
 
-	const category_options = categories
-		.map(
-			(c) =>
-				`<option value="${c.name}"
-			data-accompanying="${c.is_accompanying_expense ? 1 : 0}">
-			${c.name}
-		</option>`,
-		)
-		.join("");
-
-	const account_options = accounts.map((a) => `<option value="${a}">${a}</option>`).join("");
-
-	const purchase_options =
-		`<option value=""></option>` +
-		purchases
-			.map(
-				(p) =>
-					`<option value="${p.name}">${p.name}${p.supplier ? " — " + p.supplier : ""}</option>`,
-			)
-			.join("");
-
-	const invoice_options =
-		`<option value=""></option>` +
-		invoices
-			.map((i) => `<option value="${i.name}">${i.name} — ${i.supplier}</option>`)
-			.join("");
-
-	const shipment_options =
-		`<option value=""></option>` +
-		shipments
-			.map(
-				(s) =>
-					`<option value="${s.name}">${s.name} | ${s.carrier_name || ""} | ${s.shipment_status || ""}</option>`,
-			)
-			.join("");
+	const category_meta_map = new Map((categories || []).map((c) => [c.name, c]));
 
 	const row = $(`
 		<tr class="expense-row">
@@ -200,17 +162,11 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 			</td>
 			<!-- Category -->
 			<td>
-				<select class="form-control form-control-sm exp-category" required>
-					<option value=""></option>
-					${category_options}
-				</select>
+				<div class="exp-category-control"></div>
 			</td>
 			<!-- Paying Account -->
 			<td>
-				<select class="form-control form-control-sm exp-paying-account" required>
-					<option value=""></option>
-					${account_options}
-				</select>
+				<div class="exp-paying-account-control"></div>
 			</td>
 			<!-- Balance -->
 			<td>
@@ -230,9 +186,7 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 			</td>
 			<!-- Purchase Invoice -->
 			<td>
-				<select class="form-control form-control-sm exp-invoice" disabled>
-					${invoice_options}
-				</select>
+				<div class="exp-invoice-control"></div>
 				<small class="exp-invoice-outstanding text-muted"></small>
 			</td>
 			<!-- Accompanying checkbox -->
@@ -243,18 +197,14 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 			<!-- Scope — hidden until accompanying checked -->
 			<td class="td-scope">
 				<select class="form-control form-control-sm exp-scope" disabled style="display:none;">
-					<option value="Single Purchase Receipt">${__("Single PR")}</option>
+					<option value="Single Purchase Receipt">${__("Single Purchase Receipt")}</option>
 					<option value="Inbound Shipment">${__("Inbound Shipment")}</option>
 				</select>
 			</td>
 			<!-- Linked Document — PR or Shipment depending on scope -->
 			<td class="td-linked-doc">
-				<select class="form-control form-control-sm exp-purchase" disabled style="display:none;">
-					${purchase_options}
-				</select>
-				<select class="form-control form-control-sm exp-shipment" disabled style="display:none;">
-					${shipment_options}
-				</select>
+				<div class="exp-purchase-control" style="display:none;"></div>
+				<div class="exp-shipment-control" style="display:none;"></div>
 				<small class="exp-linked-info text-muted"></small>
 			</td>
 			<!-- Delete -->
@@ -266,14 +216,86 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 		</tr>
 	`);
 
+	const category_control = make_link_control(row.find(".exp-category-control"), {
+		fieldtype: "Link",
+		options: "Expense Category",
+		reqd: 1,
+		placeholder: __("Search Category"),
+	});
+
+	const paying_account_control = make_link_control(row.find(".exp-paying-account-control"), {
+		fieldtype: "Link",
+		options: "Account",
+		reqd: 1,
+		placeholder: __("Search Account"),
+		get_query() {
+			return {
+				filters: {
+					account_type: ["in", ["Cash", "Bank"]],
+					company: company,
+					is_group: 0,
+				},
+			};
+		},
+	});
+
+	const invoice_control = make_link_control(row.find(".exp-invoice-control"), {
+		fieldtype: "Link",
+		options: "Purchase Invoice",
+		placeholder: __("Search Purchase Invoice"),
+		get_query() {
+			return {
+				filters: {
+					docstatus: 1,
+					company: company,
+					status: ["not in", ["Paid", "Cancelled"]],
+				},
+			};
+		},
+	});
+	set_control_enabled(invoice_control, false);
+
+	const purchase_control = make_link_control(row.find(".exp-purchase-control"), {
+		fieldtype: "Link",
+		options: "Purchase Receipt",
+		placeholder: __("Search Purchase Receipt"),
+		get_query() {
+			return { filters: { docstatus: 1, company: company } };
+		},
+	});
+	set_control_enabled(purchase_control, false);
+	set_control_visible(purchase_control, false);
+
+	const shipment_control = make_link_control(row.find(".exp-shipment-control"), {
+		fieldtype: "Link",
+		options: "Inbound Shipment",
+		placeholder: __("Search Inbound Shipment"),
+		get_query() {
+			return {
+				query: "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.get_shipments_search",
+				filters: { company: company },
+			};
+		},
+	});
+	set_control_enabled(shipment_control, false);
+	set_control_visible(shipment_control, false);
+
+	row.data("controls", {
+		category: category_control,
+		paying_account: paying_account_control,
+		invoice: invoice_control,
+		purchase: purchase_control,
+		shipment: shipment_control,
+	});
+
 	// ---------------------------------------------------------------- //
 	// Payment Type toggle                                               //
 	// ---------------------------------------------------------------- //
 	row.find(".exp-payment-type").on("change", function () {
 		const is_invoice = $(this).val() === "Against Purchase Invoice";
-		row.find(".exp-invoice").prop("disabled", !is_invoice);
+		set_control_enabled(invoice_control, is_invoice);
 		if (!is_invoice) {
-			row.find(".exp-invoice").val("");
+			invoice_control.set_value("");
 			row.find(".exp-invoice-outstanding").text("");
 		}
 	});
@@ -281,8 +303,8 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 	// ---------------------------------------------------------------- //
 	// Invoice selected — prefill amount and payee                      //
 	// ---------------------------------------------------------------- //
-	row.find(".exp-invoice").on("change", function () {
-		const invoice_name = $(this).val();
+	bind_control_change(invoice_control, function () {
+		const invoice_name = invoice_control.get_value();
 		if (!invoice_name) {
 			row.find(".exp-invoice-outstanding").text("");
 			return;
@@ -309,9 +331,9 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 	// ---------------------------------------------------------------- //
 	// Category change — auto-check accompanying if tagged              //
 	// ---------------------------------------------------------------- //
-	row.find(".exp-category").on("change", function () {
-		const selected = $(this).find("option:selected");
-		const is_acc = selected.data("accompanying") == 1;
+	bind_control_change(category_control, function () {
+		const category_name = category_control.get_value();
+		const is_acc = (category_meta_map.get(category_name)?.is_accompanying_expense || 0) == 1;
 		if (is_acc) {
 			row.find(".exp-accompanying").prop("checked", true).trigger("change");
 		}
@@ -330,8 +352,12 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 			$scope.trigger("change");
 		} else {
 			$scope.hide().prop("disabled", true).val("Single Purchase Receipt");
-			row.find(".exp-purchase").hide().prop("disabled", true).val("");
-			row.find(".exp-shipment").hide().prop("disabled", true).val("");
+			purchase_control.set_value("");
+			set_control_enabled(purchase_control, false);
+			set_control_visible(purchase_control, false);
+			shipment_control.set_value("");
+			set_control_enabled(shipment_control, false);
+			set_control_visible(shipment_control, false);
 			row.find(".exp-linked-info").text("");
 		}
 	});
@@ -343,9 +369,13 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 		const scope = $(this).val();
 		const is_shipment = scope === "Inbound Shipment";
 
-		row.find(".exp-purchase").toggle(!is_shipment).prop("disabled", is_shipment).val("");
+		set_control_visible(purchase_control, !is_shipment);
+		set_control_enabled(purchase_control, !is_shipment);
+		if (is_shipment) purchase_control.set_value("");
 
-		row.find(".exp-shipment").toggle(is_shipment).prop("disabled", !is_shipment).val("");
+		set_control_visible(shipment_control, is_shipment);
+		set_control_enabled(shipment_control, is_shipment);
+		if (!is_shipment) shipment_control.set_value("");
 
 		row.find(".exp-linked-info").text("");
 	});
@@ -353,8 +383,8 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 	// ---------------------------------------------------------------- //
 	// Shipment selected — show summary info                            //
 	// ---------------------------------------------------------------- //
-	row.find(".exp-shipment").on("change", function () {
-		const shipment_name = $(this).val();
+	bind_control_change(shipment_control, function () {
+		const shipment_name = shipment_control.get_value();
 		if (!shipment_name) {
 			row.find(".exp-linked-info").text("");
 			return;
@@ -375,13 +405,13 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 	// ---------------------------------------------------------------- //
 	// Balance fetch — on account change or date change                 //
 	// ---------------------------------------------------------------- //
-	row.find(".exp-paying-account").on("change", function () {
+	bind_control_change(paying_account_control, function () {
 		fetch_row_balance(row, today);
 	});
 
 	row.find(".exp-date").on("change", function () {
 		// Re-fetch balance if account already selected
-		if (row.find(".exp-paying-account").val()) {
+		if (paying_account_control.get_value()) {
 			fetch_row_balance(row, row.find(".exp-date").val());
 		}
 	});
@@ -391,6 +421,14 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 	// ---------------------------------------------------------------- //
 	row.find(".remove-row").on("click", function () {
 		if (tbody.find(".expense-row").length > 1) {
+			const controls = row.data("controls") || {};
+			Object.values(controls).forEach((c) => {
+				try {
+					c?.$input?.off();
+				} catch (e) {
+					/* ignore */
+				}
+			});
 			row.remove();
 		} else {
 			frappe.show_alert(
@@ -411,7 +449,7 @@ function add_expense_row(wrapper, categories, accounts, purchases, invoices, shi
 // ------------------------------------------------------------------ //
 
 function fetch_row_balance(row, fallback_date) {
-	const account = row.find(".exp-paying-account").val();
+	const account = row.data("controls")?.paying_account?.get_value();
 	const date = row.find(".exp-date").val() || fallback_date;
 	const balance_span = row.find(".exp-balance");
 
@@ -460,20 +498,21 @@ function submit_bulk_expenses(dialog, listview, company) {
 
 	rows.each(function () {
 		const row = $(this);
+		const controls = row.data("controls") || {};
 		const description = row.find(".exp-description").val()?.trim();
 		const date = row.find(".exp-date").val();
 		const amount = parseFloat(row.find(".exp-amount").val()) || 0;
-		const category = row.find(".exp-category").val();
-		const paying_account = row.find(".exp-paying-account").val();
+		const category = controls.category?.get_value();
+		const paying_account = controls.paying_account?.get_value();
 		const payee = row.find(".exp-payee").val()?.trim();
 		const payment_type = row.find(".exp-payment-type").val();
-		const purchase_invoice = row.find(".exp-invoice").val() || null;
+		const purchase_invoice = controls.invoice?.get_value() || null;
 		const is_accompanying = row.find(".exp-accompanying").is(":checked");
 		const scope = row.find(".exp-scope").val() || "Single Purchase Receipt";
 		const linked_purchase =
-			scope === "Single Purchase Receipt" ? row.find(".exp-purchase").val() || null : null;
+			scope === "Single Purchase Receipt" ? controls.purchase?.get_value() || null : null;
 		const linked_shipment =
-			scope === "Inbound Shipment" ? row.find(".exp-shipment").val() || null : null;
+			scope === "Inbound Shipment" ? controls.shipment?.get_value() || null : null;
 
 		// --- Validation ---
 		const missing_basic =

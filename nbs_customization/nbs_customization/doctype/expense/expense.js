@@ -30,8 +30,8 @@ frappe.ui.form.on("Expense", {
 			},
 		}));
 		frm.set_query("linked_shipment", () => ({
+			query: "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.get_shipments_search",
 			filters: {
-				docstatus: 1,
 				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
 			},
 		}));
