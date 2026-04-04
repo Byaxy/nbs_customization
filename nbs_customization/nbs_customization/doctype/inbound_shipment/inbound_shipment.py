@@ -20,6 +20,7 @@ class InboundShipment(Document):
 		self._compute_totals()
 		self._validate_package_item_references()
 		self._validate_package_item_pos()
+		self._validate_package_item_qty_within_po_qty()
 		self._validate_unique_package_items()
 
 	def before_submit(self):
@@ -173,6 +174,51 @@ class InboundShipment(Document):
 					f"Please combine the quantities into one row.")
 				)
 			seen.add(key)
+
+	# ------------------------------------------------------------------ #
+	# Package item qty vs PO qty validation                               #
+	# ------------------------------------------------------------------ #
+	def _validate_package_item_qty_within_po_qty(self):
+		"""Prevent over-allocation of a PO item across multiple packages.
+
+		Rule:
+		For each (purchase_order, item_code), the total qty across all package_items
+		must not exceed the qty on the corresponding Purchase Order Item row.
+		"""
+		qty_map = {}
+		for row in (self.package_items or []):
+			if not row.purchase_order or not row.item_code:
+				continue
+			key = (row.purchase_order, row.item_code)
+			qty_map[key] = qty_map.get(key, 0) + flt(row.qty)
+
+		if not qty_map:
+			return
+
+		po_list = sorted({k[0] for k in qty_map.keys()})
+		item_list = sorted({k[1] for k in qty_map.keys()})
+
+		po_items = frappe.db.get_all(
+			"Purchase Order Item",
+			filters={"parent": ["in", po_list], "item_code": ["in", item_list]},
+			fields=["parent", "item_code", "qty", "uom"],
+			ignore_permissions=True,
+		)
+		po_qty_map = {(r.parent, r.item_code): flt(r.qty) for r in po_items}
+		po_uom_map = {(r.parent, r.item_code): r.uom for r in po_items}
+
+		errors = []
+		for (po, item_code), total_qty in qty_map.items():
+			allowed = po_qty_map.get((po, item_code))
+			if allowed is not None and flt(total_qty) > flt(allowed):
+				uom = po_uom_map.get((po, item_code)) or ""
+				errors.append(
+					f"Item <b>{item_code}</b> from PO <b>{po}</b>: "
+					f"total package qty <b>{flt(total_qty)}</b> exceeds PO qty <b>{allowed}</b> {uom}."
+				)
+
+		if errors:
+			frappe.throw("<br>".join(errors), title=_("Quantity Exceeds Purchase Order"))
 
 	# ------------------------------------------------------------------ #
 	# Package net weight computation                                      #

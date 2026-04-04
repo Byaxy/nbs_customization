@@ -100,6 +100,10 @@ frappe.ui.form.on("Inbound Shipment", {
 		add_shipment_action_buttons(frm);
 	},
 
+	async validate(frm) {
+		await validate_package_item_qty_within_po_qty(frm);
+	},
+
 	shipping_mode(frm) {
 		frm.trigger("toggle_route_fields");
 		suggest_volumetric_divisor(frm);
@@ -349,6 +353,54 @@ function toggle_package_items_addable(frm) {
 	}
 }
 
+async function validate_package_item_qty_within_po_qty(frm) {
+	const qty_map = {};
+	(frm.doc.package_items || []).forEach((r) => {
+		if (!r.purchase_order || !r.item_code) return;
+		const key = `${r.purchase_order}||${r.item_code}`;
+		qty_map[key] = (qty_map[key] || 0) + flt(r.qty);
+	});
+
+	const keys = Object.keys(qty_map);
+	if (!keys.length) return;
+
+	const errors = [];
+	for (const key of keys) {
+		const [purchase_order, item_code] = key.split("||");
+		let allowed_qty = 0;
+		let uom = "";
+
+		try {
+			const r = await frappe.call({
+				method: "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.get_po_item_details",
+				args: { purchase_order, item_code },
+			});
+			allowed_qty = flt((r.message || {}).qty);
+			uom = (r.message || {}).uom || "";
+		} catch (e) {
+			continue;
+		}
+
+		if (allowed_qty > 0 && flt(qty_map[key]) > allowed_qty) {
+			errors.push(
+				__(
+					"Item <b>{0}</b> from PO <b>{1}</b>: total package qty <b>{2}</b> exceeds PO qty <b>{3}</b> {4}.",
+					[item_code, purchase_order, flt(qty_map[key]), allowed_qty, uom],
+				),
+			);
+		}
+	}
+
+	if (errors.length) {
+		frappe.msgprint({
+			title: __("Quantity exceeds Purchase Order"),
+			message: errors.join("<br>"),
+			indicator: "red",
+		});
+		frappe.validated = false;
+	}
+}
+
 // ------------------------------------------------------------------ //
 // Other Helper functions                                                     //
 // ------------------------------------------------------------------ //
@@ -474,6 +526,8 @@ frappe.ui.form.on("Inbound Shipment Package Item", {
 		} else if (flt(row.net_weight)) {
 			set_item_unit_weight(frm, cdt, cdn, flt(flt(row.net_weight) / qty, 3));
 		}
+
+		validate_package_item_qty_within_po_qty(frm);
 	},
 
 	net_weight_per_unit(frm, cdt, cdn) {
