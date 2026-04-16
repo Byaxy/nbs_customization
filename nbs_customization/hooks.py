@@ -288,7 +288,8 @@ fixtures = [
                     "Sales Invoice-custom_is_commission_applied",
                     "Stock Reconciliation Item-custom_description",
                     "Purchase Receipt-custom_purchase_order",
-                    "Sales Invoice-custom_sales_order"
+                    "Sales Invoice-custom_sales_order",
+                    "Purchase Invoice-custom_purchase_order"
                 ]
             ]
         ]
@@ -354,5 +355,10 @@ doc_events = {
     "Landed Cost Voucher": {
         "on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",
     },
+    "Purchase Invoice": {
+        "before_save":   "nbs_customization.controllers.purchase_invoice.before_save",
+        "before_submit": "nbs_customization.controllers.purchase_invoice.before_submit",
+        "on_cancel": "nbs_customization.controllers.purchase_invoice.on_cancel",
+    }
 }
 
