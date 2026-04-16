@@ -285,6 +285,10 @@ fixtures = [
                     "Stock Entry-custom_is_loan",
                     "Purchase Receipt-custom_inbound_shipment",
                     "Landed Cost Voucher-custom_linked_shipment",
+                    "Sales Invoice-custom_is_commission_applied",
+                    "Stock Reconciliation Item-custom_description",
+                    "Purchase Receipt-custom_purchase_order",
+                    "Sales Invoice-custom_sales_order"
                 ]
             ]
         ]
@@ -322,8 +326,10 @@ doc_events = {
         "on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
     },
     "Sales Invoice": {
-        "autoname": "nbs_customization.controllers.sales_invoice.set_name_from_sales_order",
-        "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch"
+        "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
+        "before_save":   "nbs_customization.controllers.sales_invoice.before_save",
+        "before_submit": "nbs_customization.controllers.sales_invoice.before_submit",
+        "on_cancel": "nbs_customization.controllers.sales_invoice.on_cancel",
     },
     "Stock Entry": {
         "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
@@ -333,15 +339,20 @@ doc_events = {
         "validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
     },
     "Purchase Receipt": {
-    "validate": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.validate_purchase_receipt_shipment_link",
-    "on_submit": [
-        "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
-        "nbs_customization.utils.pricing.on_purchase_receipt_submit",
-    ],
-    "on_cancel": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel",
+        "before_save":   "nbs_customization.controllers.purchase_receipt.before_save",
+        "before_submit": "nbs_customization.controllers.purchase_receipt.before_submit",
+        "validate": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.validate_purchase_receipt_shipment_link",
+        "on_submit": [
+            "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
+            "nbs_customization.utils.pricing.on_purchase_receipt_submit",
+        ],
+        "on_cancel": [
+            "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel", 
+            "nbs_customization.controllers.purchase_receipt.on_cancel"
+        ]
     },
     "Landed Cost Voucher": {
-    "on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",
+        "on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",
     },
 }
 

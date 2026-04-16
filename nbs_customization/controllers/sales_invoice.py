@@ -1,53 +1,73 @@
+"""
+Overrides for the standard Sales Invoice DocType.
+Currently handles:
+  - Denormalizing the linked Sales Order(s) up to the SI header
+    so that custom_sales_order is available in the list view,
+    standard filters, and reports without any JOIN queries.
+"""
+
 import frappe
 
 
-def set_name_from_sales_order(doc, method):
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _collect_sales_orders(doc):
     """
-    Sets the Sales Invoice name based on its linked Sales Order.
-
-    - First invoice against SO-0001  → SO-0001
-    - Second invoice against SO-0001 → SO-0001-2
-    - Third invoice against SO-0001  → SO-0001-3
-
-    If no Sales Order reference is found, sets nothing and lets Frappe
-    fall back to the standard naming series.
+    Return a de-duplicated, ordered list of Sales Order names
+    referenced across all SI items.  Order is preserved (first seen first).
     """
-    so_name = _get_sales_order(doc)
-    if not so_name:
-        return
-
-    # Find all existing invoices whose name matches SO-XXXX or SO-XXXX-N
-    existing = frappe.db.sql(
-        """
-        SELECT name FROM `tabSales Invoice`
-        WHERE name = %(base)s
-           OR name LIKE %(pattern)s
-        """,
-        {"base": so_name, "pattern": f"{so_name}-%"},
-        as_dict=True,
-    )
-
-    if not existing:
-        doc.name = so_name
-    else:
-        highest = 1
-        for row in existing:
-            parts = row.name[len(so_name):]  # "" or "-2" or "-3"
-            if parts == "":
-                continue
-            try:
-                suffix = int(parts.lstrip("-"))
-                if suffix > highest:
-                    highest = suffix
-            except ValueError:
-                pass
-
-        doc.name = f"{so_name}-{highest + 1}"
-
-
-def _get_sales_order(doc):
-    """Return the Sales Order name from the first item row that has one."""
+    seen = set()
+    orders = []
     for item in doc.items:
-        if item.sales_order:
-            return item.sales_order
-    return None
+        so = item.get("sales_order")
+        if so and so not in seen:
+            seen.add(so)
+            orders.append(so)
+    return orders
+
+
+def _set_custom_sales_order(doc):
+    """
+    Populate custom_sales_order on the SI header.
+
+    Rules
+    -----
+    - Single SO  →  store that SO name (normal Link behaviour).
+    - Multiple SOs → store the first SO found.
+      The field label will get a visual note appended via the list JS
+      so users know there are additional SOs on the form.
+    - No SO at all (e.g. direct receipt) → clear the field.
+    """
+    orders = _collect_sales_orders(doc)
+
+    if orders:
+        doc.custom_sales_order = orders[0]
+    else:
+        doc.custom_sales_order = None
+
+
+# ---------------------------------------------------------------------------
+# Hook entry-points  (referenced in hooks.py → doc_events)
+# ---------------------------------------------------------------------------
+
+def before_save(doc, method=None):
+    _set_custom_sales_order(doc)
+
+
+def before_submit(doc, method=None):
+    """
+    Re-run on submit so that any last-minute item changes are captured.
+    (before_save runs first, but being explicit here is safer for
+    workflows that skip the save step before submission.)
+    """
+    _set_custom_sales_order(doc)
+
+
+def on_cancel(doc, method=None):
+    """
+    Clear the denormalized field on cancellation so cancelled SI
+    do not pollute SO-based list filters.
+    """
+    doc.db_set("custom_sales_order", None, update_modified=False)

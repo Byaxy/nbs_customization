@@ -1,0 +1,213 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-04-13 15:28:05.421709",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_nvnx",
+  "naming_series",
+  "customer",
+  "customer_name",
+  "column_break_ojwr",
+  "commission_date",
+  "payment_status",
+  "section_break_wvsb",
+  "commission_sales",
+  "overall_commission_recipients_section",
+  "commission_recipients",
+  "totals_section",
+  "total_amount",
+  "total_deductions",
+  "total_gross_commission",
+  "total_commission_payable",
+  "column_break_ctbt",
+  "total_additions",
+  "total_base_for_commission",
+  "total_withholding_tax_amount",
+  "section_break_lhaf",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_nvnx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Sales Commission",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "commission_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "column_break_ojwr",
+   "fieldtype": "Column Break",
+   "options": "Pending\nPartial\nPaid\nCancelled"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Payment Status",
+   "options": "Pending\nPartial\nPaid\nCancelled",
+   "read_only": 1
+  },
+  {
+   "default": "NBSCOMM-.YYYY./.MM./.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "NBSCOMM-.YYYY./.MM./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_lhaf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Computed Totals"
+  },
+  {
+   "fieldname": "column_break_ctbt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_additions",
+   "fieldtype": "Currency",
+   "label": "Total Additions",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_deductions",
+   "fieldtype": "Currency",
+   "label": "Total Deductions",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_base_for_commission",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Base For Commission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_gross_commission",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Gross Commission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_withholding_tax_amount",
+   "fieldtype": "Currency",
+   "label": "Total Withholding Tax Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_commission_payable",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Commission Payable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_wvsb",
+   "fieldtype": "Section Break",
+   "label": "Commission Sales Entries"
+  },
+  {
+   "fieldname": "commission_sales",
+   "fieldtype": "Table",
+   "label": "Commission Sales",
+   "options": "Commission Sale Entry",
+   "reqd": 1
+  },
+  {
+   "fieldname": "overall_commission_recipients_section",
+   "fieldtype": "Section Break",
+   "label": "Overall Commission Recipients"
+  },
+  {
+   "fieldname": "commission_recipients",
+   "fieldtype": "Table",
+   "label": "Commission Recipients",
+   "options": "Commission Recipient",
+   "reqd": 1
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Amount",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-04-15 08:53:13.866771",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Sales Commission",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
