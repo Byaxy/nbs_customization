@@ -88,6 +88,58 @@ def validate_loan_stock_availability(doc):
                 f"{item.item_code}. Only {available} remaining across matching loan balances."
             )
 
+def before_save(doc, method=None):
+    _set_custom_sales_order(doc)
+
+
+def before_submit(doc, method=None):
+    """
+    Re-run on submit so that any last-minute item changes are captured.
+    (before_save runs first, but being explicit here is safer for
+    workflows that skip the save step before submission.)
+    """
+    _set_custom_sales_order(doc)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _collect_sales_orders(doc):
+    """
+    Return a de-duplicated, ordered list of Sales Order names
+    referenced across all DN items.  Order is preserved (first seen first).
+    """
+    seen = set()
+    orders = []
+    for item in doc.items:
+        so = item.get("against_sales_order")
+        if so and so not in seen:
+            seen.add(so)
+            orders.append(so)
+    return orders
+
+
+def _set_custom_sales_order(doc):
+    """
+    Populate custom_sales_order on the DN header.
+
+    Rules
+    -----
+    - Single SO  →  store that SO name (normal Link behaviour).
+    - Multiple SOs → store the first SO found.
+      The field label will get a visual note appended via the list JS
+      so users know there are additional SOs on the form.
+    - No SO at all (e.g. direct delivery note) → clear the field.
+    """
+    orders = _collect_sales_orders(doc)
+
+    if orders:
+        doc.custom_sales_order = orders[0]
+    else:
+        doc.custom_sales_order = None
+
+
 # AFTER SUBMIT
 
 def on_submit(doc, method=None):
@@ -101,7 +153,7 @@ def on_submit(doc, method=None):
     _apply_loan_conversion(doc)
 
 
-# AFTER CANCEL
+# CANCEL
 
 def on_cancel(doc, method=None):
     """
@@ -112,6 +164,8 @@ def on_cancel(doc, method=None):
         frappe.throw("You do not have permission to cancel Delivery Notes.")
     
     try:
+        # Clear the denormalized SO field on any cancellation
+        doc.db_set("custom_sales_order", None, update_modified=False)
 
         _update_promissory_note_directly(doc)
         
@@ -122,7 +176,7 @@ def on_cancel(doc, method=None):
         _reverse_loan_conversion(doc)
         
         frappe.msgprint(f"Loan Conversion Delivery Note {doc.name} cancelled successfully.")
-        
+
     except Exception as e:
         frappe.log_error(f"Delivery Note cancellation failed: {str(e)}")
         frappe.throw("Failed to cancel Delivery Note. Please check system logs.")

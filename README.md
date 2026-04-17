@@ -31,3 +31,8 @@ Pre-commit is configured to use the following tools for checking and formatting 
 ### License
 
 mit
+
+### TODO
+- Add more information about the app
+- Inject description in stock balance report (and any other reports with similar issue) to persist
+- Add numbering on list views (number column)

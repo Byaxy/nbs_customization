@@ -289,7 +289,8 @@ fixtures = [
                     "Stock Reconciliation Item-custom_description",
                     "Purchase Receipt-custom_purchase_order",
                     "Sales Invoice-custom_sales_order",
-                    "Purchase Invoice-custom_purchase_order"
+                    "Purchase Invoice-custom_purchase_order",
+                    "Delivery Note-custom_sales_order"
                 ]
             ]
         ]
@@ -319,10 +320,12 @@ doc_events = {
         "validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
     },
     "Delivery Note": {
+        "before_save": "nbs_customization.controllers.delivery_note.before_save",
         "validate": [
             "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
             "nbs_customization.controllers.delivery_note.validate",
         ],
+        "before_submit": "nbs_customization.controllers.delivery_note.before_submit",
         "on_submit": "nbs_customization.controllers.delivery_note.on_submit",
         "on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
     },

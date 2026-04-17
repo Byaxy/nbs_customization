@@ -38,7 +38,7 @@ def _set_custom_sales_order(doc):
     - Multiple SOs → store the first SO found.
       The field label will get a visual note appended via the list JS
       so users know there are additional SOs on the form.
-    - No SO at all (e.g. direct receipt) → clear the field.
+    - No SO at all (e.g. direct sales invoice) → clear the field.
     """
     orders = _collect_sales_orders(doc)
 
