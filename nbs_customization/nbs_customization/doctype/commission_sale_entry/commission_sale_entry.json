@@ -1,119 +1,120 @@
 {
- "actions": [],
- "allow_rename": 1,
- "creation": "2026-04-14 10:42:34.127235",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "sale",
-  "total_amount",
-  "additions",
-  "deductions",
-  "commission_rate",
-  "withholding_tax",
-  "withholding_tax_rate",
-  "column_break_jtaf",
-  "base_for_commission",
-  "gross_commission",
-  "withholding_tax_amount",
-  "commission_payable"
- ],
- "fields": [
-  {
-   "fieldname": "sale",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Sales Invoice",
-   "options": "Sales Invoice",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "sale.total",
-   "fieldname": "total_amount",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Total Amount",
-   "read_only": 1
-  },
-  {
-   "fieldname": "additions",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Additions"
-  },
-  {
-   "fieldname": "deductions",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Deductions"
-  },
-  {
-   "fieldname": "commission_rate",
-   "fieldtype": "Percent",
-   "in_list_view": 1,
-   "label": "Commission Rate"
-  },
-  {
-   "fieldname": "withholding_tax",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Withholding Tax",
-   "options": "Tax Withholding Category"
-  },
-  {
-   "fieldname": "withholding_tax_rate",
-   "fieldtype": "Percent",
-   "in_list_view": 1,
-   "label": "Withholding Tax Rate",
-   "read_only": 1
-  },
-  {
-   "fieldname": "column_break_jtaf",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "base_for_commission",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Base For Commission",
-   "read_only": 1
-  },
-  {
-   "fieldname": "gross_commission",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Gross Commission",
-   "read_only": 1
-  },
-  {
-   "fieldname": "withholding_tax_amount",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Withholding Tax Amount",
-   "read_only": 1
-  },
-  {
-   "fieldname": "commission_payable",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Commission Payable",
-   "read_only": 1
-  }
- ],
- "grid_page_length": 50,
- "index_web_pages_for_search": 1,
- "istable": 1,
- "links": [],
- "modified": "2026-04-14 11:33:18.639182",
- "modified_by": "Administrator",
- "module": "NBS Customization",
- "name": "Commission Sale Entry",
- "owner": "Administrator",
- "permissions": [],
- "row_format": "Dynamic",
- "rows_threshold_for_grid_search": 20,
- "sort_field": "creation",
- "sort_order": "DESC",
- "states": []
+  "actions": [],
+  "allow_rename": 1,
+  "creation": "2026-04-14 10:42:34.127235",
+  "doctype": "DocType",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "sale",
+    "total_amount",
+    "additions",
+    "deductions",
+    "commission_rate",
+    "withholding_tax",
+    "withholding_tax_rate",
+    "column_break_jtaf",
+    "withholding_tax_amount",
+    "base_for_commission",
+    "gross_commission",
+    "commission_payable"
+  ],
+  "fields": [
+    {
+      "fieldname": "sale",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Sales Invoice",
+      "options": "Sales Invoice",
+      "reqd": 1
+    },
+    {
+      "fetch_from": "sale.grand_total",
+      "fieldname": "total_amount",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Total Amount",
+      "read_only": 1
+    },
+    {
+      "fieldname": "additions",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Additions"
+    },
+    {
+      "fieldname": "deductions",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Deductions"
+    },
+    {
+      "fieldname": "commission_rate",
+      "fieldtype": "Percent",
+      "in_list_view": 1,
+      "label": "Commission Rate"
+    },
+    {
+      "fieldname": "withholding_tax",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Withholding Tax",
+      "options": "Tax Withholding Category",
+      "read_only": 1
+    },
+    {
+      "fieldname": "withholding_tax_rate",
+      "fieldtype": "Percent",
+      "in_list_view": 1,
+      "label": "Withholding Tax Rate",
+      "read_only": 1
+    },
+    {
+      "fieldname": "column_break_jtaf",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "base_for_commission",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Base For Commission",
+      "read_only": 1
+    },
+    {
+      "fieldname": "gross_commission",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Gross Commission",
+      "read_only": 1
+    },
+    {
+      "fieldname": "withholding_tax_amount",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Withholding Tax Amount",
+      "read_only": 1
+    },
+    {
+      "fieldname": "commission_payable",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Commission Payable",
+      "read_only": 1
+    }
+  ],
+  "grid_page_length": 50,
+  "index_web_pages_for_search": 1,
+  "istable": 1,
+  "links": [],
+  "modified": "2026-04-22 11:14:35.893757",
+  "modified_by": "Administrator",
+  "module": "NBS Customization",
+  "name": "Commission Sale Entry",
+  "owner": "Administrator",
+  "permissions": [],
+  "row_format": "Dynamic",
+  "rows_threshold_for_grid_search": 20,
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "states": []
 }

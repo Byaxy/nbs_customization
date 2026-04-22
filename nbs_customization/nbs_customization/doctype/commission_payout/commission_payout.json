@@ -8,16 +8,21 @@
  "field_order": [
   "naming_series",
   "commission",
+  "commission_recipient",
   "column_break_fnru",
   "payout_date",
-  "commission_recipient",
   "sales_person",
   "section_break_lsar",
   "amount_to_pay",
+  "expense_category",
   "journal_entry",
   "column_break_xvlp",
   "paying_account",
-  "expense_category",
+  "account_balance",
+  "company_details_section",
+  "company",
+  "column_break_nsaf",
+  "cost_center",
   "section_break_wtmj",
   "notes",
   "amended_from"
@@ -40,7 +45,6 @@
   {
    "fieldname": "naming_series",
    "fieldtype": "Select",
-   "in_list_view": 1,
    "label": "Naming Series",
    "options": "NBSCOMM-PAY-.YYYY./.MM./.####",
    "reqd": 1
@@ -60,7 +64,6 @@
   {
    "fieldname": "commission_recipient",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Commission Recipient",
    "options": "Commission Recipient",
    "reqd": 1
@@ -69,7 +72,8 @@
    "fetch_from": "commission_recipient.sales_person",
    "fieldname": "sales_person",
    "fieldtype": "Link",
-   "label": "Sales Person",
+   "in_list_view": 1,
+   "label": "Sales Person ( Commission Recipient )",
    "options": "Sales Person",
    "read_only": 1
   },
@@ -123,13 +127,41 @@
    "options": "Journal Entry",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "company_details_section",
+   "fieldtype": "Section Break",
+   "label": "Company Details"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_nsaf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "account_balance",
+   "fieldtype": "Currency",
+   "label": "Account Balance",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-14 13:12:44.170969",
+ "modified": "2026-04-22 12:44:40.961332",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Commission Payout",

@@ -6,29 +6,84 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, nowdate
 
+# ---------------------------------------------------------------------------
+# Core commission calculation
+# ---------------------------------------------------------------------------
 
 def calculate_commission_amounts(
-    amount_received: float,
-    additions: float,
-    deductions: float,
-    commission_rate: float,       # as decimal, e.g. 0.10
-    withholding_tax_rate: float,  # as decimal, e.g. 0.03
+    grand_total: float,       
+    wht_amount: float,       
+    additions: float,         
+    deductions: float,        
+    commission_rate: float,   
 ) -> dict:
+    """
+    Calculate commission amounts
+    """
+    gt  = flt(grand_total)
+    wht = flt(wht_amount)
+    add = flt(additions)
+    ded = flt(deductions)
+    cr  = flt(commission_rate)
 
-    wht_on_invoice = flt(amount_received) * flt(withholding_tax_rate)
-    actual_received = flt(amount_received) - wht_on_invoice
-    wht_amount = actual_received * flt(withholding_tax_rate)
-    base = max(0.0, actual_received - wht_amount - flt(additions))
-    gross = base * flt(commission_rate)
-    net = max(0.0, gross - flt(deductions))
+    base    = max(0.0, gt - wht - add)
+    gross   = base * cr
+    payable = max(0.0, gross - ded)
 
     return {
-        "base_for_commission": flt(base, 2),
-        "gross_commission": flt(gross, 2),
-        "withholding_tax_amount": flt(wht_amount, 2),
-        "commission_payable": flt(net, 2),
+        "wht_amount":             flt(wht, 2),
+        "base_for_commission":    flt(base, 2),
+        "gross_commission":       flt(gross, 2),
+        "commission_payable":     flt(payable, 2),
+        "withholding_tax_amount": flt(wht, 2),
     }
 
+
+def _get_invoice_wht_details(invoice: str) -> dict:
+    wht_rate = 0.0
+    wht_amount = 0.0
+    consider_for_wht = False
+    tax_withholding_category = ""
+
+    if not invoice:
+        return {
+            "consider_for_wht": consider_for_wht,
+            "wht_category": tax_withholding_category,
+            "wht_rate": wht_rate,
+            "wht_amount": wht_amount,
+        }
+
+    apply_tds = frappe.db.get_value("Sales Invoice", invoice, "apply_tds")
+    consider_for_wht = bool(apply_tds)
+
+    if consider_for_wht:
+        tax_row = frappe.db.get_value(
+            "Tax Withholding Entry",
+            {
+                "parent": invoice,
+                "parenttype": "Sales Invoice",
+                "tax_rate": ["<", 0],
+            },
+            ["tax_rate", "withholding_amount", "tax_withholding_category"],
+            as_dict=True,
+            order_by="idx asc",
+        )
+        if tax_row:
+            wht_rate = abs(flt(tax_row.tax_rate))
+            wht_amount = abs(flt(tax_row.withholding_amount))
+            tax_withholding_category = tax_row.tax_withholding_category
+
+    return {
+        "consider_for_wht": consider_for_wht,
+        "wht_category": tax_withholding_category,
+        "wht_rate": wht_rate,
+        "wht_amount": wht_amount,
+    }
+
+
+# ---------------------------------------------------------------------------
+# DocType controller
+# ---------------------------------------------------------------------------
 
 class SalesCommission(Document):
     # ------------------------------------------------------------------ #
@@ -36,6 +91,7 @@ class SalesCommission(Document):
     # ------------------------------------------------------------------ #
 
     def validate(self):
+        self._set_company_defaults()
         self.validate_commission_date()
         self.validate_commission_sales()
         self.validate_recipients()
@@ -45,7 +101,6 @@ class SalesCommission(Document):
         self.validate_recipients_allocation()
 
     def before_submit(self):
-        """Submission = Approval. Run final checks before locking the document."""
         self.flag_invoices_as_commissioned(True)
 
     def on_cancel(self):
@@ -56,6 +111,14 @@ class SalesCommission(Document):
     # ------------------------------------------------------------------ #
     #  Validation helpers                                                  #
     # ------------------------------------------------------------------ #
+
+    def _set_company_defaults(self):
+        if not self.company:
+            self.company = frappe.defaults.get_user_default("Company")
+        if not self.cost_center:
+            self.cost_center = frappe.db.get_value(
+                "Company", self.company, "cost_center"
+            )
 
     def validate_commission_date(self):
         if not self.commission_date:
@@ -73,14 +136,12 @@ class SalesCommission(Document):
             row_label = f"Row {i + 1}"
             if not row.sale:
                 frappe.throw(
-                    _("{0} in Commission Sales: Sales Invoice is required.").format(row_label),
+                    _("{0}: Sales Invoice is required.").format(row_label),
                     title=_("Validation Error"),
                 )
             if row.sale in seen_invoices:
                 frappe.throw(
-                    _("{0}: Sales Invoice <b>{1}</b> is already added. Each invoice can only appear once.").format(
-                        row_label, row.sale
-                    ),
+                    _("{0}: Sales Invoice <b>{1}</b> is already added.").format(row_label, row.sale),
                     title=_("Duplicate Invoice"),
                 )
             seen_invoices.add(row.sale)
@@ -100,7 +161,6 @@ class SalesCommission(Document):
                     title=_("Validation Error"),
                 )
 
-            # Block invoices already commissioned on another active commission
             if self.is_new() or self._is_new_sale_row(row):
                 self._check_invoice_not_already_commissioned(row.sale)
 
@@ -137,12 +197,8 @@ class SalesCommission(Document):
                 )
 
     def validate_recipients_allocation(self):
-        """
-        Called before_submit. Warns if total recipient allocation differs from
-        total_commission_payable. Throws if allocation exceeds it.
-        """
         total_allocated = sum(flt(r.allocated_amount) for r in self.commission_recipients)
-        total_payable = flt(self.total_commission_payable)
+        total_payable   = flt(self.total_commission_payable)
 
         if flt(total_allocated, 2) > flt(total_payable, 2):
             frappe.throw(
@@ -151,39 +207,35 @@ class SalesCommission(Document):
                     "Please adjust recipient allocations."
                 ).format(
                     frappe.format_value(total_allocated, {"fieldtype": "Currency"}),
-                    frappe.format_value(total_payable, {"fieldtype": "Currency"}),
+                    frappe.format_value(total_payable,   {"fieldtype": "Currency"}),
                 ),
                 title=_("Allocation Mismatch"),
             )
 
         if flt(total_allocated, 2) < flt(total_payable, 2):
-            # Warn but allow — partial distribution is a valid business choice
-            frappe.msgprint(
+            frappe.throw(
                 _(
-                    "Note: Total Allocated Amount ({0}) is less than Total Commission Payable ({1}). "
-                    "The unallocated balance of {2} will not be tracked against any recipient."
+                    "Total Allocated ({0}) is less than Total Commission Payable ({1}). "
+                    "Unallocated balance of {2} needs to be allocated to a recipient."
                 ).format(
-                    frappe.format_value(total_allocated, {"fieldtype": "Currency"}),
-                    frappe.format_value(total_payable, {"fieldtype": "Currency"}),
-                    frappe.format_value(total_payable - total_allocated, {"fieldtype": "Currency"}),
+                    frappe.format_value(total_allocated,                      {"fieldtype": "Currency"}),
+                    frappe.format_value(total_payable,                        {"fieldtype": "Currency"}),
+                    frappe.format_value(total_payable - total_allocated,      {"fieldtype": "Currency"}),
                 ),
                 title=_("Partial Allocation"),
-                indicator="orange",
             )
 
     def validate_no_payouts_on_cancel(self):
-        """Prevent cancellation if any payout has been submitted against this commission."""
-        paid_recipients = []
-        for row in self.commission_recipients:
-            paid = flt(row.paid_amount)
-            if paid > 0:
-                paid_recipients.append(f"<b>{row.sales_person}</b> (paid: {frappe.format_value(paid, {'fieldtype': 'Currency'})})")
-
+        paid_recipients = [
+            f"<b>{r.sales_person}</b> (paid: {frappe.format_value(flt(r.paid_amount), {'fieldtype': 'Currency'})})"
+            for r in self.commission_recipients
+            if flt(r.paid_amount) > 0
+        ]
         if paid_recipients:
             frappe.throw(
                 _(
-                    "Cannot cancel this Commission because the following recipients have already received payouts:<br>"
-                    "{0}<br><br>Please cancel individual Commission Payouts first."
+                    "Cannot cancel this Commission because the following recipients have already "
+                    "received payouts:<br>{0}<br><br>Please cancel individual Commission Payouts first."
                 ).format("<br>".join(paid_recipients)),
                 title=_("Cancel Not Allowed"),
             )
@@ -193,29 +245,49 @@ class SalesCommission(Document):
     # ------------------------------------------------------------------ #
 
     def calculate_row_amounts(self):
-        """Recalculate all computed fields on every Commission Sale Entry row."""
+        """
+        Recalculate every Commission Sale Entry row.
+
+        WHT amount is fetched fresh from the invoice's Tax Withholding Entry
+        child table on every validate pass. We do NOT rely on row.withholding_tax_amount
+        because that field is read_only in the DocType — Frappe strips read-only
+        field values from the form payload before validate runs, so the row value
+        would always be 0 on first save, causing a mismatch with the frontend.
+        """
         for row in self.commission_sales:
             if not row.sale:
                 continue
 
-            # total_amount is fetched from Sales Invoice via fetch_from; fall back to 0
-            amount_received = flt(row.total_amount)
-            additions = flt(row.additions)
-            deductions = flt(row.deductions)
-            commission_rate = flt(row.commission_rate) / 100.0
-            wht_rate = flt(row.withholding_tax_rate) / 100.0
+            # Always use Sales Invoice grand_total as the authoritative total_amount.
+            # This keeps calculations consistent for invoices with WHT (grand_total is net payable).
+            row.total_amount = flt(
+                frappe.db.get_value("Sales Invoice", row.sale, "grand_total")
+            )
+
+            wht = _get_invoice_wht_details(row.sale)
+            wht_amount = flt(wht.get("wht_amount"))
+            if wht.get("consider_for_wht") and wht.get("wht_category"):
+                row.withholding_tax_amount = flt(wht.get("wht_amount"))
+                row.withholding_tax_rate = flt(wht.get("wht_rate"))
+            else:
+                row.withholding_tax_amount = 0
+                row.withholding_tax_rate = 0
 
             result = calculate_commission_amounts(
-                amount_received, additions, deductions, commission_rate, wht_rate
+                grand_total=flt(row.total_amount),
+                wht_amount=wht_amount,
+                additions=flt(row.additions),
+                deductions=flt(row.deductions),
+                commission_rate=flt(row.commission_rate) / 100.0,
             )
 
             row.base_for_commission = result["base_for_commission"]
-            row.gross_commission = result["gross_commission"]
-            row.withholding_tax_amount = result["withholding_tax_amount"]
-            row.commission_payable = result["commission_payable"]
+            row.gross_commission    = result["gross_commission"]
+            row.commission_payable  = result["commission_payable"]
+
+
 
     def calculate_totals(self):
-        """Aggregate row-level amounts into the parent totals fields."""
         self.total_amount = flt(sum(flt(r.total_amount) for r in self.commission_sales), 2)
         self.total_additions = flt(sum(flt(r.additions) for r in self.commission_sales), 2)
         self.total_deductions = flt(sum(flt(r.deductions) for r in self.commission_sales), 2)
@@ -233,39 +305,25 @@ class SalesCommission(Document):
         )
 
     def sync_recipient_remaining_due(self):
-        """Keep remaining_due in sync with allocated_amount and paid_amount."""
         for row in self.commission_recipients:
-            row.remaining_due = flt(
-                flt(row.allocated_amount) - flt(row.paid_amount), 2
-            )
+            row.remaining_due = flt(flt(row.allocated_amount) - flt(row.paid_amount), 2)
 
     # ------------------------------------------------------------------ #
-    #  Invoice commission flag helpers                                     #
+    #  Invoice flag helpers                                                #
     # ------------------------------------------------------------------ #
 
     def flag_invoices_as_commissioned(self, flag: bool):
-        """Set custom_is_commission_applied on all linked Sales Invoices."""
         for row in self.commission_sales:
             if row.sale:
                 frappe.db.set_value(
-                    "Sales Invoice",
-                    row.sale,
-                    "custom_is_commission_applied",
-                    1 if flag else 0,
+                    "Sales Invoice", row.sale,
+                    "custom_is_commission_applied", 1 if flag else 0,
                 )
 
     def _check_invoice_not_already_commissioned(self, invoice_name: str):
-        """
-        Ensure the invoice isn't already tied to another active (non-cancelled)
-        Sales Commission (excluding the current document).
-        """
-        filters = {
-            "sale": invoice_name,
-            "docstatus": ["!=", 2],  # not cancelled
-        }
         existing = frappe.db.get_value(
             "Commission Sale Entry",
-            filters,
+            {"sale": invoice_name, "docstatus": ["!=", 2]},
             ["parent"],
             as_dict=True,
         )
@@ -279,7 +337,6 @@ class SalesCommission(Document):
             )
 
     def _is_new_sale_row(self, row) -> bool:
-        """True if this row doesn't yet exist in the saved document."""
         if self.is_new():
             return True
         return not frappe.db.exists(
@@ -293,18 +350,13 @@ class SalesCommission(Document):
         self.db_update()
 
     # ------------------------------------------------------------------ #
-    #  Public method: called by Commission Payout on_submit / on_cancel   #
+    #  Called by Commission Payout on_submit / on_cancel                  #
     # ------------------------------------------------------------------ #
 
     def recompute_payment_status(self):
-        """
-        Called externally (from Commission Payout) after a payout is submitted
-        or cancelled. Refreshes paid_amount, remaining_due, and payment_status
-        for every recipient, then sets the parent commission payment_status.
-        """
         commission_fully_paid = True
         any_partial = False
-        any_paid = False
+        any_paid    = False
 
         for row in self.commission_recipients:
             total_paid = flt(
@@ -320,7 +372,7 @@ class SalesCommission(Document):
             )
 
             allocated = flt(row.allocated_amount)
-            row.paid_amount = flt(total_paid, 2)
+            row.paid_amount   = flt(total_paid, 2)
             row.remaining_due = flt(max(0.0, allocated - total_paid), 2)
 
             if flt(total_paid, 2) >= flt(allocated, 2) - 0.01:
@@ -334,10 +386,8 @@ class SalesCommission(Document):
                 row.payment_status = "Pending"
                 commission_fully_paid = False
 
-            if row.payment_status != "Paid":
-                any_paid_flag = row.paid_amount > 0
-                if any_paid_flag:
-                    any_paid = True
+            if row.payment_status != "Paid" and row.paid_amount > 0:
+                any_paid = True
 
         if commission_fully_paid:
             new_status = "Paid"
@@ -347,59 +397,70 @@ class SalesCommission(Document):
             new_status = "Pending"
 
         self.payment_status = new_status
+
+        for row in self.commission_recipients:
+            row.db_update()
+
         self.db_update()
 
 
-# ------------------------------------------------------------------ #
-#  Whitelisted server methods (called from JS)                        #
-# ------------------------------------------------------------------ #
+# ---------------------------------------------------------------------------
+# Whitelisted server methods
+# ---------------------------------------------------------------------------
 
 @frappe.whitelist()
-def get_wht_rate_for_category(tax_withholding_category: str) -> float:
+def get_invoice_details_for_commission(invoice: str) -> dict:
     """
-    Fetch the current withholding tax rate from Tax Withholding Category.
-    Returns the rate from the most recent applicable fiscal year row.
+    Single round-trip called from the JS `sale` event handler.
+
+    Returns everything needed to populate a Commission Sale Entry row:
+      - grand_total        : the full receivable (ERPNext has already netted out
+                             the first WHT deduction from the customer)
+      - consider_for_wht   : whether "Apply Tax Withholding Amount" is checked
+      - wht_category       : Tax Withholding Category name (for display)
+      - wht_rate           : WHT rate as a percentage (e.g. 3.0)
+                             sourced from the invoice's Tax Withholding Entry row
+                             so it matches what ERPNext actually used
+      - wht_amount_on_inv  : the WHT amount ERPNext removed from the invoice total
+                             (informational — shown to user but NOT used in formula)
     """
-    if not tax_withholding_category:
-        return 0.0
+    if not invoice:
+        return {}
 
-    posting_date = nowdate()
-
-    # Try rate valid for today's date first
-    rate = frappe.db.get_value(
-        "Tax Withholding Rate",
-        {
-            "parent": tax_withholding_category,
-            "from_date": ("<=", posting_date),
-            "to_date": (">=", posting_date),
-        },
-        "tax_withholding_rate",
-        order_by="from_date desc",
+    inv = frappe.db.get_value(
+        "Sales Invoice",
+        invoice,
+        ["grand_total", "customer", "customer_name", "apply_tds"],
+        as_dict=True,
     )
+    if not inv:
+        return {}
 
-    # Fall back to latest dated rate defined on this category
-    if rate is None:
-        rate = frappe.db.get_value(
-            "Tax Withholding Rate",
-            {"parent": tax_withholding_category},
-            "tax_withholding_rate",
-            order_by="to_date desc, from_date desc",
-        )
+    wht = _get_invoice_wht_details(invoice)
 
-    return abs(flt(rate)) if rate is not None else 0.0
+    return {
+        "grand_total":        flt(inv.grand_total),
+        "customer":           inv.customer,
+        "customer_name":      inv.customer_name,
+        "consider_for_wht":   bool(wht.get("consider_for_wht")),
+        "wht_category":       wht.get("wht_category"),
+        "wht_rate":           flt(wht.get("wht_rate")),
+        "wht_amount_on_inv":  flt(wht.get("wht_amount")),
+    }
 
 
 @frappe.whitelist()
-def get_invoices_for_customer(customer: str) -> list:
+def get_invoices_for_customer(doctype, txt, searchfield, start, page_len, filters):
     """
-    Return submitted, unpaid/partially-paid Sales Invoices for a customer
-    that have not yet been assigned to an active (non-cancelled) commission.
+    Query submitted, PAID Sales Invoices for a customer not yet
+    assigned to an active Sales Commission. Compatible with Link field query.
     """
+    customer = filters.get("customer")
     if not customer:
         return []
 
-    # Invoices already locked in an active commission
-    commissioned_invoices = frappe.db.sql_list(
+    # Get already commissioned invoices to exclude them
+    commissioned = frappe.db.sql_list(
         """
         SELECT DISTINCT cse.sale
         FROM `tabCommission Sale Entry` cse
@@ -408,45 +469,74 @@ def get_invoices_for_customer(customer: str) -> list:
         """
     )
 
-    filters = {
-        "customer": customer,
-        "docstatus": 1,
-        "status": ["in", ["Unpaid", "Partly Paid", "Overdue"]],
-    }
+    # Base query
+    query = """
+        SELECT name, customer_name, posting_date, grand_total
+        FROM `tabSales Invoice`
+        WHERE customer = %(customer)s
+          AND docstatus = 1
+          AND status = 'Paid'
+    """
+    params = {"customer": customer}
 
-    invoices = frappe.get_all(
-        "Sales Invoice",
-        filters=filters,
-        fields=["name", "posting_date", "grand_total", "outstanding_amount", "status"],
-        order_by="posting_date desc",
-    )
+    if commissioned:
+        query += " AND name NOT IN %(commissioned)s"
+        params["commissioned"] = commissioned
 
-    # Exclude already commissioned invoices
-    return [inv for inv in invoices if inv["name"] not in commissioned_invoices]
+    if txt:
+        query += " AND name LIKE %(txt)s"
+        params["txt"] = f"%{txt}%"
+
+    query += f" ORDER BY posting_date DESC LIMIT {int(page_len)} OFFSET {int(start)}"
+
+    results = frappe.db.sql(query, params)
+    
+    # Format grand_total as currency for the display in the Link selection
+    formatted_results = []
+    for row in results:
+        res = list(row)
+        if len(res) > 3:
+            res[3] = frappe.format_value(res[3], {"fieldtype": "Currency"})
+        formatted_results.append(res)
+        
+    return formatted_results
 
 
 @frappe.whitelist()
 def get_recipients_for_commission(commission: str) -> list:
-    """
-    Return Commission Recipient child rows for a given Sales Commission
-    that are NOT yet fully paid (Pending or Partial), so the payout form
-    can filter its recipient link field.
-    """
+    """Return unpaid/partial recipients for the Commission Payout link filter."""
     if not commission:
         return []
 
     doc = frappe.get_doc("Sales Commission", commission)
-    result = []
-    for row in doc.commission_recipients:
-        if row.payment_status not in ("Paid", "Cancelled"):
-            result.append(
-                {
-                    "name": row.name,
-                    "sales_person": row.sales_person,
-                    "allocated_amount": flt(row.allocated_amount),
-                    "paid_amount": flt(row.paid_amount),
-                    "remaining_due": flt(row.remaining_due),
-                    "payment_status": row.payment_status,
-                }
-            )
+    return [
+        {
+            "name":             row.name,
+            "sales_person":     row.sales_person,
+            "allocated_amount": flt(row.allocated_amount),
+            "paid_amount":      flt(row.paid_amount),
+            "remaining_due":    flt(row.remaining_due),
+            "payment_status":   row.payment_status,
+        }
+        for row in doc.commission_recipients
+        if row.payment_status not in ("Paid", "Cancelled")
+    ]
+
+
+@frappe.whitelist()
+def calculate_commission_row(
+    grand_total: float,
+    wht_amount: float,
+    additions: float,
+    deductions: float,
+    commission_rate: float,   # as percentage e.g. 10
+) -> dict:
+    """Called directly from JS _recalculate_row — single source of truth for the formula."""
+    result = calculate_commission_amounts(
+        grand_total=flt(grand_total),
+        wht_amount=flt(wht_amount),
+        additions=flt(additions),
+        deductions=flt(deductions),
+        commission_rate=flt(commission_rate) / 100.0,
+    )
     return result

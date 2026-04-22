@@ -13,6 +13,10 @@
   "column_break_ojwr",
   "commission_date",
   "payment_status",
+  "company_details_section",
+  "company",
+  "column_break_agbn",
+  "cost_center",
   "section_break_wvsb",
   "commission_sales",
   "overall_commission_recipients_section",
@@ -178,13 +182,35 @@
    "fieldtype": "Data",
    "label": "Customer Name",
    "read_only": 1
+  },
+  {
+   "fieldname": "company_details_section",
+   "fieldtype": "Section Break",
+   "label": "Company Details"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_agbn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-15 08:53:13.866771",
+ "modified": "2026-04-22 11:32:02.886756",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Sales Commission",
