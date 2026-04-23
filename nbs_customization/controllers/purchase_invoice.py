@@ -63,11 +63,3 @@ def before_submit(doc, method=None):
     workflows that skip the save step before submission.)
     """
     _set_custom_purchase_order(doc)
-
-
-def on_cancel(doc, method=None):
-    """
-    Clear the denormalized field on cancellation so cancelled PRs
-    do not pollute PO-based list filters.
-    """
-    doc.db_set("custom_purchase_order", None, update_modified=False)

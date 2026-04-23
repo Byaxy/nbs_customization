@@ -333,7 +333,6 @@ doc_events = {
         "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
         "before_save":   "nbs_customization.controllers.sales_invoice.before_save",
         "before_submit": "nbs_customization.controllers.sales_invoice.before_submit",
-        "on_cancel": "nbs_customization.controllers.sales_invoice.on_cancel",
     },
     "Stock Entry": {
         "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
@@ -350,10 +349,7 @@ doc_events = {
             "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
             "nbs_customization.utils.pricing.on_purchase_receipt_submit",
         ],
-        "on_cancel": [
-            "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel", 
-            "nbs_customization.controllers.purchase_receipt.on_cancel"
-        ]
+        "on_cancel": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel", 
     },
     "Landed Cost Voucher": {
         "on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",
@@ -361,7 +357,6 @@ doc_events = {
     "Purchase Invoice": {
         "before_save":   "nbs_customization.controllers.purchase_invoice.before_save",
         "before_submit": "nbs_customization.controllers.purchase_invoice.before_submit",
-        "on_cancel": "nbs_customization.controllers.purchase_invoice.on_cancel",
     }
 }
 

@@ -164,9 +164,6 @@ def on_cancel(doc, method=None):
         frappe.throw("You do not have permission to cancel Delivery Notes.")
     
     try:
-        # Clear the denormalized SO field on any cancellation
-        doc.db_set("custom_sales_order", None, update_modified=False)
-
         _update_promissory_note_directly(doc)
         
         if doc.custom_waybill_type != "Loan Conversion Waybill":
