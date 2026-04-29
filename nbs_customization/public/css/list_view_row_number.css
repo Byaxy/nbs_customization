@@ -1,0 +1,42 @@
+/* NBS Customization: Row Number Column Styling */
+
+.nbs-row-no {
+	flex: 0 0 35px !important;
+	width: 35px !important;
+	min-width: 35px !important;
+	max-width: 35px !important;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+	font-weight: 500;
+	margin-right: 4px;
+}
+
+.nbs-row-no-header {
+	color: var(--nbs-table-header-text) !important;
+	font-weight: 600;
+}
+
+/* Ensure the subject column container (level-left) can accommodate the new element */
+.list-row-col.list-subject {
+	display: flex !important;
+	align-items: center !important;
+}
+
+/* Optional: Subtle separator or hover effect */
+.list-row-container:hover .nbs-row-no {
+	color: var(--text-color);
+}
+
+/* Mobile responsive: Hide or shrink if needed */
+@media (max-width: 768px) {
+	.nbs-row-no {
+		flex: 0 0 28px !important;
+		width: 28px !important;
+		min-width: 28px !important;
+		font-size: 10px;
+	}
+}

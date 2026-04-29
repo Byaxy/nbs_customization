@@ -202,7 +202,7 @@
 	color: var(--nbs-sidebar-text) !important;
 }
 
-. .body-sidebar .standard-sidebar-item .item-anchor {
+.body-sidebar .standard-sidebar-item .item-anchor {
 	display: flex;
 	align-items: center;
 	gap: 8px;
