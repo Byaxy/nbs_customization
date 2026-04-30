@@ -96,6 +96,10 @@ web_include_js = "/assets/nbs_customization/js/nbs_theme.js"
 
 after_migrate = ["nbs_customization.setup.after_migrate"]
 
+override_whitelisted_methods = {
+	"frappe.desk.query_report.run": "nbs_customization.report_customizer.run",
+}
+
 # Uninstallation
 # ------------
 
