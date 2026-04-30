@@ -1,5 +1,6 @@
 frappe.ui.form.on("Delivery Note", {
 	refresh: function (frm) {
+		add_shipment_logic(frm);
 		// Only apply to loan conversion waybills
 		if (frm.doc.custom_waybill_type === "Loan Conversion Waybill" && frm.doc.docstatus === 0) {
 			// Hide add row button
@@ -51,6 +52,39 @@ frappe.ui.form.on("Delivery Note", {
 		});
 	},
 });
+
+function add_shipment_logic(frm) {
+	frm.remove_custom_button(__("Shipment"), __("View"));
+
+	if (frm.doc.docstatus !== 1) return;
+
+	frappe.call({
+		method: "frappe.client.get_list",
+		args: {
+			doctype: "Shipment",
+			filters: [["Shipment Delivery Note", "delivery_note", "=", frm.doc.name]],
+			fields: ["name"],
+			limit: 1,
+		},
+		callback(r) {
+			if (!r.message || !r.message.length) return;
+
+			const shipment_name = r.message?.length ? r.message[0].name : null;
+
+			if (!shipment_name) return;
+
+			setTimeout(() => {
+				frm.page.remove_inner_button(__("Shipment"), __("Create"));
+			}, 100);
+
+			frm.add_custom_button(
+				__("Shipment"),
+				() => frappe.set_route("Form", "Shipment", shipment_name),
+				__("View"),
+			);
+		},
+	});
+}
 
 // Prevent manual addition of rows through any means
 frappe.ui.form.on("Delivery Note Item", {

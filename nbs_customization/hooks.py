@@ -311,7 +311,8 @@ doctype_js = {
     "Sales Order": "public/js/sales_order.js",
     "Delivery Note": "public/js/delivery_note.js",
     "Landed Cost Voucher": "public/js/landed_cost_voucher.js",
-    "Purchase Receipt":    "public/js/purchase_receipt.js",
+    "Purchase Receipt": "public/js/purchase_receipt.js",
+    "Sales Invoice": "public/js/sales_invoice.js",
 }
 
 doctype_list_js = {
@@ -363,6 +364,9 @@ doc_events = {
     "Purchase Invoice": {
         "before_save":   "nbs_customization.controllers.purchase_invoice.before_save",
         "before_submit": "nbs_customization.controllers.purchase_invoice.before_submit",
-    }
+    },
+    "Shipment": {
+        "validate": "nbs_customization.controllers.shipment.validate",
+    },
 }
 
