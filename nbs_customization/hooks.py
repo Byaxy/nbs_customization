@@ -98,6 +98,7 @@ after_migrate = ["nbs_customization.setup.after_migrate"]
 
 override_whitelisted_methods = {
 	"frappe.desk.query_report.run": "nbs_customization.report_customizer.run",
+    "frappe.desk.query_report.export_query": "nbs_customization.report_customizer.export_query",
 }
 
 # Uninstallation

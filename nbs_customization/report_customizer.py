@@ -1,6 +1,13 @@
 import frappe
 from frappe import _
 
+# Capture originals at module import time — before any override swap can occur.
+# If captured inside a function body, the swap (_qr.run = run) would already be
+# in effect, making _original_run point back to our own function → recursion.
+import frappe.desk.query_report as _qr_module
+from frappe.desk.query_report import run as _ORIGINAL_RUN
+from frappe.desk.query_report import export_query as _ORIGINAL_EXPORT_QUERY
+
 
 REPORT_CONFIG = {
 	"Stock Balance": {
@@ -34,10 +41,9 @@ def run(
 	"""Wrapper around frappe.desk.query_report.run.
 
 	Registered via hooks.py -> override_whitelisted_methods.
+	Handles both normal report viewing AND export (when called via our export_query wrapper).
 	"""
-	from frappe.desk.query_report import run as _original_run
-
-	result = _original_run(
+	result = _ORIGINAL_RUN(
 		report_name=report_name,
 		filters=filters,
 		user=user,
@@ -62,6 +68,51 @@ def run(
 		)
 		return result
 
+
+@frappe.whitelist()
+def export_query():
+	"""Wrapper around frappe.desk.query_report.export_query.
+
+	WHY THIS EXISTS
+	---------------
+	`override_whitelisted_methods` in hooks.py intercepts requests at the HTTP
+	dispatcher level only. When `export_query` calls `run()` internally — as a
+	direct Python reference inside the same module — the dispatcher is NOT
+	involved, so our `run` override is completely bypassed.
+
+	The result: on-screen report shows customised columns, but Excel / CSV
+	exports the raw original columns (item_name present, description absent).
+
+	THE FIX
+	-------
+	We also override `export_query` in hooks.py. Before delegating to the
+	original function, we temporarily replace `frappe.desk.query_report.run`
+	in the module's namespace with our patched version. Since Python resolves
+	module-level names at call time (not at definition time), `export_query`
+	will pick up our version when it calls `run(...)` internally.
+
+	`try/finally` guarantees the original is always restored, even on error.
+
+	THREAD / GEVENT SAFETY
+	----------------------
+	Each Gunicorn + gevent worker handles one request synchronously within a
+	greenlet. There are no cooperative yield points between our two assignments
+	(`_qr.run = run` and `_qr.run = _saved`), so no other greenlet can observe
+	the temporary swap. The `finally` block also fires before control returns to
+	the event loop, making this safe in production.
+	"""
+	_saved_run = _qr_module.run
+	_qr_module.run = run  # inject our patched run into the module namespace
+	try:
+		return _ORIGINAL_EXPORT_QUERY()
+	finally:
+		_qr_module.run = _saved_run  # always restore, even on exception
+
+
+# ---------------------------------------------------------------------------
+# Core transformation — shared between run() and (indirectly) export_query()
+# ---------------------------------------------------------------------------
+
 def _apply_column_customizations(report_name: str, result: dict, config: dict) -> dict:
 	columns = result.get("columns") or []
 	data = result.get("result") or []
@@ -69,12 +120,18 @@ def _apply_column_customizations(report_name: str, result: dict, config: dict) -
 	columns = [frappe.desk.query_report.get_column_as_dict(c) for c in columns]
 
 	if report_name == "Stock Balance":
+		# Stock Balance doesn't include description in its SQL — we must fetch it
 		if not _rows_have_field(data, "description"):
 			_enrich_rows_with_description(data)
 
+	# Stock Ledger already SELECTs description from tabItem in its query,
+	# so the data rows already have it — we just need to add/move the column.
+
 	if any(c.get("fieldname") == "description" for c in columns):
+		# Already in columns (e.g. Stock Ledger): move to position after item_code
 		columns = _move_column_after(columns, "description", "item_code")
 	else:
+		# Not in columns (e.g. Stock Balance): insert after item_code
 		columns = _insert_column_after(columns, DESCRIPTION_COLUMN, "item_code")
 
 	for fieldname in config.get("remove_columns", []):
@@ -84,6 +141,10 @@ def _apply_column_customizations(report_name: str, result: dict, config: dict) -
 	result["result"] = data
 	return result
 
+
+# ---------------------------------------------------------------------------
+# Data enrichment (Stock Balance only)
+# ---------------------------------------------------------------------------
 
 def _rows_have_field(data: list, fieldname: str) -> bool:
 	for row in data:
@@ -126,9 +187,14 @@ def _enrich_rows_with_description(data: list) -> None:
 		row["description"] = strip_html(raw) if raw else ""
 
 
+# ---------------------------------------------------------------------------
+# Column utilities
+# ---------------------------------------------------------------------------
+
 def _insert_column_after(columns: list[dict], new_col: dict, after_fieldname: str) -> list[dict]:
+	"""Insert new_col immediately after the column with fieldname == after_fieldname."""
 	if any(c.get("fieldname") == new_col.get("fieldname") for c in columns):
-		return columns
+		return columns  # already present; don't double-insert
 
 	result = []
 	inserted = False
@@ -139,25 +205,26 @@ def _insert_column_after(columns: list[dict], new_col: dict, after_fieldname: st
 			inserted = True
 
 	if not inserted:
+		# Fallback: put at index 1 (safe even for single-column lists)
 		result.insert(min(1, len(result)), new_col)
 
 	return result
 
 
 def _move_column_after(columns: list[dict], fieldname: str, after_fieldname: str) -> list[dict]:
-	"""Move an existing column (by fieldname) to immediately after another column.
+	"""Relocate an existing column to immediately after another column.
 
-	If the target column or after-column doesn't exist, returns columns unchanged.
+	Returns the original list unchanged if either column is not found.
 	"""
-	col = None
+	col_to_move = None
 	remaining = []
 	for c in columns:
-		if c.get("fieldname") == fieldname and col is None:
-			col = c
+		if c.get("fieldname") == fieldname and col_to_move is None:
+			col_to_move = c
 		else:
 			remaining.append(c)
 
-	if not col:
+	if not col_to_move:
 		return columns
 
 	result = []
@@ -165,10 +232,7 @@ def _move_column_after(columns: list[dict], fieldname: str, after_fieldname: str
 	for c in remaining:
 		result.append(c)
 		if not inserted and c.get("fieldname") == after_fieldname:
-			result.append(col)
+			result.append(col_to_move)
 			inserted = True
 
-	if not inserted:
-		return columns
-
-	return result
+	return result if inserted else columns
