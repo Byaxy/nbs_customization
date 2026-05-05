@@ -136,33 +136,38 @@ def make_promissory_note(source_name, target_doc=None, ignore_permissions=None):
         )
         delivered_by_item = {r.item_code: flt(r.qty) for r in delivered_rows}
 
-        # Patch qty_remaining and sub_total on mapped child rows
-        total = 0.0
-        any_remaining = False
-        nothing_delivered = True
-
+        # Patch qty_remaining on mapped child rows
+        fully_delivered = []
         for item in target.items:
             delivered = delivered_by_item.get(item.item_code, 0.0)
-            so_qty = flt(item.qty_remaining)
-            item.qty_remaining = max(0.0, so_qty - delivered)
+            item.qty_remaining = max(0.0, flt(item.qty_remaining) - delivered)
             item.sub_total = item.qty_remaining * flt(item.unit_price)
-            total += item.sub_total
+            if item.qty_remaining == 0:
+                fully_delivered.append(item)
 
-            if item.qty_remaining > 0:
-                any_remaining = True
-            if delivered > 0:
+        # Drop items with nothing left to deliver
+        for item in fully_delivered:
+            target.remove(item)
+
+        # Block creation when every item has already been fully delivered
+        if not target.items:
+            frappe.throw(
+                f"Sales Order {source_name} has been fully delivered. "
+                "A Promissory Note is not required.",
+                title="Cannot Create Promissory Note",
+            )
+
+        # Recalculate totals and status over the remaining items only
+        total = 0.0
+        nothing_delivered = True
+        for item in target.items:
+            total += flt(item.sub_total)
+            # An item is kept only when qty_remaining > 0, but it may have been partially delivered already — detect that from the delivered_by_item map.
+            if delivered_by_item.get(item.item_code, 0.0) > 0:
                 nothing_delivered = False
 
         target.total_amount = total
-
-        if not target.items:
-            target.promissory_note_status = "Pending"
-        elif not any_remaining:
-            target.promissory_note_status = "Fulfilled"
-        elif nothing_delivered:
-            target.promissory_note_status = "Pending"
-        else:
-            target.promissory_note_status = "Partially Fulfilled"
+        target.promissory_note_status = "Pending" if nothing_delivered else "Partially Fulfilled"
 
     return get_mapped_doc(
         "Sales Order",

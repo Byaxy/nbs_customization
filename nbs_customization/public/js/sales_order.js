@@ -59,6 +59,8 @@ function add_linked_document_buttons(frm) {
 					__("View"),
 				);
 			} else {
+				if (frm.doc.per_delivered >= 100) return;
+
 				frm.add_custom_button(
 					__("Promissory Note"),
 					() =>

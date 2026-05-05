@@ -316,21 +316,6 @@ def recalculate_promissory_note_for_sales_order(sales_order: str):
 					"uom": so_item.uom
 				}, update_modified=False)
 				updated_items.add(so_item.item_code)
-			else:
-				# Create new item
-				new_item = frappe.db.insert({
-					"doctype": "Promissory Note Item",
-					"parent": pn_name,
-					"parenttype": "Promissory Note",
-					"parentfield": "items",
-					"item_code": so_item.item_code,
-					"description": so_item.description,
-					"qty_remaining": qty_remaining,
-					"unit_price": rate,
-					"sub_total": sub_total,
-					"uom": so_item.uom,
-				}, ignore_permissions=True)
-				updated_items.add(so_item.item_code)
 		
 		# Remove items that are no longer in the Sales Order
 		for item_code, item_name in existing_items_map.items():
