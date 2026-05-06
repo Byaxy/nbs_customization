@@ -31,7 +31,7 @@ app_include_css = [
 ]
 app_include_js = [
     "/assets/nbs_customization/js/nbs_theme.js",
-    "/assets/nbs_customization/js/list_view_row_number.js"
+    "/assets/nbs_customization/js/list_view_row_number.js",
 ]
 
 # include js, css files in header of web template
@@ -301,7 +301,8 @@ fixtures = [
                     "Purchase Receipt-custom_purchase_order",
                     "Sales Invoice-custom_sales_order",
                     "Purchase Invoice-custom_purchase_order",
-                    "Delivery Note-custom_sales_order"
+                    "Delivery Note-custom_sales_order",
+                    "Batch-custom_batch_no"
                 ]
             ]
         ]
@@ -318,6 +319,7 @@ doctype_js = {
     "Landed Cost Voucher": "public/js/landed_cost_voucher.js",
     "Purchase Receipt": "public/js/purchase_receipt.js",
     "Sales Invoice": "public/js/sales_invoice.js",
+    "Batch": "public/js/batch.js",
 }
 
 doctype_list_js = {
@@ -373,5 +375,7 @@ doc_events = {
     "Shipment": {
         "validate": "nbs_customization.controllers.shipment.validate",
     },
+    "Batch": {
+        "before_insert": "nbs_customization.controllers.batch.before_insert",
+    },
 }
-
