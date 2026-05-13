@@ -35,7 +35,7 @@ def before_insert(doc, method):
                     )
                )
           expiry_str = frappe.utils.getdate(doc.expiry_date).strftime("%Y%m%d")
-          doc.batch_id = f"{doc.item}-{expiry_str}-{original}"
+          doc.batch_id = f"{original}-{expiry_str}-{doc.item}"
      else:
           # No expiry date involved — single dash, no gap in the key
-          doc.batch_id = f"{doc.item}-{original}"
+          doc.batch_id = f"{original}-{doc.item}"
