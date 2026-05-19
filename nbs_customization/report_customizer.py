@@ -12,8 +12,28 @@ from frappe.desk.query_report import export_query as _ORIGINAL_EXPORT_QUERY
 REPORT_CONFIG = {
 	"Stock Balance": {
 		"remove_columns": ["item_name"],
+		"enrich_description": True,   # report SQL doesn't SELECT description
 	},
 	"Stock Ledger": {
+		"remove_columns": ["item_name"],
+		# Stock Ledger already SELECTs description — no enrichment needed
+	},
+	"Batch Item Expiry Status": {
+		"remove_columns": ["item_name"],
+		"enrich_description": True,   # report SQL doesn't SELECT description
+		"item_code_field": "product",  # column fieldname is "product", not "item"
+	},
+	"Item Price Stock": {
+		"remove_columns": ["item_name"],
+		"enrich_description": True,   # report SQL doesn't SELECT description
+	},
+	"Batch-Wise Balance History": {
+		"remove_columns": ["item_name"],
+	},
+	"Stock Projected Qty": {
+		"remove_columns": ["item_name"],
+	},
+	"Stock Ageing": {
 		"remove_columns": ["item_name"],
 	},
 }
@@ -119,20 +139,22 @@ def _apply_column_customizations(report_name: str, result: dict, config: dict) -
 
 	columns = [frappe.desk.query_report.get_column_as_dict(c) for c in columns]
 
-	if report_name == "Stock Balance":
-		# Stock Balance doesn't include description in its SQL — we must fetch it
-		if not _rows_have_field(data, "description"):
-			_enrich_rows_with_description(data)
+	if config.get("enrich_description") and not _rows_have_field(data, "description"):
+		# Report SQL doesn't SELECT description — fetch and inject it from tabItem.
+		# Some reports (e.g. Batch Item Expiry Status) key item code as "item"
+		# rather than the standard "item_code" — allow per-report override.
+		_enrich_rows_with_description(data, item_code_field=config.get("item_code_field", "item_code"))
+	# Reports that already SELECT description (e.g. Stock Ledger) just need the
+	# column repositioned below — the data rows already carry the value.
 
-	# Stock Ledger already SELECTs description from tabItem in its query,
-	# so the data rows already have it — we just need to add/move the column.
-
+	# Use the same field name for column positioning as for data enrichment
+	item_code_col_field = config.get("item_code_field", "item_code")
 	if any(c.get("fieldname") == "description" for c in columns):
-		# Already in columns (e.g. Stock Ledger): move to position after item_code
-		columns = _move_column_after(columns, "description", "item_code")
+		# Already in columns (e.g. Stock Ledger): move to position after item code field
+		columns = _move_column_after(columns, "description", item_code_col_field)
 	else:
-		# Not in columns (e.g. Stock Balance): insert after item_code
-		columns = _insert_column_after(columns, DESCRIPTION_COLUMN, "item_code")
+		# Not in columns (e.g. Stock Balance): insert after item code field
+		columns = _insert_column_after(columns, DESCRIPTION_COLUMN, item_code_col_field)
 
 	for fieldname in config.get("remove_columns", []):
 		columns = [c for c in columns if c.get("fieldname") != fieldname]
@@ -153,15 +175,15 @@ def _rows_have_field(data: list, fieldname: str) -> bool:
 	return False
 
 
-def _enrich_rows_with_description(data: list) -> None:
+def _enrich_rows_with_description(data: list, item_code_field: str = "item_code") -> None:
 	if not data:
 		return
 
 	item_codes = list(
 		{
-			row.get("item_code")
+			row.get(item_code_field)
 			for row in data
-			if isinstance(row, dict) and row.get("item_code")
+			if isinstance(row, dict) and row.get(item_code_field)
 		}
 	)
 	if not item_codes:
@@ -183,7 +205,7 @@ def _enrich_rows_with_description(data: list) -> None:
 	for row in data:
 		if not isinstance(row, dict):
 			continue
-		raw = desc_map.get(row.get("item_code"), "")
+		raw = desc_map.get(row.get(item_code_field), "")
 		row["description"] = strip_html(raw) if raw else ""
 
 
