@@ -10,8 +10,8 @@ pdf_signature, pdf_bank_details -%}
         margin: 0 !important;
     }
 	.print-format {
-		margin-top: 10mm;
-		margin-bottom: 5mm;
+		margin-top: 5mm;
+		margin-bottom: 10mm;
 		margin-left: 10mm;
 		margin-right: 10mm;
 		padding: 0;
@@ -38,7 +38,6 @@ pdf_signature, pdf_bank_details -%}
 	.nbs-bottom-section {
 		page-break-inside: avoid;
 		break-inside: avoid;
-		margin-top: 20px;
 	}
 	
 	@media print {
@@ -124,15 +123,11 @@ pdf_signature, pdf_bank_details -%}
 									</div>
 								</div>
 								<div style="padding: 2px 5px 0 5px; font-size: 10px; line-height: 1.5;">
-									{% if doc.terms %}
-									{{ doc.terms }}
-									{% else %}
 									<div>Prices quoted here are valid for 6 months.</div>
 									<div>Terms of payment is 30 days.</div>
 									<div>This certifies that the invoice is true and correct.</div>
 									<div>When a dispute arises over subtotal or total prices, individual unit
 										prices should be considered.</div>
-									{% endif %}
 								</div>
 							</td>
 						</tr>

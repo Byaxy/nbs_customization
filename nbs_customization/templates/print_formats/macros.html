@@ -197,7 +197,7 @@ doc.company) %}
 {% endmacro %} {# ================================================================ NEW MACROS —
 Sales Invoice ================================================================ #} {% macro
 pdf_invoice_title(doc) %}
-<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px">
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
 	<tr>
 		<td style="width: 57%; vertical-align: bottom; text-align: right">
 			<span style="font-size: 26px; font-weight: bold; color: #000; letter-spacing: 2px">
@@ -341,7 +341,7 @@ row. #}
 		margin-left: auto;
 		border-collapse: collapse;
 		font-size: 10px;
-		margin-bottom: 15px;
+		margin-bottom: 10px;
 		-webkit-print-color-adjust: exact;
 		print-color-adjust: exact;
 		page-break-inside: avoid;
@@ -349,28 +349,28 @@ row. #}
 	"
 >
 	<tr>
-		<td style="text-align: left; padding: 4px 8px; font-weight: bold; color: #000">
+		<td style="text-align: left; padding: 2px 4px; font-weight: bold; color: #000">
 			Sub-Total ({{ doc.currency }}):
 		</td>
 		<td
-			style="text-align: right; padding: 4px 8px; font-weight: bold; color: #000; width: 38%"
+			style="text-align: right; padding: 2px 4px; font-weight: bold; color: #000; width: 38%"
 		>
 			{{ doc.get_formatted("total", doc) }}
 		</td>
 	</tr>
 	<tr>
-		<td style="text-align: left; padding: 4px 8px; font-weight: bold; color: #000">
+		<td style="text-align: left; padding: 2px 4px; font-weight: bold; color: #000">
 			Total Discount:
 		</td>
-		<td style="text-align: right; padding: 4px 8px; font-weight: bold; color: #000">
+		<td style="text-align: right; padding: 2px 4px; font-weight: bold; color: #000">
 			{{ doc.get_formatted("discount_amount", doc) }}
 		</td>
 	</tr>
 	<tr>
-		<td style="text-align: left; padding: 4px 8px; font-weight: bold; color: #000">
+		<td style="text-align: left; padding: 2px 4px; font-weight: bold; color: #000">
 			Total Tax:
 		</td>
-		<td style="text-align: right; padding: 4px 8px; font-weight: bold; color: #000">
+		<td style="text-align: right; padding: 2px 4px; font-weight: bold; color: #000">
 			{{ doc.get_formatted("total_taxes_and_charges", doc) }}
 		</td>
 	</tr>
@@ -381,10 +381,10 @@ row. #}
 			print-color-adjust: exact;
 		"
 	>
-		<td style="text-align: left; padding: 5px 8px; font-weight: bold; color: #000">
+		<td style="text-align: left; padding: 3px 4px; font-weight: bold; color: #000">
 			Grand Total ({{ doc.currency }}):
 		</td>
-		<td style="text-align: right; padding: 5px 8px; font-weight: bold; color: #000">
+		<td style="text-align: right; padding: 3px 4px; font-weight: bold; color: #000">
 			{{ doc.get_formatted("grand_total", doc) }}
 		</td>
 	</tr>
