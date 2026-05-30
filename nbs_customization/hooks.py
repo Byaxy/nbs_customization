@@ -88,6 +88,9 @@ web_include_js = "/assets/nbs_customization/js/nbs_theme.js"
 # 	"filters": "nbs_customization.utils.jinja_filters"
 # }
 
+# Print Designer – default templates folder path (auto-installed by print_designer hooks)
+pd_standard_format_folder = "default_templates"
+
 # Installation
 # ------------
 
@@ -212,7 +215,7 @@ override_whitelisted_methods = {
 
 # Request Events
 # ----------------
-# before_request = ["nbs_customization.utils.before_request"]
+before_request = ["nbs_customization.pdf_patch.apply_patches"]
 # after_request = ["nbs_customization.utils.after_request"]
 
 # Job Events
@@ -377,5 +380,8 @@ doc_events = {
     },
     "Batch": {
         "before_insert": "nbs_customization.controllers.batch.before_insert",
+    },
+    "Print Format": {
+        "validate": "nbs_customization.print_designer.fix_layout_sort.validate_print_format",
     },
 }
