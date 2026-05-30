@@ -100,7 +100,7 @@
 		</td>
 	</tr>
 </table>
-{% endmacro %} {% macro pdf_address(title, customer_name, address) %}
+{% endmacro %} {% macro pdf_address(title, customer_name, address_name) %}
 <td style="width: 45%; vertical-align: top">
 	{# FIX 3: print-color-adjust on every background-coloured element. #}
 	<div
@@ -125,8 +125,14 @@
 		>
 			{{ customer_name }}
 		</div>
-		{% if address %}
-		<div style="line-height: 1.3; font-size: 12px">{{ address }}</div>
+		{% if address_name %} {% set addr = frappe.get_doc("Address", address_name) %}
+		<div style="line-height: 1.3; font-size: 12px">
+			{{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2 }}{% endif
+			%}<br />
+			{{ addr.city }} - {{ addr.country }}<br />
+			{% if addr.phone %}{{ addr.phone }}<br />{% endif %} {% if addr.email_id %}{{
+			addr.email_id }}{% endif %}
+		</div>
 		{% else %}
 		<div style="color: #666; font-style: italic; font-size: 12px">N/A.</div>
 		{% endif %}

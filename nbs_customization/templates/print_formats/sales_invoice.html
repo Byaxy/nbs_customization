@@ -68,12 +68,12 @@ pdf_signature, pdf_bank_details -%}
 			{{ pdf_invoice_title(doc) }}
 
 			{# 2. Billing Address | spacer | Delivery Address #}
-			<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+			<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
 				<tr>
-					{{ pdf_address("Billing Address", doc.customer_name, doc.address_display) }}
+					{{ pdf_address("Billing Address", doc.customer_name, doc.customer_address) }}
 					<td style="width: 10%;"></td>
 					{{ pdf_address("Delivery Address", doc.customer_name,
-					doc.shipping_address if doc.shipping_address else doc.address_display) }}
+					doc.shipping_address_name if doc.shipping_address_name else doc.customer_address) }}
 				</tr>
 			</table>
 
