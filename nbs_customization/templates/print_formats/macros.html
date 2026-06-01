@@ -106,7 +106,7 @@
 	<div
 		style="
 			background-color: #819ac2;
-			padding: 3px 5px;
+			padding: 2px 5px;
 			margin-bottom: 2px;
 			-webkit-print-color-adjust: exact;
 			print-color-adjust: exact;
@@ -163,7 +163,7 @@ doc.company) %}
 	<div
 		style="
 			background-color: #819ac2;
-			padding: 3px 5px;
+			padding: 2px 5px;
 			margin-bottom: 2px;
 			-webkit-print-color-adjust: exact;
 			print-color-adjust: exact;
@@ -227,7 +227,7 @@ pdf_invoice_title(doc) %}
 							width: 40%;
 							text-align: center;
 							background-color: #819ac2;
-							padding: 4px 6px !important;
+							padding: 2px 3px !important;
 							font-size: 12px;
 							font-weight: bold;
 							color: #000;
@@ -240,7 +240,7 @@ pdf_invoice_title(doc) %}
 							width: 60%;
 							text-align: center;
 							background-color: #819ac2;
-							padding: 4px 6px !important;
+							padding: 2px 3px !important;
 							font-size: 12px;
 							font-weight: bold;
 							color: #000;
@@ -254,7 +254,7 @@ pdf_invoice_title(doc) %}
 						style="
 							width: 40%;
 							text-align: center;
-							padding: 6px 8px !important;
+							padding: 4px 6px !important;
 							font-size: 12px;
 							font-weight: bold;
 							color: #000;
@@ -266,7 +266,7 @@ pdf_invoice_title(doc) %}
 						style="
 							width: 60%;
 							text-align: center;
-							padding: 6px 8px !important;
+							padding: 4px 6px !important;
 							font-size: 12px;
 							font-weight: bold;
 							color: #000;
@@ -301,12 +301,12 @@ row. #}
 				print-color-adjust: exact;
 			"
 		>
-			<td style="padding: 3px 2px; width: 5%; text-align: center">S/N</td>
-			<td style="padding: 3px 2px; width: 13%">PID</td>
-			<td style="padding: 3px 2px; width: 52%">Product Description</td>
-			<td style="padding: 3px 2px; width: 8%; text-align: center">Qnty</td>
-			<td style="padding: 3px 2px; width: 11%; text-align: right">Unit Price</td>
-			<td style="padding: 3px 2px; width: 11%; text-align: right">Sub-Total</td>
+			<td style="padding: 2px; width: 5%; text-align: center">S/N</td>
+			<td style="padding: 2px; width: 13%">PID</td>
+			<td style="padding: 2px; width: 52%">Product Description</td>
+			<td style="padding: 2px; width: 8%; text-align: center">Qnty</td>
+			<td style="padding: 2px; width: 11%; text-align: right">Unit Price</td>
+			<td style="padding: 2px; width: 11%; text-align: right">Sub-Total</td>
 		</tr>
 	</thead>
 	<tbody>
@@ -320,20 +320,20 @@ row. #}
 			
 		"
 		>
-			<td style="padding: 3px 2px; text-align: center; vertical-align: top">
+			<td style="padding: 2px; text-align: center; vertical-align: top">
 				{{ '%02d' % loop.index }}
 			</td>
-			<td style="padding: 3px 2px; vertical-align: top; word-break: break-all">
+			<td style="padding: 2px; vertical-align: top; word-break: break-all">
 				{{ item.item_code }}
 			</td>
-			<td style="padding: 3px 2px; vertical-align: top">{{ item.description }}</td>
-			<td style="padding: 3px 2px; text-align: center; vertical-align: top">
+			<td style="padding: 2px; vertical-align: top">{{ item.description }}</td>
+			<td style="padding: 2px; text-align: center; vertical-align: top">
 				{{ item.qty | int }} {{ item.uom }}
 			</td>
-			<td style="padding: 3px 2px; text-align: right; vertical-align: top">
+			<td style="padding: 2px; text-align: right; vertical-align: top">
 				{{ item.get_formatted("net_rate", doc) }}
 			</td>
-			<td style="padding: 3px 2px; text-align: right; vertical-align: top">
+			<td style="padding: 2px; text-align: right; vertical-align: top">
 				{{ item.get_formatted("net_amount", doc) }}
 			</td>
 		</tr>
@@ -387,11 +387,120 @@ row. #}
 			print-color-adjust: exact;
 		"
 	>
-		<td style="text-align: left; padding: 3px 4px; font-weight: bold; color: #000">
+		<td style="text-align: left; padding: 2px 4px; font-weight: bold; color: #000">
 			Grand Total ({{ doc.currency }}):
 		</td>
-		<td style="text-align: right; padding: 3px 4px; font-weight: bold; color: #000">
+		<td style="text-align: right; padding: 2px 4px; font-weight: bold; color: #000">
 			{{ doc.get_formatted("grand_total", doc) }}
+		</td>
+	</tr>
+</table>
+{% endmacro %} {# ================================================================ NEW MACROS —
+Pro-Forma Invoice (Quotation) ================================================================ #}
+{% macro pdf_proforma_title(doc) %}
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 4px">
+	<tr>
+		<td style="text-align: center; padding-bottom: 6px">
+			<span style="font-size: 26px; font-weight: bold; color: #000; letter-spacing: 2px">
+				PRO-FORMA INVOICE
+			</span>
+		</td>
+	</tr>
+</table>
+<table
+	style="
+		width: 100%;
+		border-collapse: collapse;
+		table-layout: fixed;
+		margin-bottom: 10px;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	"
+>
+	<tr>
+		<td
+			style="
+				width: 27%;
+				text-align: center;
+				background-color: #819ac2;
+				padding: 2px 3px !important;
+				font-size: 12px;
+				font-weight: bold;
+				color: #000;
+			"
+		>
+			RFQ #
+		</td>
+		<td style="width: 10%"></td>
+		<td
+			style="
+				width: 26%;
+				text-align: center;
+				background-color: #819ac2;
+				padding: 2px 3px !important;
+				font-size: 12px;
+				font-weight: bold;
+				color: #000;
+			"
+		>
+			Date
+		</td>
+		<td style="width: 10%"></td>
+		<td
+			style="
+				width: 27%;
+				text-align: center;
+				background-color: #819ac2;
+				padding: 2px 3px !important;
+				font-size: 12px;
+				font-weight: bold;
+				color: #000;
+			"
+		>
+			PFI #
+		</td>
+	</tr>
+	<tr>
+		<td
+			style="
+				width: 27%;
+				text-align: center;
+				padding: 4px 6px !important;
+				font-size: 12px;
+				font-weight: bold;
+				color: #000;
+				word-break: break-all;
+			"
+		>
+			{{ doc.custom_request_for_quotation_number or "N/A" }}
+		</td>
+		<td style="width: 10%"></td>
+		<td
+			style="
+				width: 26%;
+				text-align: center;
+				padding: 4px 6px !important;
+				font-size: 12px;
+				font-weight: bold;
+				color: #000;
+				word-break: break-all;
+			"
+		>
+			{{ frappe.utils.format_date(doc.transaction_date, "dd-MM-yyyy") }}
+		</td>
+		<td style="width: 10%"></td>
+		<td
+			style="
+				width: 27%;
+				text-align: center;
+				padding: 4px 6px !important;
+				font-size: 12px;
+				font-weight: bold;
+				color: #000;
+				word-break: break-all;
+			"
+		>
+			{{ doc.name }}
 		</td>
 	</tr>
 </table>
