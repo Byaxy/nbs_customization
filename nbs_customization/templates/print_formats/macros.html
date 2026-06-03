@@ -14,7 +14,7 @@
 				src="{{ company_doc.company_logo or '' }}"
 				style="width: 140px; height: 120px; display: block; margin: 0 auto"
 			/>
-			<div style="font-size: 10px; color: #002060; white-space: nowrap">
+			<div style="font-size: 10px; font-weight: bold; color: #002060; white-space: nowrap">
 				Legacy of Quality Par Excellence
 			</div>
 		</td>
@@ -301,12 +301,12 @@ row. #}
 				print-color-adjust: exact;
 			"
 		>
-			<td style="padding: 2px; width: 5%; text-align: center">S/N</td>
-			<td style="padding: 2px; width: 13%">PID</td>
-			<td style="padding: 2px; width: 52%">Product Description</td>
-			<td style="padding: 2px; width: 8%; text-align: center">Qnty</td>
-			<td style="padding: 2px; width: 11%; text-align: right">Unit Price</td>
-			<td style="padding: 2px; width: 11%; text-align: right">Sub-Total</td>
+			<td style="width: 5%; text-align: center">S/N</td>
+			<td style="width: 13%">PID</td>
+			<td style="width: 52%">Product Description</td>
+			<td style="width: 8%; text-align: center">Qnty</td>
+			<td style="width: 11%; text-align: right">Unit Price</td>
+			<td style="width: 11%; text-align: right">Sub-Total</td>
 		</tr>
 	</thead>
 	<tbody>
@@ -320,20 +320,16 @@ row. #}
 			
 		"
 		>
-			<td style="padding: 2px; text-align: center; vertical-align: top">
-				{{ '%02d' % loop.index }}
-			</td>
-			<td style="padding: 2px; vertical-align: top; word-break: break-all">
-				{{ item.item_code }}
-			</td>
-			<td style="padding: 2px; vertical-align: top">{{ item.description }}</td>
-			<td style="padding: 2px; text-align: center; vertical-align: top">
+			<td style="text-align: center; vertical-align: top">{{ '%02d' % loop.index }}</td>
+			<td style="vertical-align: top; word-break: break-all">{{ item.item_code }}</td>
+			<td style="vertical-align: top">{{ item.description }}</td>
+			<td style="text-align: center; vertical-align: top">
 				{{ item.qty | int }} {{ item.uom }}
 			</td>
-			<td style="padding: 2px; text-align: right; vertical-align: top">
+			<td style="text-align: right; vertical-align: top">
 				{{ item.get_formatted("net_rate", doc) }}
 			</td>
-			<td style="padding: 2px; text-align: right; vertical-align: top">
+			<td style="text-align: right; vertical-align: top">
 				{{ item.get_formatted("net_amount", doc) }}
 			</td>
 		</tr>

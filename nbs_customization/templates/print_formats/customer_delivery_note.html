@@ -1,0 +1,292 @@
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature
+-%} {%- set company_doc = frappe.get_doc("Company", doc.company) -%} {%- set watermark_src =
+company_doc.custom_pdf_water_mark or company_doc.company_logo -%}
+
+<style>
+	body {
+		margin: 0 !important;
+	}
+	.print-format {
+		margin-top: 5mm;
+		margin-bottom: 10mm;
+		margin-left: 10mm;
+		margin-right: 10mm;
+		padding: 0;
+		padding-bottom: 10mm;
+	}
+	.print-format td,
+	.print-format th {
+		padding: 3px 4px !important;
+	}
+	.nbs-watermark {
+		position: fixed;
+		top: 28%;
+		left: 15%;
+		width: 480px;
+		height: 440px;
+		opacity: 0.1;
+		z-index: 0;
+		pointer-events: none;
+	}
+	.nbs-body {
+		font-family: "Times New Roman", Times, serif;
+		font-size: 10px;
+		color: #000;
+		position: relative;
+		z-index: 1;
+	}
+	.nbs-bottom-section {
+		page-break-inside: avoid;
+		break-inside: avoid;
+	}
+
+	@media print {
+		* {
+			-webkit-print-color-adjust: exact !important;
+			print-color-adjust: exact !important;
+		}
+	}
+</style>
+
+{# HEADER #} {% if letter_head and not no_letterhead %}
+<div id="header-html">{{ letter_head }}</div>
+{% endif %} {# Watermark: position:fixed → repeats on every body page automatically #} {% if
+watermark_src %}
+<img class="nbs-watermark" src="{{ frappe.utils.get_url(watermark_src) }}" alt="" />
+{% endif %} {% if footer and not no_letterhead %}
+<div id="footer-html">{{ footer }}</div>
+{% endif %}
+
+<div class="nbs-body">
+	{# 1. "DELIVERY NOTE" heading #}
+	<table style="width: 100%; border-collapse: collapse; margin-bottom: 4px">
+		<tr>
+			<td style="text-align: center; padding-bottom: 6px">
+				<span style="font-size: 26px; font-weight: bold; color: #000; letter-spacing: 2px">
+					DELIVERY NOTE
+				</span>
+			</td>
+		</tr>
+	</table>
+
+	{# 2. Invoice # | Delivery Date | DN # boxes #}
+	<table
+		style="
+			width: 100%;
+			border-collapse: collapse;
+			table-layout: fixed;
+			margin-bottom: 10px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
+		<tr>
+			<td
+				style="
+					width: 27%;
+					text-align: center;
+					background-color: #819ac2;
+					padding: 2px 3px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+				"
+			>
+				Sales Order #
+			</td>
+			<td style="width: 10%"></td>
+			<td
+				style="
+					width: 26%;
+					text-align: center;
+					background-color: #819ac2;
+					padding: 2px 3px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+				"
+			>
+				Delivery Date
+			</td>
+			<td style="width: 10%"></td>
+			<td
+				style="
+					width: 27%;
+					text-align: center;
+					background-color: #819ac2;
+					padding: 2px 3px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+				"
+			>
+				DN #
+			</td>
+		</tr>
+		<tr>
+			<td
+				style="
+					width: 27%;
+					text-align: center;
+					padding: 4px 6px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+					word-break: break-all;
+				"
+			>
+				{{ doc.sales_order or "N/A" }}
+			</td>
+			<td style="width: 10%"></td>
+			<td
+				style="
+					width: 26%;
+					text-align: center;
+					padding: 4px 6px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+					word-break: break-all;
+				"
+			>
+				{{ frappe.utils.format_date(doc.date, "dd-MM-yyyy") }}
+			</td>
+			<td style="width: 10%"></td>
+			<td
+				style="
+					width: 27%;
+					text-align: center;
+					padding: 4px 6px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+					word-break: break-all;
+				"
+			>
+				{{ doc.name }}
+			</td>
+		</tr>
+	</table>
+
+	{# 3. Billing Address | spacer | Delivery Address #}
+	<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
+		<tr>
+			{{ pdf_address("Billing Address", doc.customer_name, doc.customer_address) }}
+			<td style="width: 10%"></td>
+			{{ pdf_address("Delivery Address", doc.customer_name, doc.shipping_address_name if
+			doc.shipping_address_name else doc.customer_address) }}
+		</tr>
+	</table>
+
+	{# 4. Items table #}
+	<table
+		style="
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 10px;
+			margin-bottom: 10px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
+		<thead>
+			<tr
+				style="
+					background-color: #819ac2;
+					color: #000;
+					font-weight: bold;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<td style="width: 5%; text-align: center">#</td>
+				<td style="width: 13%">PID</td>
+				<td style="width: 46%">Product Description</td>
+				<td style="width: 12%; text-align: center">Qnty Requested</td>
+				<td style="width: 12%; text-align: center">Qnty Supplied</td>
+				<td style="width: 12%; text-align: center">Balance Left</td>
+			</tr>
+		</thead>
+		<tbody>
+			{% for item in doc.items %}
+			<tr
+				style="
+						background-color: {{ '#D5DCE4' if loop.index is even else 'transparent' }};
+						color: #000;
+						-webkit-print-color-adjust: exact;
+						print-color-adjust: exact;
+					"
+			>
+				<td style="text-align: center; vertical-align: top">{{ '%02d' % loop.index }}</td>
+				<td style="vertical-align: top; word-break: break-all">{{ item.item_code }}</td>
+				<td style="vertical-align: top">{{ item.description }}</td>
+				<td style="text-align: center; vertical-align: top">
+					{{ item.qty_requested | int }}
+				</td>
+				<td style="text-align: center; vertical-align: top">
+					{{ item.qty_supplied | int }}
+				</td>
+				<td style="text-align: center; vertical-align: top">
+					{{ item.balance_left | int }}
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	{# 5. Bottom section — page-break-inside: avoid keeps it on one page #}
+	<div class="nbs-bottom-section">
+		{# Signatures #}
+		<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
+			<tr>
+				{{ pdf_signature("Sales Manager") }}
+				<td style="width: 65%"></td>
+				{{ pdf_signature("Customer") }}
+			</tr>
+		</table>
+
+		{# Terms & Conditions — full width #}
+		<div
+			style="
+				margin-bottom: 8px;
+				-webkit-print-color-adjust: exact;
+				print-color-adjust: exact;
+			"
+		>
+			<div
+				style="
+					background-color: #819ac2;
+					padding: 2px 5px;
+					margin-bottom: 2px;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<div style="font-weight: bold; font-size: 13px; color: #000">
+					Terms &amp; Conditions
+				</div>
+			</div>
+			<div style="padding: 2px 5px 0 5px; font-size: 10px; line-height: 1.5; color: #000">
+				<div>Goods Received in Good Condition.</div>
+				<div>Items not supplied are captured in the Promissory Note.</div>
+				<div>
+					By signing above, you agree the terms on this delivery note are correct and
+					accurate, no other terms &amp; conditions shall apply.
+				</div>
+			</div>
+		</div>
+
+		{# Thank You message #}
+		<div
+			style="
+				text-align: center;
+				padding: 8px 0;
+				font-size: 13px;
+				font-weight: bold;
+				color: #000;
+			"
+		>
+			Thank You for Doing Business with us
+		</div>
+	</div>
+</div>
