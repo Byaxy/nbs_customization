@@ -25,6 +25,19 @@ def validate_loan_source_warehouse(doc):
     if loan.conversion_status == "Fully Converted":
         frappe.throw("Loan Waybill is already fully converted.")
 
+    # Company match check between Loan Waybill and Sales Order
+    if loan.company:
+        so_names = {item.against_sales_order for item in doc.items if getattr(item, "against_sales_order", None)}
+        for so_name in so_names:
+            so_company = frappe.db.get_value("Sales Order", so_name, "company")
+            if so_company and so_company != loan.company:
+                frappe.throw(
+                    f"Sales Order <b>{so_name}</b> belongs to <b>{so_company}</b> but "
+                    f"Loan Waybill <b>{loan.name}</b> belongs to <b>{loan.company}</b>. "
+                    "Cannot convert across companies.",
+                    title="Company Mismatch",
+                )
+
     # Validate that target warehouse belongs to customer (consistent with Loan Waybill validation)
     if loan.customer:
         customer_name = frappe.db.get_value("Customer", loan.customer, "customer_name")

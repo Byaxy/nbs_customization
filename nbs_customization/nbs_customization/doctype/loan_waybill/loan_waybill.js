@@ -2,6 +2,25 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("Loan Waybill", {
+	setup(frm) {
+		frm.set_query("cost_center", function () {
+			return {
+				filters: { company: frm.doc.company, is_group: 0 },
+			};
+		});
+
+		frm.set_query("source_warehouse", function () {
+			return {
+				filters: { is_group: 0, company: frm.doc.company || ["!=", ""] },
+			};
+		});
+
+		frm.set_query("target_warehouse", function () {
+			return {
+				filters: { is_group: 0, company: frm.doc.company || ["!=", ""] },
+			};
+		});
+	},
 	refresh(frm) {
 		set_address_contact_filters(frm);
 		set_item_query(frm);
@@ -31,6 +50,12 @@ frappe.ui.form.on("Loan Waybill", {
 	},
 
 	source_warehouse(frm) {
+		frm.set_value("cost_center", null);
+		frm.set_query("target_warehouse", function () {
+			return {
+				filters: { is_group: 0, company: frm.doc.company || ["!=", ""] },
+			};
+		});
 		set_item_query(frm);
 		if (frm.doc.items && frm.doc.items.length > 0) {
 			const has_data = frm.doc.items.some((row) => row.item_code);

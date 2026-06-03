@@ -90,6 +90,7 @@ class CustomerDeliveryNote(Document):
     def _sync_from_sales_order(self):
         so = frappe.get_doc("Sales Order", self.sales_order)
 
+        self.company = so.company
         self.customer = so.customer
         self.customer_name = so.customer_name
         self.customer_address = (

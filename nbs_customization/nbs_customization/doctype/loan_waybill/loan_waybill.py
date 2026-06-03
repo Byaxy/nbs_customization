@@ -18,6 +18,11 @@ class LoanWaybill(Document):
     # =========================================================
 
     def validate(self):
+        if self.source_warehouse:
+            self.company = frappe.db.get_value("Warehouse", self.source_warehouse, "company")
+        if not self.company:
+            frappe.throw("Could not determine Company from Source Warehouse. Please check the warehouse configuration.")
+
         self._block_amend()
         self._validate_warehouses()
         self._validate_stock_availability()
@@ -264,6 +269,8 @@ class LoanWaybill(Document):
         Called by Delivery Note on_submit when
         custom_waybill_type == "Loan Conversion Waybill".
         """
+        _validate_conversion_company(self, delivery_note_name)
+
         self.reload()
 
         # Create conversion history entries for each item
@@ -560,3 +567,26 @@ def get_items_with_stock(doctype, txt, searchfield, start, page_len, filters):
         (row[0], row[1], strip_html(row[2]), row[3])
         for row in results
     ]
+
+
+def _validate_conversion_company(loan_doc, delivery_note_name):
+    """Guard: SO company must match the Loan Waybill company at conversion time."""
+    if not loan_doc.company:
+        return  # nothing to validate if LWB pre-dates this upgrade
+
+    dn_items = frappe.get_all(
+        "Delivery Note Item",
+        filters={"parent": delivery_note_name},
+        fields=["against_sales_order"],
+    )
+    so_names = {d.against_sales_order for d in dn_items if d.against_sales_order}
+
+    for so_name in so_names:
+        so_company = frappe.db.get_value("Sales Order", so_name, "company")
+        if so_company and so_company != loan_doc.company:
+            frappe.throw(
+                f"Sales Order {so_name} belongs to <b>{so_company}</b> but "
+                f"Loan Waybill {loan_doc.name} belongs to <b>{loan_doc.company}</b>. "
+                "Cross-company loan conversion is not allowed.",
+                title="Company Mismatch",
+            )

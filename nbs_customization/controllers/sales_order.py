@@ -68,6 +68,7 @@ def make_customer_delivery_note(source_name: str, target_doc=None, ignore_permis
                 "doctype": "Customer Delivery Note",
                 "field_map": {
                     "name": "sales_order",
+                    "company": "company",
                     "customer": "customer",
                     "customer_name": "customer_name",
                     "customer_address": "customer_address",
@@ -177,6 +178,7 @@ def make_promissory_note(source_name, target_doc=None, ignore_permissions=None):
                 "doctype": "Promissory Note",
                 "field_map": {
                     "name": "sales_order",
+                    "company": "company",
                     "customer": "customer",
                     "customer_name": "customer_name",
                 },

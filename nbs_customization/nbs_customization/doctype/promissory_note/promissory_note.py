@@ -94,6 +94,8 @@ class PromissoryNote(Document):
         if so.docstatus != 1:
             frappe.throw(f"Sales Order {self.sales_order} must be submitted.")
 
+        self.company = so.company
+
         if self.customer and self.customer != so.customer:
             frappe.throw("Customer must match the Sales Order customer.")
 
@@ -105,6 +107,7 @@ class PromissoryNote(Document):
         so = frappe.get_doc("Sales Order", self.sales_order)
 
         # Always sync header from SO
+        self.company = so.company
         self.customer = so.customer
         self.customer_name = so.customer_name
         self.customer_address = (

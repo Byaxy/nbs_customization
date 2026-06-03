@@ -11,6 +11,12 @@ frappe.ui.form.on("Promissory Note", {
 			};
 		});
 
+		frm.set_query("cost_center", function () {
+			return {
+				filters: { company: frm.doc.company, is_group: 0 },
+			};
+		});
+
 		set_address_filters(frm);
 	},
 
@@ -38,6 +44,7 @@ frappe.ui.form.on("Promissory Note", {
 			frm.set_df_property("items", "cannot_delete_rows", false);
 			return;
 		}
+		frm.set_value("cost_center", null);
 		lock_items_if_so_linked(frm);
 	},
 

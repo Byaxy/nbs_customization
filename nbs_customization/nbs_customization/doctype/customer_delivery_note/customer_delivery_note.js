@@ -9,6 +9,12 @@ frappe.ui.form.on("Customer Delivery Note", {
 				filters: { current_doc: frm.doc.name || "" },
 			};
 		});
+
+		frm.set_query("cost_center", function () {
+			return {
+				filters: { company: frm.doc.company, is_group: 0 },
+			};
+		});
 	},
 
 	onload(frm) {
@@ -114,8 +120,9 @@ function fetch_sales_order_data(frm) {
 
 			const so = r.message;
 
+			frm.set_value("company", so.company);
 			frm.set_value("customer", so.customer);
-
+			frm.set_value("customer_name", so.customer_name);
 			frm.set_value("customer_address", so.customer_address || null);
 			frm.set_value(
 				"shipping_address_name",
