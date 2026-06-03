@@ -58,112 +58,80 @@ watermark_src %}
 {% endif %}
 
 <div class="nbs-body">
-	{# 1. "DELIVERY NOTE" heading #}
-	<table style="width: 100%; border-collapse: collapse; margin-bottom: 4px">
+	{# 1. "PROMISSORY NOTE" heading #}
+	<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
 		<tr>
-			<td style="text-align: center; padding-bottom: 6px">
+			<td style="width: 67%; vertical-align: bottom; text-align: right">
 				<span style="font-size: 24px; font-weight: bold; color: #000; letter-spacing: 2px">
-					DELIVERY NOTE
+					PROMISSORY NOTE
 				</span>
 			</td>
-		</tr>
-	</table>
-
-	{# 2. Invoice # | Delivery Date | DN # boxes #}
-	<table
-		style="
-			width: 100%;
-			border-collapse: collapse;
-			table-layout: fixed;
-			margin-bottom: 10px;
-			-webkit-print-color-adjust: exact;
-			print-color-adjust: exact;
-		"
-	>
-		<tr>
-			<td
-				style="
-					width: 27%;
-					text-align: center;
-					background-color: #819ac2;
-					padding: 2px 3px !important;
-					font-size: 12px;
-					font-weight: bold;
-					color: #000;
-				"
-			>
-				Sales Order #
-			</td>
-			<td style="width: 10%"></td>
-			<td
-				style="
-					width: 26%;
-					text-align: center;
-					background-color: #819ac2;
-					padding: 2px 3px !important;
-					font-size: 12px;
-					font-weight: bold;
-					color: #000;
-				"
-			>
-				Delivery Date
-			</td>
-			<td style="width: 10%"></td>
-			<td
-				style="
-					width: 27%;
-					text-align: center;
-					background-color: #819ac2;
-					padding: 2px 3px !important;
-					font-size: 12px;
-					font-weight: bold;
-					color: #000;
-				"
-			>
-				DN #
-			</td>
-		</tr>
-		<tr>
-			<td
-				style="
-					width: 27%;
-					text-align: center;
-					padding: 4px 6px !important;
-					font-size: 12px;
-					font-weight: bold;
-					color: #000;
-					word-break: break-all;
-				"
-			>
-				{{ doc.sales_order or "N/A" }}
-			</td>
-			<td style="width: 10%"></td>
-			<td
-				style="
-					width: 26%;
-					text-align: center;
-					padding: 4px 6px !important;
-					font-size: 12px;
-					font-weight: bold;
-					color: #000;
-					word-break: break-all;
-				"
-			>
-				{{ frappe.utils.format_date(doc.date, "dd-MM-yyyy") }}
-			</td>
-			<td style="width: 10%"></td>
-			<td
-				style="
-					width: 27%;
-					text-align: center;
-					padding: 4px 6px !important;
-					font-size: 12px;
-					font-weight: bold;
-					color: #000;
-					word-break: break-all;
-				"
-			>
-				{{ doc.name }}
+			<td style="width: 3%"></td>
+			<td style="width: 30%; vertical-align: middle">
+				{# FIX 3: print-color-adjust on the Date/order# header cells. #}
+				<table
+					style="
+						width: 100%;
+						border-collapse: collapse;
+						-webkit-print-color-adjust: exact;
+						print-color-adjust: exact;
+					"
+				>
+					<tr>
+						<td
+							style="
+								width: 40%;
+								text-align: center;
+								background-color: #819ac2;
+								padding: 2px 3px !important;
+								font-size: 12px;
+								font-weight: bold;
+								color: #000;
+							"
+						>
+							Date
+						</td>
+						<td
+							style="
+								width: 60%;
+								text-align: center;
+								background-color: #819ac2;
+								padding: 2px 3px !important;
+								font-size: 12px;
+								font-weight: bold;
+								color: #000;
+							"
+						>
+							Sales Order #
+						</td>
+					</tr>
+					<tr>
+						<td
+							style="
+								width: 40%;
+								text-align: center;
+								padding: 4px 6px !important;
+								font-size: 12px;
+								font-weight: bold;
+								color: #000;
+							"
+						>
+							{{ frappe.utils.format_date(doc.date, "dd-MM-yyyy") }}
+						</td>
+						<td
+							style="
+								width: 60%;
+								text-align: center;
+								padding: 4px 6px !important;
+								font-size: 12px;
+								font-weight: bold;
+								color: #000;
+							"
+						>
+							{{ doc.sales_order }}
+						</td>
+					</tr>
+				</table>
 			</td>
 		</tr>
 	</table>
@@ -199,12 +167,12 @@ watermark_src %}
 					print-color-adjust: exact;
 				"
 			>
-				<td style="width: 5%; text-align: center">#</td>
+				<td style="width: 5%; text-align: center">S/N</td>
 				<td style="width: 13%">PID</td>
 				<td style="width: 46%">Product Description</td>
-				<td style="width: 12%; text-align: center">Qnty Requested</td>
-				<td style="width: 12%; text-align: center">Qnty Supplied</td>
-				<td style="width: 12%; text-align: center">Balance Left</td>
+				<td style="width: 12%; text-align: center">Qnty</td>
+				<td style="width: 12%; text-align: center">Unit Price</td>
+				<td style="width: 12%; text-align: center">Sub-Total</td>
 			</tr>
 		</thead>
 		<tbody>
@@ -219,25 +187,69 @@ watermark_src %}
 			>
 				<td style="text-align: center; vertical-align: top">{{ '%02d' % loop.index }}</td>
 				<td style="vertical-align: top; word-break: break-all">{{ item.item_code }}</td>
-				<td style="vertical-align: top">{{ item.description }}</td>
+				<td style="vertical-align: top">{{ item.item_description }}</td>
 				<td style="text-align: center; vertical-align: top">
-					{{ item.qty_requested | int }}
+					{{ item.qty_remaining | int }}
 				</td>
 				<td style="text-align: center; vertical-align: top">
-					{{ item.qty_supplied | int }}
+					{{ item.get_formatted("unit_price", doc) }}
 				</td>
 				<td style="text-align: center; vertical-align: top">
-					{{ item.balance_left | int }}
+					{{ item.get_formatted("sub_total", doc) }}
 				</td>
 			</tr>
 			{% endfor %}
 		</tbody>
 	</table>
 
+	<table
+		style="
+			width: 35%;
+			margin-left: auto;
+			border-collapse: collapse;
+			font-size: 10px;
+			margin-bottom: 15px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+			page-break-inside: avoid;
+			break-inside: avoid;
+		"
+	>
+		<tr
+			style="
+				background-color: #819ac2;
+				-webkit-print-color-adjust: exact;
+				print-color-adjust: exact;
+			"
+		>
+			<td style="text-align: left; padding: 2px 4px; font-weight: bold; color: #000">
+				Grand Total:
+			</td>
+			<td style="text-align: right; padding: 2px 4px; font-weight: bold; color: #000">
+				{{ doc.get_formatted("total_amount", doc) }}
+			</td>
+		</tr>
+	</table>
+
+	<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
+		<tr>
+			<td style="width: 10%"></td>
+			<td style="text-align: left; vertical-align: top; font-size: 12px; color: #000">
+				In consideration of the valued to be received,
+				<span style="font-weight: bold"> {{ company_doc.company_name }}</span> do hereby
+				promise to supplied the above items. In the event this note is in default and the
+				collection proceedings are instituted,
+				<span style="font-weight: bold">{{ company_doc.abbr }}</span> agrees to pay back
+				the amount equivalent that will be due.
+			</td>
+			<td style="width: 10%"></td>
+		</tr>
+	</table>
+
 	{# 5. Bottom section — page-break-inside: avoid keeps it on one page #}
 	<div class="nbs-bottom-section">
 		{# Signatures #}
-		<table style="margin-top: 15px; margin-bottom: 15px">
+		<table>
 			<tr>
 				<td style="width: 5%"></td>
 				{{ pdf_signature("Sales Manager") }}
@@ -268,11 +280,9 @@ watermark_src %}
 				</div>
 			</div>
 			<div style="padding: 2px 5px 0 5px; font-size: 10px; line-height: 1.5; color: #000">
-				<div>Goods Received in Good Condition.</div>
-				<div>Items not supplied are captured in the Promissory Note.</div>
 				<div>
-					By signing above, you agree the terms on this delivery note are correct and
-					accurate, no other terms &amp; conditions shall apply.
+					By signing above, you agree the terms on this Promissory note are correct and
+					accurate, no other terms & conditions shall apply.
 				</div>
 			</div>
 		</div>

@@ -1,6 +1,6 @@
-{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature
--%} {%- set company_doc = frappe.get_doc("Company", doc.company) -%} {%- set watermark_src =
-company_doc.custom_pdf_water_mark or company_doc.company_logo -%}
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address,
+pdf_signature2, officer_signature -%} {%- set company_doc = frappe.get_doc("Company", doc.company)
+-%} {%- set watermark_src = company_doc.custom_pdf_water_mark or company_doc.company_logo -%}
 
 <style>
 	body {
@@ -58,18 +58,18 @@ watermark_src %}
 {% endif %}
 
 <div class="nbs-body">
-	{# 1. "DELIVERY NOTE" heading #}
+	{# 1. "Waybill" heading #}
 	<table style="width: 100%; border-collapse: collapse; margin-bottom: 4px">
 		<tr>
 			<td style="text-align: center; padding-bottom: 6px">
 				<span style="font-size: 24px; font-weight: bold; color: #000; letter-spacing: 2px">
-					DELIVERY NOTE
+					{{ "CONVERSION WAYBILL" if doc.custom_is_conversion and doc.custom_waybill_type
+					== "Loan Conversion Waybill" else "WAYBILL" }}
 				</span>
 			</td>
 		</tr>
 	</table>
-
-	{# 2. Invoice # | Delivery Date | DN # boxes #}
+	{# 2. Sales order # | Date | WB # #}
 	<table
 		style="
 			width: 100%;
@@ -106,7 +106,7 @@ watermark_src %}
 					color: #000;
 				"
 			>
-				Delivery Date
+				Date
 			</td>
 			<td style="width: 10%"></td>
 			<td
@@ -120,7 +120,8 @@ watermark_src %}
 					color: #000;
 				"
 			>
-				DN #
+				{{ "CWB #" if doc.custom_is_conversion and doc.custom_waybill_type == "Loan
+				Conversion Waybill" else "WB #" }}
 			</td>
 		</tr>
 		<tr>
@@ -135,7 +136,7 @@ watermark_src %}
 					word-break: break-all;
 				"
 			>
-				{{ doc.sales_order or "N/A" }}
+				{{ doc.custom_sales_order or "N/A" }}
 			</td>
 			<td style="width: 10%"></td>
 			<td
@@ -149,7 +150,7 @@ watermark_src %}
 					word-break: break-all;
 				"
 			>
-				{{ frappe.utils.format_date(doc.date, "dd-MM-yyyy") }}
+				{{ frappe.utils.format_date(doc.posting_date) }}
 			</td>
 			<td style="width: 10%"></td>
 			<td
@@ -169,12 +170,61 @@ watermark_src %}
 	</table>
 
 	{# 3. Billing Address | spacer | Delivery Address #}
-	<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
+	<table
+		style="
+			width: 100%;
+			border-collapse: collapse;
+			table-layout: fixed;
+			margin-bottom: 10px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
 		<tr>
-			{{ pdf_address("Billing Address", doc.customer_name, doc.customer_address) }}
-			<td style="width: 10%"></td>
-			{{ pdf_address("Delivery Address", doc.customer_name, doc.shipping_address_name if
-			doc.shipping_address_name else doc.customer_address) }}
+			<td style="width: 27%; vertical-align: top">
+				<div
+					style="
+						background-color: #819ac2;
+						padding: 2px 5px;
+						margin-bottom: 2px;
+						-webkit-print-color-adjust: exact;
+						print-color-adjust: exact;
+					"
+				>
+					<div style="font-weight: bold; font-size: 13px; color: #000">
+						Delivery Address:
+					</div>
+				</div>
+				<div style="padding-left: 5px; padding-top: 2px; color: #000">
+					<div
+						style="
+							font-size: 12px;
+							font-weight: bold;
+							margin-bottom: 2px;
+							text-transform: uppercase;
+						"
+					>
+						{{ doc.customer_name }}
+					</div>
+					{% set addr = frappe.get_doc("Address", doc.shipping_address_name if
+					doc.shipping_address_name else doc.customer_address) %}
+					<div style="line-height: 1.3; font-size: 12px">
+						{{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2
+						}}{% endif %}<br />
+						{{ addr.city }} - {{ addr.country }}<br />
+						{% if addr.phone %}{{ addr.phone }}<br />{% endif %} {% if addr.email_id
+						%}{{ addr.email_id }}{% endif %}
+					</div>
+				</div>
+			</td>
+			<td style="width: 5%"></td>
+			<td style="width: 26%; vertical-align: top">
+				{{ officer_signature("Delivering Officer") }}
+			</td>
+			<td style="width: 5%"></td>
+			<td style="width: 27%; vertical-align: top">
+				{{ officer_signature("Receiving Officer") }}
+			</td>
 		</tr>
 	</table>
 
@@ -199,12 +249,11 @@ watermark_src %}
 					print-color-adjust: exact;
 				"
 			>
-				<td style="width: 5%; text-align: center">#</td>
-				<td style="width: 13%">PID</td>
-				<td style="width: 46%">Product Description</td>
-				<td style="width: 12%; text-align: center">Qnty Requested</td>
-				<td style="width: 12%; text-align: center">Qnty Supplied</td>
-				<td style="width: 12%; text-align: center">Balance Left</td>
+				<td style="width: 5%; text-align: center">S/N</td>
+				<td style="width: 12%">PID</td>
+				<td style="width: 55%">Product Description</td>
+				<td style="width: 16%; text-align: center">Serial/Lot No.</td>
+				<td style="width: 12%; text-align: center">Qnty</td>
 			</tr>
 		</thead>
 		<tbody>
@@ -221,13 +270,10 @@ watermark_src %}
 				<td style="vertical-align: top; word-break: break-all">{{ item.item_code }}</td>
 				<td style="vertical-align: top">{{ item.description }}</td>
 				<td style="text-align: center; vertical-align: top">
-					{{ item.qty_requested | int }}
+					{{ item.batch_no or item.serial_no or "-" }}
 				</td>
 				<td style="text-align: center; vertical-align: top">
-					{{ item.qty_supplied | int }}
-				</td>
-				<td style="text-align: center; vertical-align: top">
-					{{ item.balance_left | int }}
+					{{ item.get_formatted("qty", doc) }}
 				</td>
 			</tr>
 			{% endfor %}
@@ -237,12 +283,13 @@ watermark_src %}
 	{# 5. Bottom section — page-break-inside: avoid keeps it on one page #}
 	<div class="nbs-bottom-section">
 		{# Signatures #}
-		<table style="margin-top: 15px; margin-bottom: 15px">
+		<table style="margin-bottom: 15px; margin-top: 60px">
 			<tr>
 				<td style="width: 5%"></td>
-				{{ pdf_signature("Sales Manager") }}
-				<td style="width: 65%"></td>
-				{{ pdf_signature("Customer") }}
+				{{ pdf_signature2("Sales Manager") }}
+				<td style="width: 35%"></td>
+				{{ pdf_signature2("Customer") }}
+				<td style="width: 5%"></td>
 			</tr>
 		</table>
 
@@ -271,8 +318,8 @@ watermark_src %}
 				<div>Goods Received in Good Condition.</div>
 				<div>Items not supplied are captured in the Promissory Note.</div>
 				<div>
-					By signing above, you agree the terms on this delivery note are correct and
-					accurate, no other terms &amp; conditions shall apply.
+					By signing above, you agree the terms on this waybill are correct and accurate,
+					no other terms & conditions shall apply.
 				</div>
 			</div>
 		</div>

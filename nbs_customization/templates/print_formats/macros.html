@@ -148,6 +148,16 @@
 		<div style="font-weight: 500; font-size: 12px">{{ title }}</div>
 	</div>
 </td>
+{% endmacro %} {% macro pdf_signature2(title) %}
+<td style="vertical-align: top; padding: 0 10px; color: #000">
+	<div>
+		<div>{{ '-' * 55 }}</div>
+		<div style="font-weight: 500; font-size: 12px; margin-bottom: 2px">
+			Stamp &amp; Signature:
+		</div>
+		<div style="font-weight: 500; font-size: 12px">{{ title }}</div>
+	</div>
+</td>
 {% endmacro %} {% macro pdf_bank_details(doc) %} {% set company_doc = frappe.get_doc("Company",
 doc.company) %}
 <td
@@ -206,7 +216,7 @@ pdf_invoice_title(doc) %}
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
 	<tr>
 		<td style="width: 57%; vertical-align: bottom; text-align: right">
-			<span style="font-size: 26px; font-weight: bold; color: #000; letter-spacing: 2px">
+			<span style="font-size: 24px; font-weight: bold; color: #000; letter-spacing: 2px">
 				INVOICE
 			</span>
 		</td>
@@ -397,7 +407,7 @@ Pro-Forma Invoice (Quotation) ==================================================
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px">
 	<tr>
 		<td style="text-align: center; padding-bottom: 6px">
-			<span style="font-size: 26px; font-weight: bold; color: #000; letter-spacing: 2px">
+			<span style="font-size: 24px; font-weight: bold; color: #000; letter-spacing: 2px">
 				PRO-FORMA INVOICE
 			</span>
 		</td>
@@ -500,4 +510,35 @@ Pro-Forma Invoice (Quotation) ==================================================
 		</td>
 	</tr>
 </table>
+{% endmacro %} {% macro officer_signature(title) %}
+<div style="flex: 1; display: flex; flex-direction: column; color: #000">
+	<!-- Header -->
+	<div style="background-color: #819ac2; padding: 3px 5px">
+		<div style="font-weight: bold; font-size: 10px">{{ title }}:</div>
+	</div>
+
+	<!-- Fields -->
+	<div style="display: flex; flex-direction: column; padding-left: 5px; padding-top: 2px">
+		<!-- Name row -->
+		<div style="display: flex; flex-direction: row; margin-bottom: 5px; padding-top: 10px">
+			<span style="font-size: 10px; margin-right: 10px">Name:</span>
+			<span style="font-size: 10px">{{ '-' * 46 }}</span>
+		</div>
+		<!-- Position row -->
+		<div style="display: flex; flex-direction: row; margin-bottom: 5px">
+			<span style="font-size: 10px; margin-right: 10px">Position:</span>
+			<span style="font-size: 10px">{{ '-' * 43 }}</span>
+		</div>
+		<!-- Signature row -->
+		<div style="display: flex; flex-direction: row; margin-bottom: 5px">
+			<span style="font-size: 10px; margin-right: 9px">Signature:</span>
+			<span style="font-size: 10px">{{ '-' * 42 }}</span>
+		</div>
+		<!-- Date row -->
+		<div style="display: flex; flex-direction: row; margin-bottom: 5px">
+			<span style="font-size: 10px; margin-right: 10px">Date:</span>
+			<span style="font-size: 10px">{{ '-' * 47 }}</span>
+		</div>
+	</div>
+</div>
 {% endmacro %}
