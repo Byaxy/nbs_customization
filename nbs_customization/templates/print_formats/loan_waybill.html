@@ -58,18 +58,17 @@ watermark_src %}
 {% endif %}
 
 <div class="nbs-body">
-	{# 1. "Waybill" heading #}
+	{# 1. "Loan Waybill" heading #}
 	<table style="width: 100%; border-collapse: collapse; margin-bottom: 4px">
 		<tr>
 			<td style="text-align: center; padding-bottom: 6px">
 				<span style="font-size: 24px; font-weight: bold; color: #000; letter-spacing: 2px">
-					{{ "CONVERSION WAYBILL" if doc.custom_is_conversion and doc.custom_waybill_type
-					== "Loan Conversion Waybill" else "WAYBILL" }}
+					LOAN WAYBILL
 				</span>
 			</td>
 		</tr>
 	</table>
-	{# 2. Sales order # | Date | WB #}
+	{# 2. Sales order # | Date | LWB #}
 	<table
 		style="
 			width: 100%;
@@ -120,8 +119,7 @@ watermark_src %}
 					color: #000;
 				"
 			>
-				{{ "CWB #" if doc.custom_is_conversion and doc.custom_waybill_type == "Loan
-				Conversion Waybill" else "WB #" }}
+				LWB #
 			</td>
 		</tr>
 		<tr>
@@ -136,7 +134,7 @@ watermark_src %}
 					word-break: break-all;
 				"
 			>
-				{{ doc.custom_sales_order or "N/A" }}
+				N/A
 			</td>
 			<td style="width: 10%"></td>
 			<td
@@ -150,7 +148,7 @@ watermark_src %}
 					word-break: break-all;
 				"
 			>
-				{{ frappe.utils.format_date(doc.posting_date) }}
+				{{ frappe.utils.format_date(doc.loan_date) }}
 			</td>
 			<td style="width: 10%"></td>
 			<td
@@ -257,7 +255,7 @@ watermark_src %}
 			</tr>
 		</thead>
 		<tbody>
-			{% for item in doc.items %}
+			{% for item in doc.batch_balances %}
 			<tr
 				style="
 						background-color: {{ '#D5DCE4' if loop.index is even else 'transparent' }};
@@ -273,7 +271,7 @@ watermark_src %}
 					{{ item.batch_no or item.serial_no or "-" }}
 				</td>
 				<td style="text-align: center; vertical-align: top">
-					{{ item.get_formatted("qty", doc) }}
+					{{ item.get_formatted("qty_loaned", doc) }}
 				</td>
 			</tr>
 			{% endfor %}
@@ -316,10 +314,9 @@ watermark_src %}
 			</div>
 			<div style="padding: 2px 5px 0 5px; font-size: 10px; line-height: 1.5; color: #000">
 				<div>Goods Received in Good Condition.</div>
-				<div>Items not supplied are captured in the Promissory Note.</div>
 				<div>
-					By signing above, you agree the terms on this Waybill are correct and accurate,
-					no other terms & conditions shall apply.
+					By signing above, you agree the terms on this Loan Waybill are correct and
+					accurate, no other terms & conditions shall apply.
 				</div>
 			</div>
 		</div>

@@ -220,8 +220,8 @@ pdf_invoice_title(doc) %}
 				INVOICE
 			</span>
 		</td>
-		<td style="width: 3%"></td>
-		<td style="width: 40%; vertical-align: middle">
+		<td style="width: 8%"></td>
+		<td style="width: 35%; vertical-align: middle">
 			{# FIX 3: print-color-adjust on the Date/Invoice# header cells. #}
 			<table
 				style="
@@ -379,9 +379,7 @@ row. #}
 		</td>
 	</tr>
 	<tr>
-		<td style="text-align: left; padding: 2px 4px; font-weight: bold; color: #000">
-			Total Tax:
-		</td>
+		<td style="text-align: left; padding: 2px 4px; font-weight: bold; color: #000">WHT:</td>
 		<td style="text-align: right; padding: 2px 4px; font-weight: bold; color: #000">
 			{{ doc.get_formatted("total_taxes_and_charges", doc) }}
 		</td>
