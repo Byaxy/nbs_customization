@@ -1,0 +1,215 @@
+{%- from "nbs_customization/templates/print_formats/macros.html" import
+pdf_invoice_title, pdf_address, pdf_items_table, pdf_totals,
+pdf_signature, pdf_bank_details -%}
+
+{%- set company_doc = frappe.get_doc("Company", doc.company) -%}
+{%- set watermark_src = company_doc.custom_pdf_water_mark or company_doc.company_logo -%}
+
+<style>
+     body {
+          margin: 0 !important;
+     }
+
+     .print-format {
+          margin-top: 5mm;
+          margin-bottom: 10mm;
+          margin-left: 10mm;
+          margin-right: 10mm;
+          padding: 0;
+          padding-bottom: 10mm;
+     }
+
+     .print-format td,
+     .print-format th {
+          padding: 3px 4px !important;
+     }
+
+     .nbs-watermark {
+          position: fixed;
+          top: 28%;
+          left: 15%;
+          width: 480px;
+          height: 440px;
+          opacity: 0.1;
+          z-index: 0;
+          pointer-events: none;
+     }
+
+     .nbs-body {
+          font-family: "Times New Roman", Times, serif;
+          font-size: 10px;
+          color: #000;
+          position: relative;
+          z-index: 1;
+     }
+
+     .nbs-bottom-section {
+          page-break-inside: avoid;
+          break-inside: avoid;
+     }
+
+     @media print {
+          * {
+               -webkit-print-color-adjust: exact !important;
+               print-color-adjust: exact !important;
+          }
+
+     }
+</style>
+
+{# HEADER #}
+
+{% if letter_head and not no_letterhead %}
+<div id="header-html">{{ letter_head }}</div>
+{% endif %}
+
+
+{# Watermark: position:fixed → repeats on every body page automatically #}
+{% if watermark_src %}
+<img class="nbs-watermark" src="{{ frappe.utils.get_url(watermark_src) }}" alt="" />
+{% endif %}
+
+{% if footer and not no_letterhead %}
+<div id="footer-html">{{ footer }}</div>
+{% endif %}
+
+<div class="nbs-body">
+
+     {# 1. "PURCHASE ORDER" heading + Date / PO # boxes #}
+     <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
+          <tr>
+               <td style="width: 60%; vertical-align: bottom; text-align: right">
+                    <span style="font-size: 22px; font-weight: bold; color: #000">PURCHASE ORDER</span>
+               </td>
+               <td style="width: 5%"></td>
+               <td style="width: 35%; vertical-align: middle">
+                    {# FIX 3: print-color-adjust on the Date/Invoice# header cells. #}
+                    <table style="
+					width: 100%;
+					border-collapse: collapse;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				">
+                         <tr>
+                              <td style="
+							width: 40%;
+							text-align: center;
+							background-color: #819ac2;
+							padding: 2px 3px !important;
+							font-size: 12px;
+							font-weight: bold;
+							color: #000;
+						">
+                                   Date
+                              </td>
+                              <td style="
+							width: 60%;
+							text-align: center;
+							background-color: #819ac2;
+							padding: 2px 3px !important;
+							font-size: 12px;
+							font-weight: bold;
+							color: #000;
+						">
+                                   PO #
+                              </td>
+                         </tr>
+                         <tr>
+                              <td style="
+							width: 40%;
+							text-align: center;
+							padding: 4px 6px !important;
+							font-size: 12px;
+							font-weight: bold;
+							color: #000;
+						">
+                                   {{ frappe.utils.format_date(doc.transaction_date, "dd-MM-yyyy") }}
+                              </td>
+                              <td style="
+							width: 60%;
+							text-align: center;
+							padding: 4px 6px !important;
+							font-size: 12px;
+							font-weight: bold;
+							color: #000;
+						">
+                                   {{ doc.name }}
+                              </td>
+                         </tr>
+                    </table>
+               </td>
+          </tr>
+     </table>
+
+     {# 2. Supplier Address | spacer | Delivery Address #} {%- set
+	supplier_addr = frappe.db.get_value( "Dynamic Link", {"link_doctype": "Supplier", "link_name":
+	doc.supplier, "parenttype": "Address"}, "parent" ) -%}
+	<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
+		<tr>
+			{{ pdf_address("Supplier Address", doc.supplier_name, supplier_addr) }}
+			<td style="width: 10%"></td>
+			{{ pdf_address("Delivery Address", doc.company, doc.shipping_address if
+			doc.shipping_address else doc.billing_address) }}
+		</tr>
+	</table>
+
+     {#
+     3. Items table.
+     The <thead> inside pdf_items_table (macros.html) has display:table-header-group
+          by default → S/N / PID / Product Description / Qnty / Unit Price / Sub-Total
+          repeats on every page break automatically. No extra work needed here.
+          #}
+          {{ pdf_items_table(doc) }}
+
+          {# 4. Sub-Total / Total Discount / Total Tax / Grand Total #}
+          {{ pdf_totals(doc) }}
+
+          {#
+          5. Signatures + Bank Details + Terms & Conditions
+          ─────────────────────────────────────────────────
+          page-break-inside: avoid keeps the block intact on one page.
+          #}
+          <div class="nbs-bottom-section">
+               <table style="margin-bottom: 10px;">
+                    <tr>
+                         <td style="width: 5%"></td>
+                         {{ pdf_signature("Sales Manager") }}
+                         <td style="width: 65%;"></td>
+                         {{ pdf_signature("Customer") }}
+                    </tr>
+               </table>
+               <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                         {{ pdf_bank_details(doc) }}
+                         <td style="
+										width: 50%;
+										vertical-align: top;
+										padding-left: 30px !important;
+										padding-right: 0 !important;
+										color: #000;
+										">
+                              <div style="
+											background-color: #819ac2;
+											padding: 2px 5px;
+											margin-bottom: 2px;
+											-webkit-print-color-adjust: exact;
+											print-color-adjust: exact;
+											">
+                                   <div style="font-weight: bold; font-size: 13px; color: #000;">
+                                        Terms & Conditions
+                                   </div>
+                              </div>
+                              <div style="padding: 2px 5px 0 5px; font-size: 10px; line-height: 1.5;">
+                                  <div>Prices quoted here should be valid for 6 months.</div>
+                                   <div>Payment Terms: 100% prepayment EXW.</div>
+                                   <div>
+                                        When a dispute arises over subtotal or total prices, individual unit
+                                        prices should be considered
+                                   </div>
+                              </div>
+                         </td>
+                    </tr>
+               </table>
+          </div>
+
+</div>

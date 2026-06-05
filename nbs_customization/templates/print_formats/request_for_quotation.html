@@ -1,7 +1,7 @@
 {%- from "nbs_customization/templates/print_formats/macros.html" import pdf_invoice_title,
-pdf_address, pdf_items_table, pdf_totals, pdf_signature, pdf_bank_details -%} {%- set company_doc =
-frappe.get_doc("Company", doc.company) -%} {%- set watermark_src =
-company_doc.custom_pdf_water_mark or company_doc.company_logo -%}
+pdf_address, pdf_signature, pdf_bank_details -%} {%- set company_doc = frappe.get_doc("Company",
+doc.company) -%} {%- set watermark_src = company_doc.custom_pdf_water_mark or
+company_doc.company_logo -%}
 
 <style>
 	body {

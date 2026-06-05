@@ -335,10 +335,10 @@ row. #}
 				{{ item.qty | int }} {{ item.uom }}
 			</td>
 			<td style="text-align: right; vertical-align: top">
-				{{ item.get_formatted("net_rate", doc) }}
+				{{ item.get_formatted("rate", doc) }}
 			</td>
 			<td style="text-align: right; vertical-align: top">
-				{{ item.get_formatted("net_amount", doc) }}
+				{{ item.get_formatted("amount", doc) }}
 			</td>
 		</tr>
 		{% endfor %}
