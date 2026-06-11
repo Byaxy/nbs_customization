@@ -100,7 +100,7 @@ pd_standard_format_folder = "default_templates"
 after_migrate = ["nbs_customization.setup.after_migrate"]
 
 override_whitelisted_methods = {
-	"frappe.desk.query_report.run": "nbs_customization.report_customizer.run",
+    "frappe.desk.query_report.run": "nbs_customization.report_customizer.run",
     "frappe.desk.query_report.export_query": "nbs_customization.report_customizer.export_query",
 }
 
@@ -269,8 +269,8 @@ before_request = ["nbs_customization.pdf_patch.apply_patches"]
 # Fixtures
 
 fixtures = [
-    
-      {
+
+    {
         "dt": "Custom Field",
         "filters": [
             [
@@ -278,7 +278,7 @@ fixtures = [
                     "Item-custom_item_type",
                     "Company-custom_bank_name",
                     "Company-custom_bank_address",
-                    "Company-custom_account_number", 
+                    "Company-custom_account_number",
                     "Company-custom_swift_code",
                     "Company-custom_pdf_water_mark",
                     "Company-custom_phone_no_2",
@@ -305,14 +305,15 @@ fixtures = [
                     "Sales Invoice-custom_sales_order",
                     "Purchase Invoice-custom_purchase_order",
                     "Delivery Note-custom_sales_order",
-                    "Batch-custom_batch_no"
+                    "Batch-custom_batch_no",
+                    "Payment Entry-custom_receipt"
                 ]
             ]
         ]
     },
-	{
-		"dt": "Carrier",
-	},
+    {
+        "dt": "Carrier",
+    },
 ]
 
 
@@ -323,6 +324,7 @@ doctype_js = {
     "Purchase Receipt": "public/js/purchase_receipt.js",
     "Sales Invoice": "public/js/sales_invoice.js",
     "Batch": "public/js/batch.js",
+    "Payment Entry": "public/js/payment_entry.js",
 }
 
 doctype_list_js = {
@@ -366,7 +368,7 @@ doc_events = {
             "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
             "nbs_customization.utils.pricing.on_purchase_receipt_submit",
         ],
-        "on_cancel": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel", 
+        "on_cancel": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel",
     },
     "Landed Cost Voucher": {
         "on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",

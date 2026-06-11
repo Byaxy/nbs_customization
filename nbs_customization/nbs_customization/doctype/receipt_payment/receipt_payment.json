@@ -1,0 +1,138 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-06-11 08:30:07.093257",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "payment_entry",
+  "sales_invoice",
+  "column_break_gnjq",
+  "invoice_date",
+  "section_break_ifip",
+  "amount_due",
+  "column_break_dqbf",
+  "amount_received",
+  "column_break_mird",
+  "balance_due",
+  "section_break_gxuq",
+  "payment_method",
+  "reference_no",
+  "column_break_rkov",
+  "receiving_account",
+  "reference_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "payment_entry",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Payment Entry",
+   "options": "Payment Entry",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Sales Invoice",
+   "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "column_break_gnjq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "invoice_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Invoice Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_ifip",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amount_due",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount Due",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_dqbf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amount_received",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Amount Received",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_mird",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "balance_due",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Balance Due",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_gxuq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "payment_method",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Payment Method",
+   "options": "Mode of Payment"
+  },
+  {
+   "fieldname": "column_break_rkov",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "receiving_account",
+   "fieldtype": "Link",
+   "label": "Receiving Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Cheque/Reference No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_date",
+   "fieldtype": "Date",
+   "label": "Cheque/Reference Date",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-11 12:10:26.427823",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Receipt Payment",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
