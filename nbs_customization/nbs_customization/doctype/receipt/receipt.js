@@ -256,13 +256,17 @@ function recompute_totals(frm) {
 	const rows = frm.doc.receipt_payments || [];
 	let total_due = 0;
 	let total_received = 0;
+	let total_balance = 0;
 	rows.forEach((r) => {
 		total_due += flt(r.amount_due);
 		total_received += flt(r.amount_received);
+		if (r.sales_invoice) {
+			total_balance += flt(r.balance_due);
+		}
 	});
 	frm.set_value("total_amount_due", total_due);
 	frm.set_value("total_amount_received", total_received);
-	frm.set_value("total_balance_due", total_due - total_received);
+	frm.set_value("total_balance_due", total_balance);
 }
 
 function show_add_from_payment_entry_dialog(frm) {

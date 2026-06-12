@@ -3,7 +3,7 @@
 
 frappe.ui.form.on("Payment Entry", {
 	refresh(frm) {
-		if (frm.doc.docstatus !== 1 || frm.doc.payment_type !== "Receive") return;
+		if (frm.doc.docstatus !== 1 || frm.doc.payment_type !== "Receive" || frm.doc.party_type !== "Customer") return;
 
 		if (frm.doc.custom_receipt) {
 			frm.add_custom_button(

@@ -3,6 +3,7 @@
 
 import frappe
 from frappe import _
+from frappe.contacts.doctype.address.address import get_address_display
 from frappe.model.document import Document
 from frappe.utils import flt, getdate, money_in_words
 
@@ -141,8 +142,6 @@ class Receipt(Document):
         self.customer_total_outstanding = flt(total[0][0])
 
     def _render_address_displays(self):
-        from frappe.contacts.doctype.address.address import get_address_display
-
         if self.customer_address:
             self.customer_address_display = (
                 get_address_display(self.customer_address) or ""
@@ -366,37 +365,8 @@ def get_payment_entry_details(payment_entry: str) -> dict:
     }
 
 
-@frappe.whitelist()
-def get_customer_outstanding_invoices(customer: str, company: str) -> list:
-    """
-    Returns submitted Sales Invoices with an outstanding balance for the given
-    customer. Useful for displaying the customer's full position when preparing
-    a receipt, and as a helper for the print format's 'current balance' block.
-    """
-    return frappe.db.get_all(
-        "Sales Invoice",
-        filters={
-            "customer": customer,
-            "company": company,
-            "docstatus": 1,
-            "outstanding_amount": [">", 0],
-        },
-        fields=[
-            "name",
-            "posting_date",
-            "grand_total",
-            "outstanding_amount",
-            "status",
-        ],
-        order_by="posting_date asc",
-    )
-
-
 def _set_customer_addresses(doc):
-    from frappe.contacts.doctype.address.address import (
-        get_address_display,
-        get_default_address,
-    )
+    from frappe.contacts.doctype.address.address import get_default_address
 
     if not doc.customer:
         return
