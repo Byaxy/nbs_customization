@@ -397,9 +397,8 @@ row. #}
 		</td>
 	</tr>
 </table>
-{% endmacro %} {# ================================================================ NEW MACROS —
-Pro-Forma Invoice (Quotation) ================================================================ #}
-{% macro pdf_proforma_title(doc) %}
+{% endmacro %} {# ====== NEW MACROS — Pro-Forma Invoice (Quotation) ======== #} {% macro
+pdf_proforma_title(doc) %}
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 4px">
 	<tr>
 		<td style="text-align: center; padding-bottom: 6px">
@@ -537,4 +536,79 @@ Pro-Forma Invoice (Quotation) ==================================================
 		</div>
 	</div>
 </div>
+{% endmacro %} {# ===== NEW MACRO — Receipt ====== #} {% macro pdf_receipt_title(doc) %}
+<table style="width: 100%; border-collapse: collapse; margin-bottom: 10px">
+	<tr>
+		<td style="width: 62%; vertical-align: bottom; text-align: right">
+			<span style="font-size: 24px; font-weight: bold; color: #000">OFFICIAL RECEIPT</span>
+		</td>
+		<td style="width: 3%"></td>
+		<td style="width: 35%; vertical-align: middle">
+			<table
+				style="
+					width: 100%;
+					border-collapse: collapse;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<tr>
+					<td
+						style="
+							width: 38%;
+							text-align: center;
+							background-color: #819ac2;
+							padding: 2px 3px !important;
+							font-size: 12px;
+							font-weight: bold;
+							color: #000;
+						"
+					>
+						Date
+					</td>
+					<td
+						style="
+							width: 62%;
+							text-align: center;
+							background-color: #819ac2;
+							padding: 2px 3px !important;
+							font-size: 12px;
+							font-weight: bold;
+							color: #000;
+						"
+					>
+						RCPT #
+					</td>
+				</tr>
+				<tr>
+					<td
+						style="
+							width: 38%;
+							text-align: center;
+							padding: 4px 6px !important;
+							font-size: 12px;
+							font-weight: bold;
+							color: #000;
+						"
+					>
+						{{ frappe.utils.format_date(doc.receipt_date) }}
+					</td>
+					<td
+						style="
+							width: 62%;
+							text-align: center;
+							padding: 4px 6px !important;
+							font-size: 12px;
+							font-weight: bold;
+							color: #000;
+							word-break: keep-all;
+						"
+					>
+						{{ doc.name }}
+					</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+</table>
 {% endmacro %}

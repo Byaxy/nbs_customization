@@ -1,0 +1,510 @@
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_receipt_title,
+pdf_address, pdf_signature2, pdf_bank_details -%} {%- set company_doc = frappe.get_doc("Company",
+doc.company) -%} {%- set watermark_src = company_doc.custom_pdf_water_mark or
+company_doc.company_logo -%} {# ── Payment-method pre-computation
+────────────────────────────────────────── Separate receipt_payment_methods into: cash_total → sum
+of rows with no reference_no/bank_name cheque_count → number of rows that have reference_no or
+bank_name Both values drive the Cash/Cheque/Total summary table below.
+──────────────────────────────────────────────────────────────────────────── #} {%- set pm_ns =
+namespace(cash_total=0.0, cheque_count=0) -%} {%- for pm in doc.receipt_payment_methods -%} {%- if
+pm.reference_no or pm.bank_name -%} {%- set pm_ns.cheque_count = pm_ns.cheque_count + 1 -%} {%-
+else -%} {%- set pm_ns.cash_total = pm_ns.cash_total + (pm.amount or 0) -%} {%- endif -%} {%-
+endfor -%}
+
+<style>
+	body {
+		margin: 0 !important;
+	}
+	.print-format {
+		margin-top: 5mm;
+		margin-bottom: 10mm;
+		margin-left: 10mm;
+		margin-right: 10mm;
+		padding: 0;
+		padding-bottom: 10mm;
+	}
+	.print-format td,
+	.print-format th {
+		padding: 3px 4px !important;
+	}
+	.nbs-watermark {
+		position: fixed;
+		top: 28%;
+		left: 15%;
+		width: 480px;
+		height: 440px;
+		opacity: 0.1;
+		z-index: 0;
+		pointer-events: none;
+	}
+	.nbs-body {
+		font-family: "Times New Roman", Times, serif;
+		font-size: 10px;
+		color: #000;
+		position: relative;
+		z-index: 1;
+	}
+	.nbs-bottom-section {
+		page-break-inside: avoid;
+		break-inside: avoid;
+	}
+
+	@media print {
+		* {
+			-webkit-print-color-adjust: exact !important;
+			print-color-adjust: exact !important;
+		}
+	}
+</style>
+
+{# HEADER #} {% if letter_head and not no_letterhead %}
+<div id="header-html">{{ letter_head }}</div>
+{% endif %} {# Watermark: position:fixed → repeats on every page automatically #} {% if
+watermark_src %}
+<img class="nbs-watermark" src="{{ frappe.utils.get_url(watermark_src) }}" alt="" />
+{% endif %} {% if footer and not no_letterhead %}
+<div id="footer-html">{{ footer }}</div>
+{% endif %}
+
+<div class="nbs-body">
+	{# 1. "OFFICIAL RECEIPT" heading + Date / RCPT # boxes #} {{ pdf_receipt_title(doc) }} {# 2.
+	Received From | spacer | Billing Address #}
+	<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px">
+		<tr>
+			{{ pdf_address("Received From", doc.customer_name, doc.customer_address) }}
+			<td style="width: 10%"></td>
+			{{ pdf_address("Billing Address", doc.customer_name, doc.billing_address if
+			doc.billing_address else doc.customer_address) }}
+		</tr>
+	</table>
+
+	{# 3. Particulars — amount-in-words narrative + amount in figures #}
+	<table
+		style="
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 10px;
+			margin-bottom: 15px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
+		<thead>
+			<tr
+				style="
+					background-color: #819ac2;
+					font-weight: bold;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<td
+					style="
+						width: 75%;
+						text-align: center;
+						padding: 3px 6px !important;
+						color: #000;
+					"
+				>
+					Particulars
+				</td>
+				<td
+					style="
+						width: 25%;
+						text-align: center;
+						padding: 3px 6px !important;
+						color: #000;
+					"
+				>
+					Amount In Figures ({{ doc.currency }})
+				</td>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td style="padding: 5px 6px !important; color: #000; line-height: 1.6">
+					An amount of <strong>{{ doc.amount_in_words | upper }}</strong>
+					Being Payment for the items bought with invoice number(s) listed below:
+				</td>
+				<td
+					style="
+						text-align: center;
+						vertical-align: top;
+						padding: 5px 6px !important;
+						font-weight: bold;
+						color: #000;
+						white-space: nowrap;
+					"
+				>
+					{{ doc.get_formatted("total_amount_received", doc) }}
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+	{# 4. Invoice breakdown table (receipt_payments child) #}
+	<table
+		style="
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 10px;
+			margin-bottom: 20px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
+		<thead>
+			<tr
+				style="
+					background-color: #d5dce4;
+					color: #000;
+					font-weight: bold;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<td style="width: 5%; text-align: center">S/N</td>
+				<td style="width: 10%">Invoice Date</td>
+				<td style="width: 13%">Invoice #</td>
+				<td style="width: 10%">Amount Due</td>
+				<td style="width: 10%">Amount Paid</td>
+				<td style="width: 10%">Balance Due</td>
+				<td style="width: 15%"></td>
+			</tr>
+		</thead>
+		<tbody>
+			{% for payment in doc.receipt_payments %}
+			<tr style="color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact">
+				<td style="text-align: center; vertical-align: top">{{ '%02d' % loop.index }}</td>
+				<td style="vertical-align: top">
+					{{ frappe.utils.format_date(payment.invoice_date) if payment.invoice_date else
+					"-" }}
+				</td>
+				<td style="vertical-align: top; word-break: break-all">
+					{{ payment.sales_invoice or "-" }}
+				</td>
+				<td style="vertical-align: top">{{ payment.get_formatted("amount_due", doc) }}</td>
+				<td style="vertical-align: top">
+					{{ payment.get_formatted("amount_received", doc) }}
+				</td>
+				<td style="vertical-align: top">
+					{{ payment.get_formatted("balance_due", doc) }}
+				</td>
+			</tr>
+			{% endfor %}
+			<tr
+				style="
+					background-color: #d5dce4;
+					height: 15px;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<td style="width: 5%"></td>
+				<td style="width: 10%"></td>
+				<td style="width: 13%"></td>
+				<td style="width: 10%"></td>
+				<td style="width: 10%"></td>
+				<td style="width: 10%"></td>
+				<td style="width: 15%"></td>
+			</tr>
+		</tbody>
+	</table>
+
+	{# 5. Payment methods summary — Cash | Cheque (Bank / Cheque # / Amount) | Total Header uses
+	rowspan/colspan so both rows render under one #819ac2 block. Data rows: • cheque_count == 0 →
+	one row: cash total, empty cheque cells, grand total • cheque_count >= 1 → one row per cheque;
+	cash and grand-total cells use rowspan so they span all cheque rows. loop.first targets the
+	first cheque row only because the for-loop filters on (reference_no or bank_name). #}
+	<table
+		style="
+			width: 100%;
+			font-size: 10px;
+			margin-bottom: 15px;
+			border: 1px solid #000;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
+		<thead>
+			<tr
+				style="
+					background-color: #819ac2;
+					color: #000;
+					font-weight: bold;
+					border: 1px solid #000;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<td
+					rowspan="2"
+					style="
+						width: 22%;
+						text-align: center;
+						vertical-align: middle;
+						padding: 3px 4px !important;
+						color: #000;
+						border: 1px solid #000;
+					"
+				>
+					Cash (Amount {{ doc.currency }})
+				</td>
+				<td
+					colspan="3"
+					style="
+						width: 52%;
+						text-align: center;
+						padding: 3px 4px !important;
+						color: #000;
+						border: 1px solid #000;
+					"
+				>
+					Cheque / Bank (Amount {{ doc.currency }})
+				</td>
+				<td
+					rowspan="2"
+					style="
+						width: 26%;
+						text-align: center;
+						vertical-align: middle;
+						padding: 3px 4px !important;
+						color: #000;
+						border: 1px solid #000;
+					"
+				>
+					Total Amount ({{ doc.currency }})<br />(Cash &amp; Cheque / Bank)
+				</td>
+			</tr>
+			<tr
+				style="
+					background-color: #819ac2;
+					color: #000;
+					font-weight: bold;
+					border: 1px solid #000;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<td
+					style="
+						width: 18%;
+						text-align: center;
+						padding: 2px 4px !important;
+						color: #000;
+						border: 1px solid #000;
+					"
+				>
+					Bank
+				</td>
+				<td
+					style="
+						width: 18%;
+						text-align: center;
+						padding: 2px 4px !important;
+						color: #000;
+						border: 1px solid #000;
+					"
+				>
+					Cheque / Reference #
+				</td>
+				<td
+					style="
+						width: 16%;
+						text-align: right;
+						padding: 2px 4px !important;
+						color: #000;
+						border: 1px solid #000;
+					"
+				>
+					Amount ({{ doc.currency }})
+				</td>
+			</tr>
+		</thead>
+		<tbody>
+			{%- if pm_ns.cheque_count == 0 -%} {# All-cash (or no payment methods entered) — single
+			summary row #}
+			<tr style="color: #000; border: 1px solid #000">
+				<td
+					style="
+						text-align: center;
+						font-weight: bold;
+						padding: 4px 6px !important;
+						border: 1px solid #000;
+					"
+				>
+					{{ frappe.utils.fmt_money(pm_ns.cash_total, currency=doc.currency) }}
+				</td>
+				<td style="padding: 4px !important; border: 1px solid #000"></td>
+				<td style="padding: 4px !important; border: 1px solid #000"></td>
+				<td style="padding: 4px !important; border: 1px solid #000"></td>
+				<td
+					style="
+						text-align: center;
+						font-weight: bold;
+						padding: 4px 6px !important;
+						border: 1px solid #000;
+					"
+				>
+					{{ doc.get_formatted("total_amount_received", doc) }}
+				</td>
+			</tr>
+			{%- else -%} {# One or more cheque rows — cash and total cells span all cheque rows #}
+			{%- for pm in doc.receipt_payment_methods if pm.reference_no or pm.bank_name -%}
+			<tr style="color: #000; border: 1px solid #000">
+				{%- if loop.first -%}
+				<td
+					rowspan="{{ pm_ns.cheque_count }}"
+					style="
+						text-align: center;
+						font-weight: bold;
+						vertical-align: middle;
+						padding: 4px 6px !important;
+						border: 1px solid #000;
+					"
+				>
+					{{ frappe.utils.fmt_money(pm_ns.cash_total, currency=doc.currency) }}
+				</td>
+				{%- endif -%}
+				<td style="padding: 4px 6px !important; border: 1px solid #000">
+					{{ pm.bank_name or "" }}
+				</td>
+				<td
+					style="text-align: center; padding: 4px 6px !important; border: 1px solid #000"
+				>
+					{{ pm.reference_no or "" }}
+				</td>
+				<td style="text-align: right; padding: 4px 6px !important; border: 1px solid #000">
+					{{ pm.get_formatted("amount", doc) }}
+				</td>
+				{%- if loop.first -%}
+				<td
+					rowspan="{{ pm_ns.cheque_count }}"
+					style="
+						text-align: center;
+						font-weight: bold;
+						vertical-align: middle;
+						padding: 4px 6px !important;
+						border: 1px solid #000;
+					"
+				>
+					{{ doc.get_formatted("total_amount_received", doc) }}
+				</td>
+				{%- endif -%}
+			</tr>
+			{%- endfor -%} {%- endif -%}
+		</tbody>
+	</table>
+
+	{# 6. Totals — right-aligned block #}
+	<table
+		style="
+			width: 32%;
+			margin-left: auto;
+			border-collapse: collapse;
+			font-size: 10px;
+			margin-bottom: 50px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+			page-break-inside: avoid;
+			break-inside: avoid;
+		"
+	>
+		<tr>
+			<td style="text-align: left; padding: 3px 6px; font-weight: bold; color: #000">
+				Total Amount Due ({{ doc.currency }}):
+			</td>
+			<td
+				style="
+					text-align: right;
+					padding: 3px 6px;
+					font-weight: bold;
+					color: #000;
+					width: 38%;
+				"
+			>
+				{{ doc.get_formatted("total_amount_due", doc) }}
+			</td>
+		</tr>
+		<tr>
+			<td style="text-align: left; padding: 3px 6px; font-weight: bold; color: #000">
+				Total Amount Paid ({{ doc.currency }}):
+			</td>
+			<td style="text-align: right; padding: 3px 6px; font-weight: bold; color: #000">
+				{{ doc.get_formatted("total_amount_received", doc) }}
+			</td>
+		</tr>
+		<tr
+			style="
+				background-color: #819ac2;
+				-webkit-print-color-adjust: exact;
+				print-color-adjust: exact;
+			"
+		>
+			<td style="text-align: left; padding: 3px 6px; font-weight: bold; color: #000">
+				Balance Due ({{ doc.currency }}):
+			</td>
+			<td style="text-align: right; padding: 3px 6px; font-weight: bold; color: #000">
+				{{ doc.get_formatted("customer_total_outstanding", doc) }}
+			</td>
+		</tr>
+	</table>
+
+	{# 7. Bottom section — page-break-inside: avoid keeps it on one page #}
+	<div class="nbs-bottom-section">
+		{# Signatures #}
+		<table style="margin-bottom: 15px; margin-top: 20px">
+			<tr>
+				<td style="width: 5%"></td>
+				{{ pdf_signature2("Sales Manager") }}
+				<td style="width: 35%"></td>
+				{{ pdf_signature2("Customer") }}
+				<td style="width: 5%"></td>
+			</tr>
+		</table>
+
+		{# Bank Details | Terms & Conditions #}
+		<table style="width: 100%; border-collapse: collapse">
+			<tr>
+				{{ pdf_bank_details(doc) }}
+				<td
+					style="
+						width: 50%;
+						vertical-align: top;
+						padding-left: 30px !important;
+						padding-right: 0 !important;
+						color: #000;
+					"
+				>
+					<div
+						style="
+							background-color: #819ac2;
+							padding: 2px 5px;
+							margin-bottom: 2px;
+							-webkit-print-color-adjust: exact;
+							print-color-adjust: exact;
+						"
+					>
+						<div style="font-weight: bold; font-size: 13px; color: #000">
+							Terms &amp; Conditions
+						</div>
+					</div>
+					<div style="padding: 2px 5px 0 5px; font-size: 10px; line-height: 1.5">
+						<div>
+							In a situation where a cheque is issued, the Payer, shall be
+							responsible for the consequences of any bounced cheque.
+						</div>
+						<div>
+							Total amount received is related to this invoice number stated here
+							alone
+						</div>
+						<div>
+							This receipt is valid only when signed and stamped by authorized
+							personnel.
+						</div>
+					</div>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>

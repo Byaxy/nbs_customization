@@ -34,7 +34,6 @@ frappe.ui.form.on("Receipt", {
 	},
 });
 
-
 frappe.ui.form.on("Receipt Payment", {
 	payment_entry(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
@@ -68,7 +67,7 @@ frappe.ui.form.on("Receipt Payment", {
 						const child = frappe.model.add_child(
 							frm.doc,
 							"Receipt Payment",
-							"receipt_payments"
+							"receipt_payments",
 						);
 						frappe.model.set_value(child.doctype, child.name, {
 							payment_entry: data.payment_entry,
@@ -107,7 +106,7 @@ frappe.ui.form.on("Receipt Payment", {
 				if (!row.amount_due) {
 					frappe.model.set_value(cdt, cdn, "amount_due", r.outstanding_amount);
 				}
-			}
+			},
 		);
 	},
 
@@ -122,7 +121,6 @@ frappe.ui.form.on("Receipt Payment", {
 		recompute_totals(frm);
 	},
 });
-
 
 function _set_address_contact_filters(frm) {
 	frm.set_query("customer_address", () => {
@@ -148,6 +146,7 @@ function _set_payment_entry_query(frm) {
 			docstatus: 1,
 			payment_type: "Receive",
 			company: frm.doc.company,
+			custom_receipt: ["is", "not set"],
 		};
 		if (frm.doc.customer) {
 			filters.party = frm.doc.customer;
@@ -182,7 +181,7 @@ function _add_custom_buttons(frm) {
 						name: ["in", linked_pe],
 					});
 				},
-				__("View")
+				__("View"),
 			);
 		}
 		return;
@@ -191,7 +190,7 @@ function _add_custom_buttons(frm) {
 	frm.add_custom_button(
 		__("Add from Payment Entry"),
 		() => show_add_from_payment_entry_dialog(frm),
-		__("Get Items From")
+		__("Get Items From"),
 	);
 }
 
@@ -216,7 +215,6 @@ function _clear_payment_row(row, cdt, cdn) {
 	});
 }
 
-
 function load_customer_addresses(frm) {
 	frappe.call({
 		method: "frappe.contacts.doctype.address.address.get_default_address",
@@ -233,7 +231,7 @@ function load_customer_addresses(frm) {
 				},
 				callback(r2) {
 					const ba = r2.message;
-					frm.set_value("billing_address", ba && ba !== ca ? ba : (ca || ""));
+					frm.set_value("billing_address", ba && ba !== ca ? ba : ca || "");
 				},
 			});
 		},
@@ -284,7 +282,9 @@ function show_add_from_payment_entry_dialog(frm) {
 						docstatus: 1,
 						payment_type: "Receive",
 						company: frm.doc.company,
-						...(frm.doc.customer ? { party: frm.doc.customer, party_type: "Customer" } : {}),
+						...(frm.doc.customer
+							? { party: frm.doc.customer, party_type: "Customer" }
+							: {}),
 					},
 				}),
 			},
@@ -312,8 +312,8 @@ function show_add_from_payment_entry_dialog(frm) {
 
 					const existing = new Set(
 						(frm.doc.receipt_payments || []).map(
-							(x) => `${x.payment_entry}::${x.sales_invoice || ""}`
-						)
+							(x) => `${x.payment_entry}::${x.sales_invoice || ""}`,
+						),
 					);
 					let added = 0;
 
@@ -324,7 +324,7 @@ function show_add_from_payment_entry_dialog(frm) {
 						const child = frappe.model.add_child(
 							frm.doc,
 							"Receipt Payment",
-							"receipt_payments"
+							"receipt_payments",
 						);
 						frappe.model.set_value(child.doctype, child.name, {
 							payment_entry: data.payment_entry,
@@ -346,7 +346,9 @@ function show_add_from_payment_entry_dialog(frm) {
 					recompute_totals(frm);
 
 					if (added === 0) {
-						frappe.msgprint(__("All rows from this Payment Entry are already in the Receipt."));
+						frappe.msgprint(
+							__("All rows from this Payment Entry are already in the Receipt."),
+						);
 					} else {
 						frappe.show_alert({
 							message: __("{0} row(s) added from Payment Entry {1}", [added, pe]),
@@ -372,7 +374,7 @@ function show_add_from_payment_entry_dialog(frm) {
 			callback(r) {
 				if (!r.message?.rows?.length) {
 					dialog.fields_dict.preview.$wrapper.html(
-						`<p class="text-muted">${__("No Sales Invoice references found in this Payment Entry.")}</p>`
+						`<p class="text-muted">${__("No Sales Invoice references found in this Payment Entry.")}</p>`,
 					);
 					return;
 				}

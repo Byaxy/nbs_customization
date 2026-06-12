@@ -167,7 +167,7 @@ class Receipt(Document):
         # Snapshot user-entered bank names before we clear the table.
         # Key matches the new row key so restoration is exact.
         existing_bank_names = {
-            (row.payment_method, row.cheque_number or ""): row.bank_name
+            (row.payment_method, row.reference_no or ""): row.bank_name
             for row in self.receipt_payment_methods
             if row.bank_name
         }
@@ -182,21 +182,21 @@ class Receipt(Document):
 
             if key not in aggregated:
                 aggregated[key] = {"amount": 0.0,
-                                   "cheque_date": row.reference_date}
+                                   "reference_date": row.reference_date}
 
             aggregated[key]["amount"] += flt(row.amount_received)
 
             # Keep the first non-null date found for this key
-            if not aggregated[key]["cheque_date"] and row.reference_date:
-                aggregated[key]["cheque_date"] = row.reference_date
+            if not aggregated[key]["reference_date"] and row.reference_date:
+                aggregated[key]["reference_date"] = row.reference_date
 
         # Rebuild
         self.receipt_payment_methods = []
         for (payment_method, reference_no), data in aggregated.items():
             self.append("receipt_payment_methods", {
                 "payment_method": payment_method,
-                "cheque_number": reference_no or None,
-                "cheque_date": data["cheque_date"],
+                "reference_no": reference_no or None,
+                "reference_date": data["reference_date"],
                 "bank_name": existing_bank_names.get((payment_method, reference_no), ""),
                 "amount": data["amount"],
             })

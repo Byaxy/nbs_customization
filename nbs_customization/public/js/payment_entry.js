@@ -3,7 +3,12 @@
 
 frappe.ui.form.on("Payment Entry", {
 	refresh(frm) {
-		if (frm.doc.docstatus !== 1 || frm.doc.payment_type !== "Receive" || frm.doc.party_type !== "Customer") return;
+		if (
+			frm.doc.docstatus !== 1 ||
+			frm.doc.payment_type !== "Receive" ||
+			frm.doc.party_type !== "Customer"
+		)
+			return;
 
 		if (frm.doc.custom_receipt) {
 			frm.add_custom_button(
@@ -16,12 +21,12 @@ frappe.ui.form.on("Payment Entry", {
 				__("Receipt"),
 				() =>
 					frappe.model.open_mapped_doc({
-						method:
-							"nbs_customization.nbs_customization.doctype.receipt.receipt.create_receipt_from_pe",
+						method: "nbs_customization.nbs_customization.doctype.receipt.receipt.create_receipt_from_pe",
 						frm: frm,
 					}),
 				__("Create"),
 			);
+			frm.page.set_inner_btn_group_as_primary(__("Create"));
 		}
 	},
 });
