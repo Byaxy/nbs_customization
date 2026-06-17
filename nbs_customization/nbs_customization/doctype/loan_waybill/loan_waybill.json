@@ -59,7 +59,6 @@
  ],
  "fields": [
   {
-   "default": "NBSLWB-.YYYY./.MM./.####",
    "fieldname": "naming_series",
    "fieldtype": "Select",
    "label": "Series",
@@ -343,7 +342,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-06-03 10:07:26.946642",
+ "modified": "2026-06-12 15:12:36.342195",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Loan Waybill",

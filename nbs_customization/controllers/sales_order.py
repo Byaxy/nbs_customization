@@ -1,27 +1,26 @@
 import frappe
 from frappe.utils import flt, nowdate
-from typing import Union, List, Dict
 
 
-def get_so_remaining_quantities(sales_order: str) -> Dict[str, float]:
+def get_so_remaining_quantities(sales_order: str) -> dict[str, float]:
     """
     Calculate remaining quantities for each item in a Sales Order
     by subtracting delivered quantities from all Delivery Notes.
-    
+
     Returns: Dict mapping item_code → remaining_qty
     """
     if not sales_order:
         return {}
-    
+
     # Get SO item quantities
     so_items = frappe.get_all(
         "Sales Order Item",
         filters={"parent": sales_order},
         fields=["item_code", "qty"]
     )
-    
+
     so_qty_map = {item.item_code: flt(item.qty) for item in so_items}
-    
+
     # Get delivered quantities from all submitted Delivery Notes against this SO
     delivered_qty = frappe.db.sql(
         """
@@ -35,9 +34,10 @@ def get_so_remaining_quantities(sales_order: str) -> Dict[str, float]:
         sales_order,
         as_dict=True
     )
-    
-    delivered_qty_map = {item.item_code: flt(item.delivered_qty) for item in delivered_qty}
-    
+
+    delivered_qty_map = {item.item_code: flt(
+        item.delivered_qty) for item in delivered_qty}
+
     # Calculate remaining quantities
     remaining_map = {}
     for item_code, so_qty in so_qty_map.items():
@@ -45,7 +45,7 @@ def get_so_remaining_quantities(sales_order: str) -> Dict[str, float]:
         remaining = flt(so_qty - delivered)
         if remaining > 0:
             remaining_map[item_code] = remaining
-    
+
     return remaining_map
 
 
@@ -54,7 +54,8 @@ def make_customer_delivery_note(source_name: str, target_doc=None, ignore_permis
     from frappe.model.mapper import get_mapped_doc
 
     def set_missing_values(source, target):
-        customer_address, shipping_address_name = _resolve_customer_addresses(source)
+        customer_address, shipping_address_name = _resolve_customer_addresses(
+            source)
         target.customer_address = customer_address
         target.shipping_address_name = shipping_address_name
         target.date = nowdate()
@@ -96,6 +97,7 @@ def make_customer_delivery_note(source_name: str, target_doc=None, ignore_permis
         set_missing_values,
     )
 
+
 @frappe.whitelist()
 def make_promissory_note(source_name, target_doc=None, ignore_permissions=None):
     """
@@ -104,14 +106,15 @@ def make_promissory_note(source_name, target_doc=None, ignore_permissions=None):
     Items are set server-side based on SO qty minus delivered qty.
     """
     from frappe.model.mapper import get_mapped_doc
-    from frappe.utils import nowdate, flt
+    from frappe.utils import flt, nowdate
 
     def set_missing_values(source, target):
         target.date = nowdate()
 
         # Resolve addresses
         target.customer_address = getattr(source, "customer_address", None) or \
-            frappe.db.get_value("Customer", source.customer, "customer_primary_address")
+            frappe.db.get_value("Customer", source.customer,
+                                "customer_primary_address")
         target.shipping_address_name = getattr(source, "shipping_address_name", None) \
             or target.customer_address
 
@@ -121,21 +124,11 @@ def make_promissory_note(source_name, target_doc=None, ignore_permissions=None):
                 "Please set addresses on the Customer."
             )
 
-        # Compute delivered quantities for each SO item
-        delivered_rows = frappe.db.sql(
-            """
-            SELECT dni.item_code, SUM(dni.qty) AS qty
-            FROM `tabDelivery Note Item` dni
-            INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
-            WHERE dn.docstatus = 1
-              AND dn.is_return = 0
-              AND IFNULL(dni.against_sales_order, '') = %s
-            GROUP BY dni.item_code
-            """,
-            (source_name,),
-            as_dict=True,
+        # Compute delivered quantities — shared helper (single source of truth)
+        from nbs_customization.nbs_customization.doctype.promissory_note.promissory_note import (
+            get_delivered_qty_by_item_code,
         )
-        delivered_by_item = {r.item_code: flt(r.qty) for r in delivered_rows}
+        delivered_by_item = get_delivered_qty_by_item_code(source_name)
 
         # Patch qty_remaining on mapped child rows
         fully_delivered = []
@@ -212,7 +205,8 @@ def _resolve_customer_addresses(so_doc) -> tuple[str, str]:
         customer_address = _get_default_customer_address(so_doc.customer)
 
     if not shipping_address_name:
-        shipping_address_name = _get_default_shipping_address(so_doc.customer) or customer_address
+        shipping_address_name = _get_default_shipping_address(
+            so_doc.customer) or customer_address
 
     if not customer_address or not shipping_address_name:
         frappe.throw(
@@ -245,6 +239,7 @@ def _get_default_shipping_address(customer: str) -> str | None:
     except Exception:
         return None
 
+
 @frappe.whitelist()
 def get_pending_loan_waybills(sales_order: str):
     """
@@ -260,7 +255,7 @@ def get_pending_loan_waybills(sales_order: str):
 
     customer = so.customer
     item_codes = {row.item_code for row in so.items}
-    
+
     # Get SO remaining quantities
     so_remaining_map = get_so_remaining_quantities(sales_order)
 
@@ -294,12 +289,12 @@ def get_pending_loan_waybills(sales_order: str):
             remaining_qty = flt(bb.qty_remaining)
             if remaining_qty <= 0:
                 continue
-            
+
             # Get SO remaining for this item
             so_remaining = so_remaining_map.get(bb.item_code, 0)
             if so_remaining <= 0:
                 continue  # No SO remaining, skip this item
-            
+
             # Calculate max convertible quantity
             max_convertible_qty = min(remaining_qty, so_remaining)
             if max_convertible_qty <= 0:
@@ -331,6 +326,7 @@ def get_pending_loan_waybills(sales_order: str):
         "sales_order": sales_order,
         "loan_waybills": results,
     }
+
 
 @frappe.whitelist()
 def has_pending_loan_waybills(customer, sales_order):
@@ -416,6 +412,7 @@ def has_pending_loan_waybills(customer, sales_order):
     )
     return len(result) > 0
 
+
 @frappe.whitelist()
 def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permissions=None):
     """
@@ -424,16 +421,16 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
     Items are mapped from selected batch balances with validation.
     """
     from frappe.model.mapper import get_mapped_doc
-    from frappe.utils import nowdate, flt
+    from frappe.utils import flt, nowdate
 
     # Get the args from the frappe.form_dict (set by frappe.model.open_mapped_doc)
     args = frappe.form_dict.get('args', {})
     if isinstance(args, str):
         args = frappe.parse_json(args)
-    
+
     sales_order = args.get('sales_order')
     items = args.get('items')
-    
+
     if not sales_order or not items:
         frappe.throw("Sales Order and items are required for loan conversion.")
 
@@ -446,11 +443,12 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
         target.custom_is_conversion = 1
         target.is_return = 0
         target.sales_order = sales_order
-        
+
         # Resolve addresses from Sales Order
         if sales_order:
             so_doc = frappe.get_doc("Sales Order", sales_order)
-            customer_address, shipping_address_name = _resolve_customer_addresses(so_doc)
+            customer_address, shipping_address_name = _resolve_customer_addresses(
+                so_doc)
             target.customer_address = customer_address
             target.shipping_address_name = shipping_address_name
 
@@ -458,7 +456,7 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
         """Validate loan waybill status before mapping"""
         if doc.docstatus != 1:
             frappe.throw("Loan Waybill must be submitted.")
-        
+
         if doc.conversion_status == "Fully Converted":
             frappe.throw("Loan Waybill already fully converted.")
 
@@ -469,16 +467,16 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
             selected_items = frappe.parse_json(items)
         else:
             selected_items = items
-        
+
         # Check if this batch balance is in selected items
         for selected in selected_items:
-            if (selected.get('item_code') == doc.item_code and 
-                selected.get('batch_no') == doc.batch_no and 
+            if (selected.get('item_code') == doc.item_code and
+                selected.get('batch_no') == doc.batch_no and
                 selected.get('serial_no') == doc.serial_no and
-                flt(selected.get('qty', 0)) > 0):
-                
+                    flt(selected.get('qty', 0)) > 0):
+
                 return True
-        
+
         return False
 
     def postprocess_item(source, target, source_parent):
@@ -488,32 +486,34 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
             selected_items = frappe.parse_json(items)
         else:
             selected_items = items
-        
+
         # Find the matching selected item and set its quantity
         for selected in selected_items:
-            if (selected.get('item_code') == source.item_code and 
-                selected.get('batch_no') == source.batch_no and 
+            if (selected.get('item_code') == source.item_code and
+                selected.get('batch_no') == source.batch_no and
                 selected.get('serial_no') == source.serial_no and
-                flt(selected.get('qty', 0)) > 0):
-                
+                    flt(selected.get('qty', 0)) > 0):
+
                 # Update quantity from selection
                 target.qty = flt(selected.get('qty', 0))
-                target.rate = flt(selected.get('valuation_rate', source.valuation_rate))
-                
+                target.rate = flt(selected.get(
+                    'valuation_rate', source.valuation_rate))
+
                 # Set mandatory fields from Item master
-                item_details = frappe.db.get_value("Item", source.item_code, 
-                    ["item_name", "description", "stock_uom"], as_dict=True)
-                
+                item_details = frappe.db.get_value("Item", source.item_code,
+                                                   ["item_name", "description", "stock_uom"], as_dict=True)
+
                 if item_details:
                     target.item_name = item_details.item_name
                     target.description = item_details.description
                     target.uom = item_details.stock_uom
                     target.use_serial_batch_fields = 1
-                
+
                 # Set Sales Order reference
-                so_item = frappe.db.get_value("Sales Order Item", 
-                    filters={"parent": sales_order, "item_code": source.item_code},
-                    fieldname="name")
+                so_item = frappe.db.get_value("Sales Order Item",
+                                              filters={
+                                                  "parent": sales_order, "item_code": source.item_code},
+                                              fieldname="name")
                 if so_item:
                     target.against_sales_order = sales_order
                     target.so_detail = so_item
@@ -548,7 +548,7 @@ def make_delivery_note_from_loan(source_name: str, target_doc=None, ignore_permi
                 "doctype": "Delivery Note Item",
                 "field_map": {
                     "item_code": "item_code",
-                    "batch_no": "batch_no", 
+                    "batch_no": "batch_no",
                     "serial_no": "serial_no",
                     "warehouse": "warehouse",
                     "valuation_rate": "rate",
@@ -591,6 +591,7 @@ def sales_order_query(doctype, txt, searchfield, start, page_len, filters):
         },
     )
 
+
 @frappe.whitelist()
 @frappe.validate_and_sanitize_search_inputs
 def promissory_note_sales_order_query(doctype, txt, searchfield, start, page_len, filters):
@@ -621,4 +622,3 @@ def promissory_note_sales_order_query(doctype, txt, searchfield, start, page_len
             "start": start,
         },
     )
-

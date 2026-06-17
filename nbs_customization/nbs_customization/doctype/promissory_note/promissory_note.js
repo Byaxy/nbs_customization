@@ -27,6 +27,18 @@ frappe.ui.form.on("Promissory Note", {
 		if (!frm.doc.date) {
 			frm.set_value("date", frappe.datetime.get_today());
 		}
+
+		if (frm.doc.docstatus === 1 && frm.doc.promissory_note_status !== "Fulfilled") {
+			frm.add_custom_button(__("Recalculate"), function () {
+				frappe.call({
+					method: "nbs_customization.nbs_customization.doctype.promissory_note.promissory_note.manual_recalculate_promissory_note",
+					args: { doc_name: frm.doc.name },
+					callback: function () {
+						frm.reload_doc();
+					},
+				});
+			}, __("Actions"));
+		}
 	},
 
 	onload(frm) {

@@ -1,6 +1,6 @@
 import frappe
+from frappe import _
 from frappe.utils import flt
-
 
 # VALIDATION
 
@@ -43,7 +43,7 @@ def validate_loan_source_warehouse(doc):
         customer_name = frappe.db.get_value("Customer", loan.customer, "customer_name")
         if not customer_name:
             customer_name = loan.customer
-        
+
         # Check if customer name is contained in warehouse name
         if customer_name.lower() not in loan.target_warehouse.lower():
             frappe.throw(
@@ -175,20 +175,20 @@ def on_cancel(doc, method=None):
     # Check cancellation permissions
     if not frappe.has_permission("Delivery Note", "cancel", doc.name):
         frappe.throw("You do not have permission to cancel Delivery Notes.")
-    
+
     try:
         _update_promissory_note_directly(doc)
-        
+
         if doc.custom_waybill_type != "Loan Conversion Waybill":
             frappe.msgprint(f"Delivery Note {doc.name} cancelled successfully.")
             return
 
         _reverse_loan_conversion(doc)
-        
+
         frappe.msgprint(f"Loan Conversion Delivery Note {doc.name} cancelled successfully.")
 
     except Exception as e:
-        frappe.log_error(f"Delivery Note cancellation failed: {str(e)}")
+        frappe.log_error(f"Delivery Note cancellation failed: {e!s}")
         frappe.throw("Failed to cancel Delivery Note. Please check system logs.")
 
 
@@ -196,7 +196,22 @@ def _update_promissory_note_directly(doc):
     """Update Promissory Note after Delivery Note is committed"""
     try:
         items = getattr(doc, "items", None) or []
-        
+
+        # Warn about items missing against_sales_order
+        missing_so = [
+            d.item_code for d in items
+            if d.item_code and not getattr(d, "against_sales_order", None)
+        ]
+        if missing_so:
+            frappe.msgprint(
+                f"The following items have no Sales Order reference "
+                f"so they will not affect any Promissory Note: "
+                f"{', '.join(missing_so[:5])}"
+                f"{'...' if len(missing_so) > 5 else ''}",
+                alert=True,
+                indicator="orange",
+            )
+
         sales_orders = {
             getattr(d, "against_sales_order", None)
             for d in items
@@ -205,10 +220,18 @@ def _update_promissory_note_directly(doc):
 
         for sales_order in sales_orders:
 
-            from nbs_customization.nbs_customization.doctype.promissory_note.promissory_note import recalculate_promissory_note_for_sales_order
+            from nbs_customization.nbs_customization.doctype.promissory_note.promissory_note import (
+                recalculate_promissory_note_for_sales_order,
+            )
             recalculate_promissory_note_for_sales_order(sales_order)
     except Exception as e:
-        frappe.log_error(f"Failed to update Promissory Note: {str(e)}")
+        frappe.log_error(f"Failed to update Promissory Note: {e!s}")
+        frappe.msgprint(
+            "An error occurred while updating the Promissory Note. "
+            "Check Error Log for details.",
+            alert=True,
+            indicator="orange",
+        )
 
 
 def _apply_loan_conversion(dn):

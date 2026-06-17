@@ -174,25 +174,8 @@ class PromissoryNote(Document):
             )
 
     def _get_delivered_qty_by_item_code(self) -> dict[str, float]:
-        """
-        Sum delivered qty from submitted Delivery Notes against this SO.
-        Uses `against_sales_order` on Delivery Note Item — the ERPNext-native
-        field that links DN items back to their source SO.
-        """
-        rows = frappe.db.sql(
-            """
-            SELECT dni.item_code, SUM(dni.qty) AS qty
-            FROM `tabDelivery Note Item` dni
-            INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
-            WHERE dn.docstatus = 1
-              AND dn.is_return = 0
-              AND IFNULL(dni.against_sales_order, '') = %s
-            GROUP BY dni.item_code
-            """,
-            (self.sales_order,),
-            as_dict=True,
-        )
-        return {r.item_code: flt(r.qty) for r in rows}
+        """Delegates to the shared module-level helper."""
+        return get_delivered_qty_by_item_code(self.sales_order)
 
     # ------------------------------------------------------------------
     # Totals & status
@@ -234,9 +217,11 @@ class PromissoryNote(Document):
 
     def _set_address_displays(self):
         if self.customer_address:
-            self.address_display = self._get_address_display(self.customer_address)
+            self.address_display = self._get_address_display(
+                self.customer_address)
         if self.shipping_address_name:
-            self.shipping_address = self._get_address_display(self.shipping_address_name)
+            self.shipping_address = self._get_address_display(
+                self.shipping_address_name)
 
     def _get_address_display(self, address_name: str) -> str:
         try:
@@ -247,115 +232,165 @@ class PromissoryNote(Document):
 
 
 # ------------------------------------------------------------------
+# Shared helper — single source of truth for delivered quantities
+# ------------------------------------------------------------------
+
+def get_delivered_qty_by_item_code(sales_order: str) -> dict[str, float]:
+    """
+    Sum delivered qty from submitted Delivery Notes against this SO.
+    Shared by:
+    - PromissoryNote._get_delivered_qty_by_item_code
+    - recalculate_promissory_note_for_sales_order
+    - make_promissory_note (sales_order.py)
+    """
+    rows = frappe.db.sql(
+        """
+		SELECT dni.item_code, SUM(dni.qty) AS qty
+		FROM `tabDelivery Note Item` dni
+		INNER JOIN `tabDelivery Note` dn ON dn.name = dni.parent
+		WHERE dn.docstatus = 1
+		  AND dn.is_return = 0
+		  AND IFNULL(dni.against_sales_order, '') = %s
+		GROUP BY dni.item_code
+		""",
+        (sales_order,),
+        as_dict=True,
+    )
+    return {r.item_code: flt(r.qty) for r in rows}
+
+
+# ------------------------------------------------------------------
 # Called from Delivery Note hooks (on_submit + on_cancel)
 # ------------------------------------------------------------------
 
 def recalculate_promissory_note_for_sales_order(sales_order: str):
-	if not sales_order:
-		return
+    if not sales_order:
+        return
 
-	pn_name = frappe.db.get_value(
-		"Promissory Note",
-		{"sales_order": sales_order, "docstatus": ["<", 2]},
-		"name",
-	)
-	if not pn_name:
-		return
+    pn_name = frappe.db.get_value(
+        "Promissory Note",
+        {"sales_order": sales_order, "docstatus": ["<", 2]},
+        "name",
+    )
+    if not pn_name:
+        return
 
-	try:
-		# Get accurate delivered qty from Sales Order items
-		so_items = frappe.db.sql(
-			"""
+    try:
+        # Get SO items
+        so_items = frappe.db.sql(
+            """
 			SELECT
 				soi.item_code,
 				soi.qty AS so_qty,
-				soi.delivered_qty AS delivered_qty_on_so_item,
 				soi.rate,
 				soi.description,
 				soi.uom
 			FROM `tabSales Order Item` soi
 			WHERE soi.parent = %s
 			""",
-			(sales_order,),
-			as_dict=True,
-		)
-		
-		# Get existing Promissory Note items for updates
-		existing_items = frappe.db.get_all("Promissory Note Item", 
-			filters={"parent": pn_name}, 
-			fields=["name", "item_code"]
-		)
-		existing_items_map = {item.item_code: item.name for item in existing_items}
-		
-		# Calculate totals and determine status
-		total_amount = 0.0
-		any_remaining = False
-		nothing_delivered = True
-		
-		# Update each Promissory Note item based on Sales Order data
-		so_item_codes = {d.item_code for d in so_items}
-		updated_items = set()
-		
-		for so_item in so_items:
-			delivered_qty = flt(so_item.delivered_qty_on_so_item)
-			qty_remaining = max(0.0, flt(so_item.so_qty) - delivered_qty)
-			rate = flt(so_item.rate or 0)
-			sub_total = qty_remaining * rate
-			
-			if qty_remaining > 0:
-				any_remaining = True
-			if delivered_qty > 0:
-				nothing_delivered = False
-			
-			total_amount += sub_total
-			
-			if so_item.item_code in existing_items_map:
-				# Update existing item
-				frappe.db.set_value("Promissory Note Item", existing_items_map[so_item.item_code], {
-					"qty_remaining": qty_remaining,
-					"sub_total": sub_total,
-					"unit_price": rate,
-					"description": so_item.description,
-					"uom": so_item.uom
-				}, update_modified=False)
-				updated_items.add(so_item.item_code)
-		
-		# Remove items that are no longer in the Sales Order
-		for item_code, item_name in existing_items_map.items():
-			if item_code not in so_item_codes:
-				frappe.delete_doc("Promissory Note Item", item_name, ignore_permissions=True)
-		
-		# Determine status
-		if not so_items:
-			status = "Pending"
-		elif not any_remaining:
-			status = "Fulfilled"
-		elif nothing_delivered:
-			status = "Pending"
-		else:
-			status = "Partially Fulfilled"
-		
-		# Update main Promissory Note document
-		frappe.db.set_value(
-			"Promissory Note",
-			pn_name,
-			{
-				"total_amount": total_amount,
-				"promissory_note_status": status,
-			},
-			update_modified=False,
-		)
-		
-		# Success notification
-		frappe.msgprint(
-			f"Promissory Note {pn_name} recalculated successfully. "
-			f"Status: {status}, Total Amount: {total_amount}",
-			alert=True,
-			indicator="green"
-		)
-		
-	except Exception as e:
-		frappe.log_error(
-			f"Failed to recalculate Promissory Note {pn_name} for Sales Order {sales_order}: {str(e)}",
-			"Promissory Note Recalculation Error"
-		)
+            (sales_order,),
+            as_dict=True,
+        )
+
+        # Get delivered quantities — single source of truth
+        delivered_by_item = get_delivered_qty_by_item_code(sales_order)
+
+        # Get existing Promissory Note items for updates
+        existing_items = frappe.db.get_all(
+            "Promissory Note Item",
+            filters={"parent": pn_name},
+            fields=["name", "item_code"]
+        )
+        existing_items_map = {
+            item.item_code: item.name for item in existing_items}
+
+        # Calculate totals and determine status
+        total_amount = 0.0
+        any_remaining = False
+        nothing_delivered = True
+
+        # Update each Promissory Note item based on Sales Order data
+        so_item_codes = {d.item_code for d in so_items}
+
+        for so_item in so_items:
+            delivered_qty = flt(delivered_by_item.get(so_item.item_code))
+            qty_remaining = max(0.0, flt(so_item.so_qty) - delivered_qty)
+            rate = flt(so_item.rate or 0)
+            sub_total = qty_remaining * rate
+
+            if qty_remaining > 0:
+                any_remaining = True
+            if delivered_qty > 0:
+                nothing_delivered = False
+
+            total_amount += sub_total
+
+            if so_item.item_code in existing_items_map:
+                frappe.db.set_value(
+                    "Promissory Note Item",
+                    existing_items_map[so_item.item_code],
+                    {
+                        "qty_remaining": qty_remaining,
+                        "sub_total": sub_total,
+                        "unit_price": rate,
+                        "description": so_item.description,
+                        "uom": so_item.uom,
+                    },
+                    update_modified=False,
+                )
+
+        # Remove items that are no longer in the Sales Order
+        for item_code, item_name in existing_items_map.items():
+            if item_code not in so_item_codes:
+                frappe.delete_doc("Promissory Note Item", item_name,
+                                  ignore_permissions=True)
+
+        # Determine status
+        if not so_items:
+            status = "Pending"
+        elif not any_remaining:
+            status = "Fulfilled"
+        elif nothing_delivered:
+            status = "Pending"
+        else:
+            status = "Partially Fulfilled"
+
+        # Update main Promissory Note document
+        frappe.db.set_value(
+            "Promissory Note",
+            pn_name,
+            {
+                "total_amount": total_amount,
+                "promissory_note_status": status,
+            },
+            update_modified=False,
+        )
+
+        frappe.msgprint(
+            f"Promissory Note {pn_name} recalculated successfully. "
+            f"Status: {status}, Total Amount: {total_amount}",
+            alert=True,
+            indicator="green",
+        )
+
+    except Exception as e:
+        frappe.log_error(
+            f"Failed to recalculate Promissory Note {pn_name} "
+            f"for Sales Order {sales_order}: {e!s}",
+            "Promissory Note Recalculation Error",
+        )
+        frappe.msgprint(
+            f"Promissory Note {pn_name} could not be recalculated. "
+            f"Check Error Log for details.",
+            alert=True,
+            indicator="orange",
+        )
+
+
+@frappe.whitelist()
+def manual_recalculate_promissory_note(doc_name: str):
+    """Called from the Recalculate button on the PN form."""
+    pn = frappe.get_doc("Promissory Note", doc_name)
+    if pn.docstatus != 1:
+        frappe.throw("Only submitted Promissory Notes can be recalculated.")
+    recalculate_promissory_note_for_sales_order(pn.sales_order)
