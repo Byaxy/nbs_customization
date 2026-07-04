@@ -32,6 +32,7 @@ app_include_css = [
 app_include_js = [
     "/assets/nbs_customization/js/nbs_theme.js",
     "/assets/nbs_customization/js/list_view_row_number.js",
+    "/assets/nbs_customization/js/report_row_number.js",
 ]
 
 # include js, css files in header of web template
