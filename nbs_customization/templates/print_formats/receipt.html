@@ -434,6 +434,14 @@ watermark_src %}
 				{{ doc.get_formatted("total_amount_received", doc) }}
 			</td>
 		</tr>
+		<tr>
+			<td style="text-align: left; padding: 3px 6px; font-weight: bold; color: #000">
+				Balance Due ({{ doc.currency }}):
+			</td>
+			<td style="text-align: right; padding: 3px 6px; font-weight: bold; color: #000">
+				{{ doc.get_formatted("total_balance_due", doc) }}
+			</td>
+		</tr>
 		<tr
 			style="
 				background-color: #819ac2;
@@ -442,7 +450,7 @@ watermark_src %}
 			"
 		>
 			<td style="text-align: left; padding: 3px 6px; font-weight: bold; color: #000">
-				Balance Due ({{ doc.currency }}):
+				Total Outstanding ({{ doc.currency }}):
 			</td>
 			<td style="text-align: right; padding: 3px 6px; font-weight: bold; color: #000">
 				{{ doc.get_formatted("customer_total_outstanding", doc) }}
