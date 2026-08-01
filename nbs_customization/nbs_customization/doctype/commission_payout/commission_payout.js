@@ -8,12 +8,15 @@ frappe.ui.form.on("Commission Payout", {
 	// ── Setup: static filters ────────────────────────────────────────────────
 
 	setup(frm) {
-		frm.set_query("paying_account", () => ({
+		frm.set_query("mode_of_payment", () => ({
 			filters: {
-				account_type: ["in", ["Cash", "Bank"]],
+				enabled: 1,
+			},
+		}));
+		frm.set_query("paid_from", () => ({
+			filters: {
 				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
 				is_group: 0,
-				disabled: 0,
 			},
 		}));
 		frm.set_query("expense_category", () => ({
@@ -88,7 +91,18 @@ frappe.ui.form.on("Commission Payout", {
 	company(frm) {
 		frm.set_value("paying_account", null);
 		frm.set_value("cost_center", null);
-		frm.refresh_fields(["paying_account", "cost_center"]);
+		frm.set_value("mode_of_payment", null);
+		frm.set_value("paid_from", null);
+		frm.set_value("paid_from_account_currency", null);
+		frm.set_value("paid_to", null);
+		frm.set_value("paid_to_account_currency", null);
+		frm.refresh_fields([
+			"paying_account",
+			"cost_center",
+			"mode_of_payment",
+			"paid_from",
+			"paid_to",
+		]);
 	},
 
 	// ── Commission selected ──────────────────────────────────────────────────
@@ -116,8 +130,51 @@ frappe.ui.form.on("Commission Payout", {
 		_validate_amount_live(frm);
 	},
 
-	paying_account(frm) {
+	mode_of_payment(frm) {
+		if (!frm.doc.mode_of_payment) {
+			frm.set_value("paid_from", null);
+			frm.set_value("paid_from_account_currency", null);
+			fetch_account_balance(frm);
+			return;
+		}
+		frappe.call({
+			method: "nbs_customization.nbs_customization.doctype.expense.expense.get_payment_method_account",
+			args: {
+				mode_of_payment: frm.doc.mode_of_payment,
+				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
+			},
+			callback(r) {
+				if (r.message) {
+					frm.set_value("paid_from", r.message.account);
+					frm.set_value(
+						"paid_from_account_currency",
+						r.message.account_currency,
+					);
+					fetch_account_balance(frm);
+				}
+			},
+		});
+	},
+
+	paid_from(frm) {
+		if (!frm.doc.paid_from) {
+			frm.set_value("paid_from_account_currency", null);
+			fetch_account_balance(frm);
+			return;
+		}
+		frappe.db.get_value(
+			"Account",
+			frm.doc.paid_from,
+			"account_currency",
+			(r) => {
+				if (r) frm.set_value("paid_from_account_currency", r.account_currency);
+			},
+		);
 		fetch_account_balance(frm);
+	},
+
+	expense_category(frm) {
+		resolve_paid_to(frm);
 	},
 	payout_date(frm) {
 		fetch_account_balance(frm);
@@ -310,15 +367,45 @@ function format_currency(value) {
 	return frappe.format(value || 0, { fieldtype: "Currency" });
 }
 
+function resolve_paid_to(frm) {
+	// Payouts are always a Journal Entry: paid_to is the category's expense account
+	if (!frm.doc.expense_category) {
+		frm.set_value("paid_to", null);
+		frm.set_value("paid_to_account_currency", null);
+		return;
+	}
+	frappe.db.get_value(
+		"Expense Category",
+		frm.doc.expense_category,
+		"expense_account",
+		(r) => {
+			if (r && r.expense_account) {
+				frm.set_value("paid_to", r.expense_account);
+				frappe.db.get_value(
+					"Account",
+					r.expense_account,
+					"account_currency",
+					(cr) => {
+						frm.set_value(
+							"paid_to_account_currency",
+							cr ? cr.account_currency : null,
+						);
+					},
+				);
+			}
+		},
+	);
+}
+
 function fetch_account_balance(frm) {
-	if (!frm.doc.paying_account) {
+	if (!frm.doc.paid_from) {
 		frm.set_value("account_balance", 0);
 		return;
 	}
 	frappe.call({
 		method: "nbs_customization.nbs_customization.doctype.commission_payout.commission_payout.get_account_balance",
 		args: {
-			account: frm.doc.paying_account,
+			account: frm.doc.paid_from,
 			date: frm.doc.payout_date || frappe.datetime.get_today(),
 		},
 		callback(r) {

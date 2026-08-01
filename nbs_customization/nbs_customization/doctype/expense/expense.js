@@ -3,9 +3,13 @@
 
 frappe.ui.form.on("Expense", {
 	setup(frm) {
-		frm.set_query("paying_account", () => ({
+		frm.set_query("mode_of_payment", () => ({
 			filters: {
-				account_type: ["in", ["Cash", "Bank"]],
+				enabled: 1,
+			},
+		}));
+		frm.set_query("paid_from", () => ({
+			filters: {
 				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
 				is_group: 0,
 			},
@@ -52,11 +56,19 @@ frappe.ui.form.on("Expense", {
 		frm.set_value("cost_center", null);
 		frm.set_value("purchase_invoice", null);
 		frm.set_value("linked_shipment", null);
+		frm.set_value("mode_of_payment", null);
+		frm.set_value("paid_from", null);
+		frm.set_value("paid_from_account_currency", null);
+		frm.set_value("paid_to", null);
+		frm.set_value("paid_to_account_currency", null);
 		frm.refresh_fields([
 			"paying_account",
 			"cost_center",
 			"purchase_invoice",
 			"linked_shipment",
+			"mode_of_payment",
+			"paid_from",
+			"paid_to",
 		]);
 	},
 
@@ -65,6 +77,52 @@ frappe.ui.form.on("Expense", {
 		if (frm.doc.payment_type === "Direct Payment") {
 			frm.set_value("purchase_invoice", null);
 		}
+		frm.set_value("paid_to", null);
+		frm.set_value("paid_to_account_currency", null);
+		resolve_paid_to(frm);
+	},
+
+	mode_of_payment(frm) {
+		if (!frm.doc.mode_of_payment) {
+			frm.set_value("paid_from", null);
+			frm.set_value("paid_from_account_currency", null);
+			fetch_account_balance(frm);
+			return;
+		}
+		frappe.call({
+			method: "nbs_customization.nbs_customization.doctype.expense.expense.get_payment_method_account",
+			args: {
+				mode_of_payment: frm.doc.mode_of_payment,
+				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
+			},
+			callback(r) {
+				if (r.message) {
+					frm.set_value("paid_from", r.message.account);
+					frm.set_value(
+						"paid_from_account_currency",
+						r.message.account_currency,
+					);
+					fetch_account_balance(frm);
+				}
+			},
+		});
+	},
+
+	paid_from(frm) {
+		if (!frm.doc.paid_from) {
+			frm.set_value("paid_from_account_currency", null);
+			fetch_account_balance(frm);
+			return;
+		}
+		frappe.db.get_value(
+			"Account",
+			frm.doc.paid_from,
+			"account_currency",
+			(r) => {
+				if (r) frm.set_value("paid_from_account_currency", r.account_currency);
+			},
+		);
+		fetch_account_balance(frm);
 	},
 
 	is_accompanying(frm) {
@@ -88,7 +146,11 @@ frappe.ui.form.on("Expense", {
 	},
 
 	purchase_invoice(frm) {
-		if (!frm.doc.purchase_invoice) return;
+		if (!frm.doc.purchase_invoice) {
+			frm.set_value("paid_to", null);
+			frm.set_value("paid_to_account_currency", null);
+			return;
+		}
 		frappe.call({
 			method: "nbs_customization.nbs_customization.doctype.expense.expense.get_invoice_details",
 			args: { purchase_invoice: frm.doc.purchase_invoice },
@@ -96,7 +158,7 @@ frappe.ui.form.on("Expense", {
 				if (r.message) {
 					const pi = r.message;
 					frm.set_value("amount", pi.outstanding_amount);
-					if (!frm.doc.payee) frm.set_value("payee", pi.supplier);
+					if (!frm.doc.payee) frm.set_value("payee", pi.supplier_name || pi.supplier);
 					frappe.show_alert(
 						{
 							message: __(
@@ -106,9 +168,14 @@ frappe.ui.form.on("Expense", {
 						},
 						5,
 					);
+					resolve_paid_to(frm);
 				}
 			},
 		});
+	},
+
+	expense_category(frm) {
+		resolve_paid_to(frm);
 	},
 
 	linked_purchase(frm) {
@@ -131,9 +198,6 @@ frappe.ui.form.on("Expense", {
 		fetch_shipment_info(frm);
 	},
 
-	paying_account(frm) {
-		fetch_account_balance(frm);
-	},
 	expense_date(frm) {
 		fetch_account_balance(frm);
 	},
@@ -176,6 +240,74 @@ function toggle_accompanying_fields(frm) {
 }
 
 // ------------------------------------------------------------------ //
+// Paid-to resolution                                                   //
+// ------------------------------------------------------------------ //
+
+function resolve_paid_to(frm) {
+	// Against Purchase Invoice → the supplier's payable account
+	if (frm.doc.payment_type === "Against Purchase Invoice") {
+		if (!frm.doc.purchase_invoice) {
+			frm.set_value("paid_to", null);
+			frm.set_value("paid_to_account_currency", null);
+			return;
+		}
+		frappe.db.get_value(
+			"Purchase Invoice",
+			frm.doc.purchase_invoice,
+			"supplier",
+			(r) => {
+				if (!r || !r.supplier) return;
+				frappe.call({
+					method: "nbs_customization.nbs_customization.doctype.expense.expense.get_supplier_payable_details",
+					args: {
+						supplier: r.supplier,
+						company: frm.doc.company,
+					},
+					callback(pr) {
+						if (pr.message) {
+							frm.set_value("paid_to", pr.message.paid_to);
+							frm.set_value(
+								"paid_to_account_currency",
+								pr.message.account_currency,
+							);
+						}
+					},
+				});
+			},
+		);
+		return;
+	}
+
+	// Direct Payment → the category's expense account (JE debit side)
+	if (!frm.doc.expense_category) {
+		frm.set_value("paid_to", null);
+		frm.set_value("paid_to_account_currency", null);
+		return;
+	}
+	frappe.db.get_value(
+		"Expense Category",
+		frm.doc.expense_category,
+		"expense_account",
+		(r) => {
+			if (r && r.expense_account) {
+				frm.set_value("paid_to", r.expense_account);
+				frappe.db.get_value(
+					"Account",
+					r.expense_account,
+					"account_currency",
+					(cr) => {
+						frm.set_value(
+							"paid_to_account_currency",
+							cr ? cr.account_currency : null,
+						);
+					},
+				);
+			}
+		},
+	);
+}
+
+// ------------------------------------------------------------------ //
 // Shipment info panel                                                  //
 // ------------------------------------------------------------------ //
 
@@ -214,14 +346,14 @@ function clear_shipment_info_panel(frm) {
 // ------------------------------------------------------------------ //
 
 function fetch_account_balance(frm) {
-	if (!frm.doc.paying_account) {
+	if (!frm.doc.paid_from) {
 		frm.set_value("account_balance", 0);
 		return;
 	}
 	frappe.call({
 		method: "nbs_customization.nbs_customization.doctype.expense.expense.get_account_balance",
 		args: {
-			account: frm.doc.paying_account,
+			account: frm.doc.paid_from,
 			date: frm.doc.expense_date || frappe.datetime.get_today(),
 		},
 		callback(r) {

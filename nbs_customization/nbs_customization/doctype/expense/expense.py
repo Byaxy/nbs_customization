@@ -3,15 +3,18 @@
 
 import frappe
 from frappe import _
-from frappe.utils import flt
 from frappe.model.document import Document
+from frappe.utils import flt
 
 
 class Expense(Document):
-
 	def validate(self):
 		self._set_company_defaults()
+		self._resolve_payment_account()
+		self._resolve_paid_to()
+		self._set_account_currencies()
 		self._fetch_account_balance()
+		self._validate_category_required()
 		self._validate_accompanying()
 		self._validate_invoice_link()
 
@@ -39,27 +42,68 @@ class Expense(Document):
 		if not self.company:
 			self.company = frappe.defaults.get_user_default("Company")
 		if not self.cost_center:
-			self.cost_center = frappe.db.get_value(
-				"Company", self.company, "cost_center"
+			self.cost_center = frappe.db.get_value("Company", self.company, "cost_center")
+
+	def _resolve_payment_account(self):
+		"""
+		Resolve the paying account from the Payment Method, mirroring Payment Entry.
+		A manual override of paid_from is respected.
+		"""
+		if not self.mode_of_payment:
+			# Legacy fallback: old drafts without a payment method
+			if self.paying_account and not self.paid_from:
+				self.paid_from = self.paying_account
+			return
+
+		if not self.paid_from:
+			from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
+				get_bank_cash_account,
 			)
+
+			self.paid_from = get_bank_cash_account(self.mode_of_payment, self.company)["account"]
+
+	def _resolve_paid_to(self):
+		"""
+		Sets the read-only 'paid to' account based on the payment flow:
+		- Against Purchase Invoice → the supplier's payable account.
+		- Direct Payment → the expense account of the category (debit side).
+		"""
+		if self.payment_type == "Against Purchase Invoice" and self.purchase_invoice:
+			supplier = frappe.db.get_value("Purchase Invoice", self.purchase_invoice, "supplier")
+			if supplier:
+				from erpnext.accounts.party import get_party_account
+
+				self.paid_to = get_party_account("Supplier", supplier, self.company)
+		else:
+			self.paid_to = frappe.db.get_value("Expense Category", self.expense_category, "expense_account")
+
+	def _set_account_currencies(self):
+		self.paid_from_account_currency = (
+			frappe.db.get_value("Account", self.paid_from, "account_currency") if self.paid_from else None
+		)
+		self.paid_to_account_currency = (
+			frappe.db.get_value("Account", self.paid_to, "account_currency") if self.paid_to else None
+		)
 
 	def _fetch_account_balance(self):
 		"""Fetch current balance of the paying account and store it."""
-		if not self.paying_account:
+		if not self.paid_from:
 			self.account_balance = 0
 			return
 
-		self.account_balance = get_account_balance(
-			self.paying_account, self.expense_date
-		)
+		self.account_balance = get_account_balance(self.paid_from, self.expense_date)
 
+	def _validate_category_required(self):
+		needs_category = self.payment_type == "Direct Payment" or self.is_accompanying
+		if needs_category and not self.expense_category:
+			frappe.throw(_("Expense Category is required."))
 
 	def _validate_accompanying(self):
 		if not self.is_accompanying:
 			# Non-accompanying: clear shipment fields, validate category
-			self.expense_scope    = None
-			self.linked_shipment  = None
-			self.linked_purchase  = None
+			self.expense_scope = None
+			self.linked_shipment = None
+			self.linked_purchase = None
 			self.landed_cost_voucher = None
 
 			is_acc_cat = frappe.db.get_value(
@@ -67,9 +111,11 @@ class Expense(Document):
 			)
 			if is_acc_cat:
 				frappe.throw(
-					_(f"The Expense Category <b>{self.expense_category}</b> is marked "
-					f"as an Accompanying Expense Category. Either use a non-accompanying "
-					f"category or check <b>Is Accompanying Expense</b> on this expense.")
+					_(
+						f"The Expense Category <b>{self.expense_category}</b> is marked "
+						f"as an Accompanying Expense Category. Either use a non-accompanying "
+						f"category or check <b>Is Accompanying Expense</b> on this expense."
+					)
 				)
 			self._validate_expense_account_type(must_be_valuation=False)
 			return
@@ -78,35 +124,40 @@ class Expense(Document):
 		scope = self.expense_scope or "Single Purchase Receipt"
 
 		# Validate category is accompanying
-		is_acc_cat = frappe.db.get_value(
-			"Expense Category", self.expense_category, "is_accompanying_expense"
-		)
+		is_acc_cat = frappe.db.get_value("Expense Category", self.expense_category, "is_accompanying_expense")
 		if not is_acc_cat:
 			frappe.throw(
-				_(f"The Expense Category <b>{self.expense_category}</b> is not marked "
-				f"as an Accompanying Expense Category. Please use a category with "
-				f"<b>Is Accompanying Expense Category</b> checked.")
+				_(
+					f"The Expense Category <b>{self.expense_category}</b> is not marked "
+					f"as an Accompanying Expense Category. Please use a category with "
+					f"<b>Is Accompanying Expense Category</b> checked."
+				)
 			)
 		self._validate_expense_account_type(must_be_valuation=True)
+
+		if self.payment_type == "Against Purchase Invoice" and self.purchase_invoice:
+			self._validate_pi_category_account_match()
 
 		if scope == "Single Purchase Receipt":
 			self.linked_shipment = None
 			if not self.linked_purchase:
 				frappe.throw(_("Linked Purchase Receipt is required for accompanying expenses."))
 			# Validate PR belongs to same company
-			pr_company = frappe.db.get_value(
-				"Purchase Receipt", self.linked_purchase, "company"
-			)
+			pr_company = frappe.db.get_value("Purchase Receipt", self.linked_purchase, "company")
 			if pr_company and pr_company != self.company:
 				frappe.throw(
-					_(f"Purchase Receipt <b>{self.linked_purchase}</b> belongs to "
-					f"company <b>{pr_company}</b>, not <b>{self.company}</b>.")
+					_(
+						f"Purchase Receipt <b>{self.linked_purchase}</b> belongs to "
+						f"company <b>{pr_company}</b>, not <b>{self.company}</b>."
+					)
 				)
 
 		elif scope == "Inbound Shipment":
 			self.linked_purchase = None
 			if not self.linked_shipment:
-				frappe.throw(_("Linked Inbound Shipment is required when Expense Scope is 'Inbound Shipment'."))
+				frappe.throw(
+					_("Linked Inbound Shipment is required when Expense Scope is 'Inbound Shipment'.")
+				)
 
 			ship = frappe.db.get_value(
 				"Inbound Shipment",
@@ -118,34 +169,45 @@ class Expense(Document):
 				frappe.throw(_(f"Inbound Shipment <b>{self.linked_shipment}</b> not found."))
 			if ship.docstatus != 1:
 				frappe.throw(
-					_(f"Inbound Shipment <b>{self.linked_shipment}</b> must be submitted "
-					f"before linking it to an expense.")
+					_(
+						f"Inbound Shipment <b>{self.linked_shipment}</b> must be submitted "
+						f"before linking it to an expense."
+					)
 				)
 			if ship.company != self.company:
 				frappe.throw(
-					_(f"Inbound Shipment <b>{self.linked_shipment}</b> belongs to "
-					f"company <b>{ship.company}</b>, not <b>{self.company}</b>.")
+					_(
+						f"Inbound Shipment <b>{self.linked_shipment}</b> belongs to "
+						f"company <b>{ship.company}</b>, not <b>{self.company}</b>."
+					)
 				)
 
+	def _validate_pi_category_account_match(self):
+		message = get_pi_category_account_mismatch(self)
+		if message:
+			frappe.throw(message)
+
 	def _validate_expense_account_type(self, must_be_valuation: bool):
-		expense_account = frappe.db.get_value(
-			"Expense Category", self.expense_category, "expense_account"
-		)
+		expense_account = frappe.db.get_value("Expense Category", self.expense_category, "expense_account")
 		if not expense_account:
 			return
 		account_type = frappe.db.get_value("Account", expense_account, "account_type")
 		if must_be_valuation and account_type != "Expenses Included In Valuation":
 			frappe.throw(
-				_(f"The Expense Account <b>{expense_account}</b> for category "
-				f"<b>{self.expense_category}</b> must have Account Type "
-				f"<b>'Expenses Included In Valuation'</b> for accompanying expenses. "
-				f"Current type: <b>{account_type or 'None'}</b>.")
+				_(
+					f"The Expense Account <b>{expense_account}</b> for category "
+					f"<b>{self.expense_category}</b> must have Account Type "
+					f"<b>'Expenses Included In Valuation'</b> for accompanying expenses. "
+					f"Current type: <b>{account_type or 'None'}</b>."
+				)
 			)
 		if not must_be_valuation and account_type == "Expenses Included In Valuation":
 			frappe.throw(
-				_(f"The Expense Account <b>{expense_account}</b> for category "
-				f"<b>{self.expense_category}</b> must NOT have Account Type "
-				f"<b>'Expenses Included In Valuation'</b> for non-accompanying expenses.")
+				_(
+					f"The Expense Account <b>{expense_account}</b> for category "
+					f"<b>{self.expense_category}</b> must NOT have Account Type "
+					f"<b>'Expenses Included In Valuation'</b> for non-accompanying expenses."
+				)
 			)
 
 	def _validate_invoice_link(self):
@@ -161,7 +223,7 @@ class Expense(Document):
 			"Purchase Invoice",
 			self.purchase_invoice,
 			["docstatus", "outstanding_amount", "company", "supplier"],
-			as_dict=True
+			as_dict=True,
 		)
 
 		if not pi:
@@ -169,8 +231,7 @@ class Expense(Document):
 
 		if pi.docstatus != 1:
 			frappe.throw(
-				f"Purchase Invoice <b>{self.purchase_invoice}</b> must be submitted "
-				f"before it can be paid."
+				f"Purchase Invoice <b>{self.purchase_invoice}</b> must be submitted before it can be paid."
 			)
 
 		if pi.outstanding_amount <= 0:
@@ -194,17 +255,15 @@ class Expense(Document):
 		Called before submit. Validates that the paying account
 		has sufficient balance to cover this expense.
 		"""
-		if not self.paying_account:
-			frappe.throw("Paying Account is required.")
+		if not self.paid_from:
+			frappe.throw("Account Paid From is required.")
 
 		# Refresh balance at submit time — not at save time
-		current_balance = get_account_balance(
-			self.paying_account, self.expense_date
-		)
+		current_balance = get_account_balance(self.paid_from, self.expense_date)
 
 		if current_balance < self.amount:
 			frappe.throw(
-				f"Insufficient balance in <b>{self.paying_account}</b>. "
+				f"Insufficient balance in <b>{self.paid_from}</b>. "
 				f"Available: <b>{frappe.format_value(current_balance, {'fieldtype': 'Currency'})}</b>, "
 				f"Required: <b>{frappe.format_value(self.amount, {'fieldtype': 'Currency'})}</b>, "
 				f"Shortfall: <b>{frappe.format_value(self.amount - current_balance, {'fieldtype': 'Currency'})}</b>."
@@ -219,9 +278,7 @@ class Expense(Document):
 		On submit: debit the expense category GL account,
 		credit the paying account.
 		"""
-		expense_account = frappe.db.get_value(
-			"Expense Category", self.expense_category, "expense_account"
-		)
+		expense_account = frappe.db.get_value("Expense Category", self.expense_category, "expense_account")
 		if not expense_account:
 			frappe.throw(
 				f"No GL account configured for Expense Category: "
@@ -233,27 +290,28 @@ class Expense(Document):
 		je.voucher_type = "Journal Entry"
 		je.company = self.company
 		je.posting_date = self.expense_date
-		je.user_remark = (
-			f"Expense: {self.name} — {self.expense_description} "
-			f"| Payee: {self.payee or 'N/A'}"
-		)
+		je.user_remark = f"Expense: {self.name} — {self.expense_description} | Payee: {self.payee or 'N/A'}"
 
 		# Debit — expense category GL account
-		je.append("accounts", {
-			"account": expense_account,
-			"debit_in_account_currency": self.amount,
-			"credit_in_account_currency": 0,
-			"cost_center": frappe.db.get_value(
-				"Company", je.company, "cost_center"
-			),
-		})
+		je.append(
+			"accounts",
+			{
+				"account": expense_account,
+				"debit_in_account_currency": self.amount,
+				"credit_in_account_currency": 0,
+				"cost_center": frappe.db.get_value("Company", je.company, "cost_center"),
+			},
+		)
 
 		# Credit — paying account (cash/bank)
-		je.append("accounts", {
-			"account": self.paying_account,
-			"debit_in_account_currency": 0,
-			"credit_in_account_currency": self.amount,
-		})
+		je.append(
+			"accounts",
+			{
+				"account": self.paid_from,
+				"debit_in_account_currency": 0,
+				"credit_in_account_currency": self.amount,
+			},
+		)
 
 		je.insert(ignore_permissions=True)
 		je.submit()
@@ -286,13 +344,11 @@ class Expense(Document):
 		pi = frappe.get_doc("Purchase Invoice", self.purchase_invoice)
 
 		# Guard: warn if currencies differ
-		paying_account_currency = frappe.db.get_value(
-			"Account", self.paying_account, "account_currency"
-		)
-		if pi.currency != paying_account_currency:
+		paid_from_currency = frappe.db.get_value("Account", self.paid_from, "account_currency")
+		if pi.currency != paid_from_currency:
 			frappe.throw(
 				f"Currency mismatch: Purchase Invoice is in <b>{pi.currency}</b> "
-				f"but Paying Account is in <b>{paying_account_currency}</b>. "
+				f"but Account Paid From is in <b>{paid_from_currency}</b>. "
 				f"Multi-currency payments are not yet supported in this flow. "
 				f"Please use a Payment Entry directly."
 			)
@@ -304,7 +360,7 @@ class Expense(Document):
 
 		pe = get_payment_entry("Purchase Invoice", self.purchase_invoice)
 		pe.posting_date = self.expense_date
-		pe.paid_from = self.paying_account
+		pe.paid_from = self.paid_from
 		pe.paid_amount = self.amount
 		pe.received_amount = self.amount
 		pe.source_exchange_rate = 1
@@ -357,19 +413,15 @@ class Expense(Document):
 			frappe.msgprint(
 				f"Landed Cost Voucher {self.landed_cost_voucher} has been cancelled.",
 				indicator="orange",
-				alert=True
+				alert=True,
 			)
 		elif lcv.docstatus == 0:
 			# Draft — delete it
-			frappe.delete_doc(
-				"Landed Cost Voucher",
-				self.landed_cost_voucher,
-				ignore_permissions=True
-			)
+			frappe.delete_doc("Landed Cost Voucher", self.landed_cost_voucher, ignore_permissions=True)
 			frappe.msgprint(
 				f"Landed Cost Voucher {self.landed_cost_voucher} has been deleted.",
 				indicator="orange",
-				alert=True
+				alert=True,
 			)
 
 		self.db_set("landed_cost_voucher", None)
@@ -379,6 +431,7 @@ class Expense(Document):
 # Whitelisted helpers (called from JS)                                #
 # ------------------------------------------------------------------ #
 
+
 @frappe.whitelist()
 def get_account_balance(account, date=None):
 	"""
@@ -386,6 +439,7 @@ def get_account_balance(account, date=None):
 	Uses ERPNext's built-in balance utility.
 	"""
 	from erpnext.accounts.utils import get_balance_on
+
 	return get_balance_on(account=account, date=date)
 
 
@@ -398,18 +452,45 @@ def get_invoice_details(purchase_invoice):
 	pi = frappe.db.get_value(
 		"Purchase Invoice",
 		purchase_invoice,
-		["outstanding_amount", "supplier", "company", "bill_no", "docstatus"],
-		as_dict=True
+		["outstanding_amount", "supplier", "supplier_name", "company", "bill_no", "docstatus"],
+		as_dict=True,
 	)
 	if not pi:
 		frappe.throw(f"Purchase Invoice {purchase_invoice} not found.")
 	if pi.docstatus != 1:
 		frappe.throw(f"Purchase Invoice {purchase_invoice} is not submitted.")
 	if pi.outstanding_amount <= 0:
-		frappe.throw(
-			f"Purchase Invoice {purchase_invoice} has no outstanding amount."
-		)
+		frappe.throw(f"Purchase Invoice {purchase_invoice} has no outstanding amount.")
 	return pi
+
+
+@frappe.whitelist()
+def get_payment_method_account(mode_of_payment, company):
+	"""
+	Resolves the default Cash/Bank account for a Mode of Payment and Company,
+	plus that account's currency. Mirrors Payment Entry's paid_from auto-fill.
+	"""
+	from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
+		get_bank_cash_account,
+	)
+
+	account = get_bank_cash_account(mode_of_payment, company)["account"]
+	account_currency = frappe.db.get_value("Account", account, "account_currency")
+	return {"account": account, "account_currency": account_currency}
+
+
+@frappe.whitelist()
+def get_supplier_payable_details(supplier, company):
+	"""
+	Returns the payable account and its currency for a Supplier in a Company.
+	Used to prefill 'Account Paid To' on the Against Purchase Invoice flow.
+	"""
+	from erpnext.accounts.party import get_party_account
+
+	payable_account = get_party_account("Supplier", supplier, company)
+	account_currency = frappe.db.get_value("Account", payable_account, "account_currency")
+	return {"paid_to": payable_account, "account_currency": account_currency}
+
 
 @frappe.whitelist()
 def check_shipment_fully_received(shipment_name):
@@ -436,8 +517,8 @@ def check_shipment_fully_received(shipment_name):
 
 	if not shipment_items:
 		return {
-			"ready":            False,
-			"message":          "No package items with Purchase Order references found on this shipment.",
+			"ready": False,
+			"message": "No package items with Purchase Order references found on this shipment.",
 			"unreceived_items": [],
 		}
 
@@ -455,31 +536,35 @@ def check_shipment_fully_received(shipment_name):
 			AND pr.docstatus        = 1
 			""",
 			{
-				"shipment":  shipment_name,
-				"po":        row.purchase_order,
+				"shipment": shipment_name,
+				"po": row.purchase_order,
 				"item_code": row.item_code,
 			},
 		)
 
 		received_qty = flt(result[0][0]) if result else 0.0
-		expected     = flt(row.expected_qty)
+		expected = flt(row.expected_qty)
 
 		if received_qty < expected:
-			unreceived.append({
-				"purchase_order": row.purchase_order,
-				"item_code":      row.item_code,
-				"expected_qty":   expected,
-				"received_qty":   received_qty,
-				"pending_qty":    flt(expected - received_qty, 3),
-			})
+			unreceived.append(
+				{
+					"purchase_order": row.purchase_order,
+					"item_code": row.item_code,
+					"expected_qty": expected,
+					"received_qty": received_qty,
+					"pending_qty": flt(expected - received_qty, 3),
+				}
+			)
 
 	if unreceived:
-		lines = "".join([
-			f"<li><b>{r['item_code']}</b> from <b>{r['purchase_order']}</b> — "
-			f"expected {r['expected_qty']}, received {r['received_qty']}, "
-			f"pending {r['pending_qty']}</li>"
-			for r in unreceived
-		])
+		lines = "".join(
+			[
+				f"<li><b>{r['item_code']}</b> from <b>{r['purchase_order']}</b> — "
+				f"expected {r['expected_qty']}, received {r['received_qty']}, "
+				f"pending {r['pending_qty']}</li>"
+				for r in unreceived
+			]
+		)
 		message = (
 			f"The following items have not been fully received for this shipment:<br>"
 			f"<ul>{lines}</ul>"
@@ -489,10 +574,59 @@ def check_shipment_fully_received(shipment_name):
 		message = None
 
 	return {
-		"ready":            len(unreceived) == 0,
+		"ready": len(unreceived) == 0,
 		"unreceived_items": unreceived,
-		"message":          message,
+		"message": message,
 	}
+
+
+def get_pi_category_account_mismatch(expense):
+	"""
+	Returns a user-facing error message if the expense's category account does not match
+	the account its linked Purchase Invoice booked its cost to, else None.
+
+	The LCV credits only the category's expense account, so a mismatch would strand the
+	invoice's debit on the P&L while booking a spurious credit on the category account.
+	"""
+	if not (expense.payment_type == "Against Purchase Invoice" and expense.purchase_invoice):
+		return None
+
+	category_account = frappe.db.get_value("Expense Category", expense.expense_category, "expense_account")
+	if not category_account:
+		return None
+
+	pi_accounts = list(
+		{
+			row["expense_account"]
+			for row in frappe.db.get_all(
+				"Purchase Invoice Item",
+				filters={"parent": expense.purchase_invoice, "expense_account": ["is", "set"]},
+				fields=["expense_account"],
+			)
+		}
+	)
+	if not pi_accounts:
+		return None
+
+	if len(pi_accounts) > 1:
+		return _(
+			f"Purchase Invoice <b>{expense.purchase_invoice}</b> booked its cost to multiple "
+			f"expense accounts (<b>{', '.join(sorted(pi_accounts))}</b>). For accompanying expenses "
+			f"paid against an invoice, the invoice must book its cost to a single expense account "
+			f"matching the category <b>{expense.expense_category}</b> (<b>{category_account}</b>) so "
+			f"the Landed Cost Voucher clears it in full."
+		)
+
+	if pi_accounts[0] != category_account:
+		return _(
+			f"Purchase Invoice <b>{expense.purchase_invoice}</b> booked its cost to "
+			f"<b>{pi_accounts[0]}</b>, but Expense Category <b>{expense.expense_category}</b> points "
+			f"to <b>{category_account}</b>. For accompanying expenses paid against an invoice, the "
+			f"category must point to the same account the invoice booked so the Landed Cost Voucher "
+			f"clears it in full. Change the category or use Direct Payment."
+		)
+
+	return None
 
 
 @frappe.whitelist()
@@ -512,9 +646,12 @@ def make_landed_cost_voucher(expense_name):
 		frappe.throw(_("The expense must be submitted before creating an LCV."))
 	if expense.landed_cost_voucher:
 		frappe.throw(
-			_(f"A Landed Cost Voucher already exists for this expense: "
-			f"<b>{expense.landed_cost_voucher}</b>")
+			_(f"A Landed Cost Voucher already exists for this expense: <b>{expense.landed_cost_voucher}</b>")
 		)
+
+	mismatch = get_pi_category_account_mismatch(expense)
+	if mismatch:
+		frappe.throw(mismatch)
 
 	scope = expense.expense_scope or "Single Purchase Receipt"
 
@@ -524,14 +661,9 @@ def make_landed_cost_voucher(expense_name):
 		if not receipt_check["ready"]:
 			frappe.throw(_(receipt_check["message"]))
 
-	expense_account = frappe.db.get_value(
-		"Expense Category", expense.expense_category, "expense_account"
-	)
+	expense_account = frappe.db.get_value("Expense Category", expense.expense_category, "expense_account")
 	if not expense_account:
-		frappe.throw(
-			_(f"No GL account configured for Expense Category: "
-			f"<b>{expense.expense_category}</b>.")
-		)
+		frappe.throw(_(f"No GL account configured for Expense Category: <b>{expense.expense_category}</b>."))
 
 	# --- Collect purchase receipts for LCV ---
 	if scope == "Single Purchase Receipt":
@@ -545,11 +677,13 @@ def make_landed_cost_voucher(expense_name):
 		)
 		if not pr_doc:
 			frappe.throw(_(f"Purchase Receipt {expense.linked_purchase} not found."))
-		pr_rows = [{
-			"receipt_document":      expense.linked_purchase,
-			"supplier":              pr_doc.supplier,
-			"grand_total":           pr_doc.grand_total,
-		}]
+		pr_rows = [
+			{
+				"receipt_document": expense.linked_purchase,
+				"supplier": pr_doc.supplier,
+				"grand_total": pr_doc.grand_total,
+			}
+		]
 
 	elif scope == "Inbound Shipment":
 		if not expense.linked_shipment:
@@ -562,8 +696,7 @@ def make_landed_cost_voucher(expense_name):
 		)
 		if not pr_rows:
 			frappe.throw(
-				_(f"Inbound Shipment <b>{expense.linked_shipment}</b> has no linked "
-				f"Purchase Receipts.")
+				_(f"Inbound Shipment <b>{expense.linked_shipment}</b> has no linked Purchase Receipts.")
 			)
 	else:
 		frappe.throw(_(f"Unknown expense scope: {scope}"))
@@ -571,24 +704,30 @@ def make_landed_cost_voucher(expense_name):
 	# --- Build LCV ---
 	lcv = frappe.new_doc("Landed Cost Voucher")
 	lcv.company = expense.company
-	
+
 	if scope == "Inbound Shipment":
 		# Lock to manual so ERPNext never auto-overrides our weight distribution
 		lcv.distribute_charges_based_on = "Distribute Manually"
 
 	for row in pr_rows:
-		lcv.append("purchase_receipts", {
-			"receipt_document_type": "Purchase Receipt",
-			"receipt_document": row["receipt_document"],
-			"supplier": row["supplier"],
-			"grand_total": row["grand_total"],
-		})
+		lcv.append(
+			"purchase_receipts",
+			{
+				"receipt_document_type": "Purchase Receipt",
+				"receipt_document": row["receipt_document"],
+				"supplier": row["supplier"],
+				"grand_total": row["grand_total"],
+			},
+		)
 
-	lcv.append("taxes", {
-		"description": expense.expense_category,
-		"expense_account": expense_account,
-		"amount": expense.amount,
-	})
+	lcv.append(
+		"taxes",
+		{
+			"description": expense.expense_category,
+			"expense_account": expense_account,
+			"amount": expense.amount,
+		},
+	)
 
 	if scope == "Inbound Shipment" and expense.linked_shipment:
 		lcv.custom_linked_shipment = expense.linked_shipment

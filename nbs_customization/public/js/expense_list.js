@@ -102,7 +102,7 @@ function build_expense_table(dialog, categories, company) {
 						<th style="min-width:110px;">${__("Date")} *</th>
 						<th style="min-width:110px;">${__("Amount")} *</th>
 						<th style="min-width:160px;">${__("Category")} *</th>
-						<th style="min-width:160px;">${__("Paying Account")} *</th>
+						<th style="min-width:160px;">${__("Payment Method")} *</th>
 						<th style="min-width:110px;">${__("Balance")}</th>
 						<th style="min-width:110px;">${__("Payee")} *</th>
 						<th style="min-width:155px;">${__("Payment Type")} *</th>
@@ -164,9 +164,9 @@ function add_expense_row(wrapper, categories, company) {
 			<td>
 				<div class="exp-category-control"></div>
 			</td>
-			<!-- Paying Account -->
+			<!-- Payment Method -->
 			<td>
-				<div class="exp-paying-account-control"></div>
+				<div class="exp-mode-of-payment-control"></div>
 			</td>
 			<!-- Balance -->
 			<td>
@@ -223,17 +223,15 @@ function add_expense_row(wrapper, categories, company) {
 		placeholder: __("Search Category"),
 	});
 
-	const paying_account_control = make_link_control(row.find(".exp-paying-account-control"), {
+	const mode_of_payment_control = make_link_control(row.find(".exp-mode-of-payment-control"), {
 		fieldtype: "Link",
-		options: "Account",
+		options: "Mode of Payment",
 		reqd: 1,
-		placeholder: __("Search Account"),
+		placeholder: __("Search Payment Method"),
 		get_query() {
 			return {
 				filters: {
-					account_type: ["in", ["Cash", "Bank"]],
-					company: company,
-					is_group: 0,
+					enabled: 1,
 				},
 			};
 		},
@@ -282,7 +280,7 @@ function add_expense_row(wrapper, categories, company) {
 
 	row.data("controls", {
 		category: category_control,
-		paying_account: paying_account_control,
+		mode_of_payment: mode_of_payment_control,
 		invoice: invoice_control,
 		purchase: purchase_control,
 		shipment: shipment_control,
@@ -319,7 +317,7 @@ function add_expense_row(wrapper, categories, company) {
 					row.find(".exp-amount").val(pi.outstanding_amount);
 				}
 				if (!row.find(".exp-payee").val()?.trim()) {
-					row.find(".exp-payee").val(pi.supplier);
+					row.find(".exp-payee").val(pi.supplier_name || pi.supplier);
 				}
 				row.find(".exp-invoice-outstanding").text(
 					`Outstanding: ${frappe.format_value(pi.outstanding_amount, { fieldtype: "Currency" })}`,
@@ -403,15 +401,32 @@ function add_expense_row(wrapper, categories, company) {
 	});
 
 	// ---------------------------------------------------------------- //
-	// Balance fetch — on account change or date change                 //
+	// Balance fetch — on payment method change or date change          //
 	// ---------------------------------------------------------------- //
-	bind_control_change(paying_account_control, function () {
-		fetch_row_balance(row, today);
+	bind_control_change(mode_of_payment_control, function () {
+		const method = mode_of_payment_control.get_value();
+		row.data("resolved_account", null);
+		if (!method) {
+			row.find(".exp-balance")
+				.html("—")
+				.removeClass("text-danger text-success text-warning text-muted");
+			return;
+		}
+		frappe.call({
+			method: "nbs_customization.nbs_customization.doctype.expense.expense.get_payment_method_account",
+			args: { mode_of_payment: method, company },
+			callback(r) {
+				if (r.message) {
+					row.data("resolved_account", r.message.account);
+					fetch_row_balance(row, today);
+				}
+			},
+		});
 	});
 
 	row.find(".exp-date").on("change", function () {
-		// Re-fetch balance if account already selected
-		if (paying_account_control.get_value()) {
+		// Re-fetch balance if payment method already selected
+		if (mode_of_payment_control.get_value()) {
 			fetch_row_balance(row, row.find(".exp-date").val());
 		}
 	});
@@ -449,7 +464,7 @@ function add_expense_row(wrapper, categories, company) {
 // ------------------------------------------------------------------ //
 
 function fetch_row_balance(row, fallback_date) {
-	const account = row.data("controls")?.paying_account?.get_value();
+	const account = row.data("resolved_account");
 	const date = row.find(".exp-date").val() || fallback_date;
 	const balance_span = row.find(".exp-balance");
 
@@ -503,7 +518,8 @@ function submit_bulk_expenses(dialog, listview, company) {
 		const date = row.find(".exp-date").val();
 		const amount = parseFloat(row.find(".exp-amount").val()) || 0;
 		const category = controls.category?.get_value();
-		const paying_account = controls.paying_account?.get_value();
+		const mode_of_payment = controls.mode_of_payment?.get_value();
+		const paid_from = row.data("resolved_account") || null;
 		const payee = row.find(".exp-payee").val()?.trim();
 		const payment_type = row.find(".exp-payment-type").val();
 		const purchase_invoice = controls.invoice?.get_value() || null;
@@ -520,7 +536,7 @@ function submit_bulk_expenses(dialog, listview, company) {
 			!date ||
 			!amount ||
 			!category ||
-			!paying_account ||
+			!mode_of_payment ||
 			!payee ||
 			!payment_type;
 
@@ -551,7 +567,8 @@ function submit_bulk_expenses(dialog, listview, company) {
 			expense_date: date,
 			amount,
 			expense_category: category,
-			paying_account,
+			mode_of_payment,
+			paid_from,
 			payee,
 			payment_type,
 			purchase_invoice,

@@ -16,8 +16,15 @@
   "expense_date",
   "expense_category",
   "purchase_invoice",
+  "mode_of_payment",
   "paying_account",
+  "section_break_znoi",
+  "paid_from",
+  "paid_from_account_currency",
   "account_balance",
+  "column_break_iuur",
+  "paid_to",
+  "paid_to_account_currency",
   "section_break_xgyb",
   "company",
   "column_break_pkqg",
@@ -88,23 +95,67 @@
    "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Amount",
+   "label": "Paid Amount",
    "non_negative": 1,
    "reqd": 1
   },
   {
+   "description": "Legacy field. Use Payment Method to resolve the account.",
    "fieldname": "paying_account",
    "fieldtype": "Link",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Paying Account",
-   "options": "Account",
-   "reqd": 1
+   "options": "Account"
   },
   {
    "fieldname": "account_balance",
    "fieldtype": "Currency",
    "label": "Account Balance",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_znoi",
+   "fieldtype": "Section Break",
+   "label": "Payment Accounts"
+  },
+  {
+   "fieldname": "paid_from",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Account Paid From",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "paid_from_account_currency",
+   "fieldtype": "Data",
+   "label": "Account Currency (From)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_iuur",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "paid_to",
+   "fieldtype": "Link",
+   "label": "Account Paid To",
+   "options": "Account",
+   "read_only": 1
+  },
+  {
+   "fieldname": "paid_to_account_currency",
+   "fieldtype": "Data",
+   "label": "Account Currency (To)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Payment Method",
+   "options": "Mode of Payment",
+   "reqd": 1
   },
   {
    "fieldname": "payee",
@@ -150,7 +201,8 @@
    "in_list_view": 1,
    "label": "Expense Category",
    "options": "Expense Category",
-   "reqd": 1
+   "depends_on": "eval:doc.payment_type == 'Direct Payment' || doc.is_accompanying == 1",
+   "mandatory_depends_on": "eval:doc.payment_type == 'Direct Payment' || doc.is_accompanying == 1"
   },
   {
    "fieldname": "journal_entry",
@@ -160,7 +212,6 @@
    "read_only": 1
   },
   {
-   "default": "Northland Biomedical Solutions",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
@@ -236,7 +287,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-03-30 10:02:10.048343",
+ "modified": "2026-08-01 02:20:22.529989",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Expense",

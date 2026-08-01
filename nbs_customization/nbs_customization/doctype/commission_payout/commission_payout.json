@@ -17,9 +17,16 @@
   "expense_category",
   "journal_entry",
   "column_break_xvlp",
-  "paying_account",
-  "account_balance",
-  "company_details_section",
+   "paying_account",
+   "account_balance",
+   "section_break_znoi",
+   "mode_of_payment",
+   "paid_from",
+   "paid_from_account_currency",
+   "column_break_iuur",
+   "paid_to",
+   "paid_to_account_currency",
+   "company_details_section",
   "company",
   "column_break_nsaf",
   "cost_center",
@@ -101,11 +108,12 @@
    "fieldtype": "Column Break"
   },
   {
+   "description": "Legacy field. Use Payment Method to resolve the account.",
    "fieldname": "paying_account",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Paying Account",
-   "options": "Account",
-   "reqd": 1
+   "options": "Account"
   },
   {
    "fieldname": "expense_category",
@@ -154,6 +162,48 @@
    "fieldname": "account_balance",
    "fieldtype": "Currency",
    "label": "Account Balance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_znoi",
+   "fieldtype": "Section Break",
+   "label": "Payment Accounts"
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Link",
+   "label": "Payment Method",
+   "options": "Mode of Payment",
+   "reqd": 1
+  },
+  {
+   "fieldname": "paid_from",
+   "fieldtype": "Link",
+   "label": "Account Paid From",
+   "options": "Account",
+   "reqd": 1
+  },
+  {
+   "fieldname": "paid_from_account_currency",
+   "fieldtype": "Data",
+   "label": "Account Currency (From)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_iuur",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "paid_to",
+   "fieldtype": "Link",
+   "label": "Account Paid To",
+   "options": "Account",
+   "read_only": 1
+  },
+  {
+   "fieldname": "paid_to_account_currency",
+   "fieldtype": "Data",
+   "label": "Account Currency (To)",
    "read_only": 1
   }
  ],
