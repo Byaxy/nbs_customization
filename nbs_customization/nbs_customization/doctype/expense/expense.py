@@ -13,14 +13,10 @@ class Expense(Document):
 		self._resolve_payment_account()
 		self._resolve_paid_to()
 		self._set_account_currencies()
-		self._fetch_account_balance()
 		self._validate_category_required()
 		self._validate_accompanying()
 		self._validate_invoice_link()
 		self._validate_bank_reference()
-
-	def before_submit(self):
-		self._validate_account_balance()
 
 	def on_submit(self):
 		if self.payment_type == "Direct Payment":
@@ -90,14 +86,6 @@ class Expense(Document):
 		self.paid_to_account_currency = (
 			frappe.db.get_value("Account", self.paid_to, "account_currency") if self.paid_to else None
 		)
-
-	def _fetch_account_balance(self):
-		"""Fetch current balance of the paying account and store it."""
-		if not self.paid_from:
-			self.account_balance = 0
-			return
-
-		self.account_balance = get_account_balance(self.paid_from, self.expense_date)
 
 	def _validate_category_required(self):
 		needs_category = self.payment_type == "Direct Payment" or self.is_accompanying
@@ -271,25 +259,6 @@ class Expense(Document):
 		if not self.reference_no or not self.reference_date:
 			frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
 
-	def _validate_account_balance(self):
-		"""
-		Called before submit. Validates that the paying account
-		has sufficient balance to cover this expense.
-		"""
-		if not self.paid_from:
-			frappe.throw("Account Paid From is required.")
-
-		# Refresh balance at submit time — not at save time
-		current_balance = get_account_balance(self.paid_from, self.expense_date)
-
-		if current_balance < self.amount:
-			frappe.throw(
-				f"Insufficient balance in <b>{self.paid_from}</b>. "
-				f"Available: <b>{frappe.format_value(current_balance, {'fieldtype': 'Currency'})}</b>, "
-				f"Required: <b>{frappe.format_value(self.amount, {'fieldtype': 'Currency'})}</b>, "
-				f"Shortfall: <b>{frappe.format_value(self.amount - current_balance, {'fieldtype': 'Currency'})}</b>."
-			)
-
 	# ------------------------------------------------------------------ #
 	# Flow A — Direct Payment via Journal Entry                           #
 	# ------------------------------------------------------------------ #
@@ -390,7 +359,7 @@ class Expense(Document):
 		pe.source_exchange_rate = 1
 		pe.target_exchange_rate = 1
 		pe.mode_of_payment = self.mode_of_payment
-		pe.reference_no = self.reference_no or self.name
+		pe.reference_no = self.reference_no
 		pe.reference_date = self.reference_date or self.expense_date
 		pe.remarks = (
 			f"Payment via Expense {self.name} — {self.expense_description} "
@@ -455,17 +424,6 @@ class Expense(Document):
 # ------------------------------------------------------------------ #
 # Whitelisted helpers (called from JS)                                #
 # ------------------------------------------------------------------ #
-
-
-@frappe.whitelist()
-def get_account_balance(account, date=None):
-	"""
-	Returns the current balance of an account.
-	Uses ERPNext's built-in balance utility.
-	"""
-	from erpnext.accounts.utils import get_balance_on
-
-	return get_balance_on(account=account, date=date)
 
 
 @frappe.whitelist()

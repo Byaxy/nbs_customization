@@ -21,17 +21,16 @@
   "section_break_znoi",
   "paid_from",
   "paid_from_account_currency",
-  "account_balance",
   "column_break_iuur",
-   "paid_to",
-   "paid_to_account_currency",
-   "section_break_payment_reference",
-   "reference_no",
-   "column_break_payment_reference",
-   "reference_date",
-   "clearance_date",
-   "section_break_xgyb",
-   "company",
+  "paid_to",
+  "paid_to_account_currency",
+  "section_break_payment_reference",
+  "reference_no",
+  "column_break_payment_reference",
+  "reference_date",
+  "clearance_date",
+  "section_break_xgyb",
+  "company",
   "column_break_pkqg",
   "cost_center",
   "section_break_fnba",
@@ -113,12 +112,6 @@
    "options": "Account"
   },
   {
-   "fieldname": "account_balance",
-   "fieldtype": "Currency",
-   "label": "Account Balance",
-   "read_only": 1
-  },
-  {
    "fieldname": "section_break_znoi",
    "fieldtype": "Section Break",
    "label": "Payment Accounts"
@@ -148,42 +141,42 @@
    "options": "Account",
    "read_only": 1
   },
-{
-    "fieldname": "paid_to_account_currency",
-    "fieldtype": "Data",
-    "label": "Account Currency (To)",
-    "read_only": 1
-   },
-   {
-    "fieldname": "section_break_payment_reference",
-    "fieldtype": "Section Break",
-    "label": "Payment Reference"
-   },
-   {
-    "description": "Cheque number or bank transfer reference. Required for Bank payment methods.",
-    "fieldname": "reference_no",
-    "fieldtype": "Data",
-    "label": "Cheque/Reference No"
-   },
-   {
-    "fieldname": "column_break_payment_reference",
-    "fieldtype": "Column Break"
-   },
-   {
-    "default": "Today",
-    "fieldname": "reference_date",
-    "fieldtype": "Date",
-    "label": "Cheque/Reference Date"
-   },
-   {
-    "depends_on": "eval:doc.docstatus == 1",
-    "fieldname": "clearance_date",
-    "fieldtype": "Date",
-    "label": "Clearance Date",
-    "read_only": 1
-   },
-   {
-    "fieldname": "mode_of_payment",
+  {
+   "fieldname": "paid_to_account_currency",
+   "fieldtype": "Data",
+   "label": "Account Currency (To)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_payment_reference",
+   "fieldtype": "Section Break",
+   "label": "Payment Reference"
+  },
+  {
+   "description": "Cheque number or bank transfer reference. Required for Bank payment methods.",
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Cheque/Reference No"
+  },
+  {
+   "fieldname": "column_break_payment_reference",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "reference_date",
+   "fieldtype": "Date",
+   "label": "Cheque/Reference Date"
+  },
+  {
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "clearance_date",
+   "fieldtype": "Date",
+   "label": "Clearance Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mode_of_payment",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Payment Method",

@@ -134,7 +134,6 @@ frappe.ui.form.on("Commission Payout", {
 		if (!frm.doc.mode_of_payment) {
 			frm.set_value("paid_from", null);
 			frm.set_value("paid_from_account_currency", null);
-			fetch_account_balance(frm);
 			return;
 		}
 		frappe.call({
@@ -150,7 +149,6 @@ frappe.ui.form.on("Commission Payout", {
 						"paid_from_account_currency",
 						r.message.account_currency,
 					);
-					fetch_account_balance(frm);
 				}
 			},
 		});
@@ -159,7 +157,6 @@ frappe.ui.form.on("Commission Payout", {
 	paid_from(frm) {
 		if (!frm.doc.paid_from) {
 			frm.set_value("paid_from_account_currency", null);
-			fetch_account_balance(frm);
 			return;
 		}
 		frappe.db.get_value(
@@ -170,14 +167,10 @@ frappe.ui.form.on("Commission Payout", {
 				if (r) frm.set_value("paid_from_account_currency", r.account_currency);
 			},
 		);
-		fetch_account_balance(frm);
 	},
 
 	expense_category(frm) {
 		resolve_paid_to(frm);
-	},
-	payout_date(frm) {
-		fetch_account_balance(frm);
 	},
 
 	// ── Before submit: final client-side gate ────────────────────────────────
@@ -395,39 +388,6 @@ function resolve_paid_to(frm) {
 			}
 		},
 	);
-}
-
-function fetch_account_balance(frm) {
-	if (!frm.doc.paid_from) {
-		frm.set_value("account_balance", 0);
-		return;
-	}
-	frappe.call({
-		method: "nbs_customization.nbs_customization.doctype.commission_payout.commission_payout.get_account_balance",
-		args: {
-			account: frm.doc.paid_from,
-			date: frm.doc.payout_date || frappe.datetime.get_today(),
-		},
-		callback(r) {
-			if (r.message !== undefined) {
-				frm.set_value("account_balance", r.message);
-				if (frm.doc.amount_to_pay && r.message < frm.doc.amount_to_pay) {
-					frappe.show_alert(
-						{
-							message: __(
-								`Warning: Account balance ` +
-								`(${frappe.format(r.message, { fieldtype: "Currency" })}) ` +
-								`is less than Amount to Pay ` +
-								`(${frappe.format(frm.doc.amount_to_pay, { fieldtype: "Currency" })}).`,
-							),
-							indicator: "orange",
-						},
-						6,
-					);
-				}
-			}
-		},
-	});
 }
 
 function badge(value, color) {

@@ -17,16 +17,12 @@ class CommissionPayout(Document):
 		self._resolve_payment_account()
 		self._resolve_paid_to()
 		self._set_account_currencies()
-		self._fetch_account_balance()
 		self.validate_commission_is_submitted()
 		self.validate_recipient_belongs_to_commission()
 		self.validate_recipient_not_fully_paid()
 		self.validate_amount()
 		self.validate_paid_from()
 		self.validate_expense_category_not_accompanying()
-
-	def before_submit(self):
-		self._validate_account_balance()
 
 	def on_submit(self):
 		self._update_parent_commission()
@@ -73,14 +69,6 @@ class CommissionPayout(Document):
 		self.paid_to_account_currency = (
 			frappe.db.get_value("Account", self.paid_to, "account_currency") if self.paid_to else None
 		)
-
-	def _fetch_account_balance(self):
-		"""Fetch current balance of the paying account and store it."""
-		if not self.paid_from:
-			self.account_balance = 0
-			return
-
-		self.account_balance = get_account_balance(self.paid_from, self.payout_date)
 
 	def validate_commission_is_submitted(self):
 		if not self.commission:
@@ -200,25 +188,6 @@ class CommissionPayout(Document):
 		if is_accompanying:
 			frappe.throw(_(f"Expense Category {self.expense_category} cannot be an accompanying expense."))
 
-	def _validate_account_balance(self):
-		"""
-		Called before submit. Validates that the paying account
-		has sufficient balance to cover this payout.
-		"""
-		if not self.paid_from:
-			frappe.throw("Account Paid From is required.")
-
-		# Refresh balance at submit time — not at save time
-		current_balance = get_account_balance(self.paid_from, self.payout_date)
-
-		if current_balance < self.amount_to_pay:
-			frappe.throw(
-				f"Insufficient balance in <b>{self.paid_from}</b>. "
-				f"Available: <b>{frappe.format_value(current_balance, {'fieldtype': 'Currency'})}</b>, "
-				f"Required: <b>{frappe.format_value(self.amount_to_pay, {'fieldtype': 'Currency'})}</b>, "
-				f"Shortfall: <b>{frappe.format_value(self.amount_to_pay - current_balance, {'fieldtype': 'Currency'})}</b>."
-			)
-
 	# ------------------------------------------------------------------ #
 	#  Post-submit / cancel: Journal Entry + status sync                  #
 	# ------------------------------------------------------------------ #
@@ -272,7 +241,7 @@ class CommissionPayout(Document):
 		je.company = self.company
 		je.posting_date = self.payout_date
 		je.user_remark = remark
-        # No reference_doctype/reference_name - not allowed for JE rows in v16
+		# No reference_doctype/reference_name - not allowed for JE rows in v16
 
 		# Debit: commission expense account
 		je.append(
@@ -351,17 +320,6 @@ def commission_recipient_query(doctype, txt, searchfield, start, page_len, filte
 			"page_len": page_len,
 		},
 	)
-
-
-@frappe.whitelist()
-def get_account_balance(account, date=None):
-	"""
-	Returns the current balance of an account.
-	Uses ERPNext's built-in balance utility.
-	"""
-	from erpnext.accounts.utils import get_balance_on
-
-	return get_balance_on(account=account, date=date)
 
 
 @frappe.whitelist()

@@ -105,8 +105,7 @@ function build_expense_table(dialog, categories, company) {
 						<th style="min-width:160px;">${__("Payment Method")} *</th>
 						<th style="min-width:130px;">${__("Chq/Ref No")}</th>
 						<th style="min-width:120px;">${__("Ref Date")}</th>
-						<th style="min-width:110px;">${__("Balance")}</th>
-						<th style="min-width:110px;">${__("Payee")} *</th>
+					<th style="min-width:110px;">${__("Payee")} *</th>
 						<th style="min-width:155px;">${__("Payment Type")} *</th>
 						<th style="min-width:185px;">${__("Purchase Invoice")}</th>
 						<th style="min-width:80px;">${__("Accompanying")}</th>
@@ -178,10 +177,6 @@ function add_expense_row(wrapper, categories, company) {
 			<td>
 				<input type="date" class="form-control form-control-sm exp-reference-date"
 					value="${today}">
-			</td>
-			<!-- Balance -->
-			<td>
-				<span class="exp-balance text-muted small">—</span>
 			</td>
 			<!-- Payee -->
 			<td>
@@ -419,12 +414,7 @@ function add_expense_row(wrapper, categories, company) {
 		row.data("resolved_account", null);
 		row.data("needs_ref", false);
 		update_ref_required(row, false);
-		if (!method) {
-			row.find(".exp-balance")
-				.html("—")
-				.removeClass("text-danger text-success text-warning text-muted");
-			return;
-		}
+		if (!method) return;
 		frappe.call({
 			method: "nbs_customization.nbs_customization.doctype.expense.expense.get_payment_method_account",
 			args: { mode_of_payment: method, company },
@@ -436,17 +426,9 @@ function add_expense_row(wrapper, categories, company) {
 						row.data("needs_ref", bank);
 						update_ref_required(row, bank);
 					});
-					fetch_row_balance(row, today);
 				}
 			},
 		});
-	});
-
-	row.find(".exp-date").on("change", function () {
-		// Re-fetch balance if payment method already selected
-		if (mode_of_payment_control.get_value()) {
-			fetch_row_balance(row, row.find(".exp-date").val());
-		}
 	});
 
 	row.find(".exp-reference-no, .exp-reference-date").on("input change", function () {
@@ -479,42 +461,6 @@ function add_expense_row(wrapper, categories, company) {
 	});
 
 	tbody.append(row);
-}
-
-// ------------------------------------------------------------------ //
-// Balance helper                                                       //
-// ------------------------------------------------------------------ //
-
-function fetch_row_balance(row, fallback_date) {
-	const account = row.data("resolved_account");
-	const date = row.find(".exp-date").val() || fallback_date;
-	const balance_span = row.find(".exp-balance");
-
-	if (!account) {
-		balance_span.html("—").removeClass("text-danger text-success text-warning");
-		return;
-	}
-
-	frappe.call({
-		method: "nbs_customization.nbs_customization.doctype.expense.expense.get_account_balance",
-		args: { account, date },
-		callback(r) {
-			const balance = r.message || 0;
-			const formatted = frappe.format(balance, { fieldtype: "Currency" });
-			const amount = parseFloat(row.find(".exp-amount").val()) || 0;
-
-			let cls = "text-success";
-			if (balance <= 0) cls = "text-danger";
-			else if (amount && balance < amount) cls = "text-warning";
-
-			balance_span
-				.html(formatted)
-				.removeClass("text-danger text-success text-warning text-muted")
-				.addClass(cls);
-
-			row.data("balance", balance);
-		},
-	});
 }
 
 // ------------------------------------------------------------------ //

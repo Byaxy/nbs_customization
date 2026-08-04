@@ -88,7 +88,6 @@ frappe.ui.form.on("Expense", {
 		if (!frm.doc.mode_of_payment) {
 			frm.set_value("paid_from", null);
 			frm.set_value("paid_from_account_currency", null);
-			fetch_account_balance(frm);
 			return;
 		}
 		frappe.call({
@@ -104,7 +103,6 @@ frappe.ui.form.on("Expense", {
 						"paid_from_account_currency",
 						r.message.account_currency,
 					);
-					fetch_account_balance(frm);
 				}
 			},
 		});
@@ -113,7 +111,6 @@ frappe.ui.form.on("Expense", {
 	paid_from(frm) {
 		if (!frm.doc.paid_from) {
 			frm.set_value("paid_from_account_currency", null);
-			fetch_account_balance(frm);
 			return;
 		}
 		frappe.db.get_value(
@@ -127,7 +124,6 @@ frappe.ui.form.on("Expense", {
 				}
 			},
 		);
-		fetch_account_balance(frm);
 	},
 
 	is_accompanying(frm) {
@@ -202,10 +198,6 @@ frappe.ui.form.on("Expense", {
 			return;
 		}
 		fetch_shipment_info(frm);
-	},
-
-	expense_date(frm) {
-		fetch_account_balance(frm);
 	},
 });
 
@@ -345,43 +337,6 @@ function render_shipment_info_panel(frm, s) {
 function clear_shipment_info_panel(frm) {
 	const field = frm.get_field("linked_shipment");
 	if (field) field.$wrapper.find(".shipment-info-panel").remove();
-}
-
-// ------------------------------------------------------------------ //
-// Account balance                                                      //
-// ------------------------------------------------------------------ //
-
-function fetch_account_balance(frm) {
-	if (!frm.doc.paid_from) {
-		frm.set_value("account_balance", 0);
-		return;
-	}
-	frappe.call({
-		method: "nbs_customization.nbs_customization.doctype.expense.expense.get_account_balance",
-		args: {
-			account: frm.doc.paid_from,
-			date: frm.doc.expense_date || frappe.datetime.get_today(),
-		},
-		callback(r) {
-			if (r.message !== undefined) {
-				frm.set_value("account_balance", r.message);
-				if (frm.doc.amount && r.message < frm.doc.amount) {
-					frappe.show_alert(
-						{
-							message: __(
-								`Warning: Account balance ` +
-								`(${frappe.format(r.message, { fieldtype: "Currency" })}) ` +
-								`is less than expense amount ` +
-								`(${frappe.format(frm.doc.amount, { fieldtype: "Currency" })}).`,
-							),
-							indicator: "orange",
-						},
-						6,
-					);
-				}
-			}
-		},
-	});
 }
 
 // ------------------------------------------------------------------ //
