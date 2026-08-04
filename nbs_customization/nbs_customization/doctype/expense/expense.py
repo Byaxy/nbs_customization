@@ -17,6 +17,7 @@ class Expense(Document):
 		self._validate_category_required()
 		self._validate_accompanying()
 		self._validate_invoice_link()
+		self._validate_bank_reference()
 
 	def before_submit(self):
 		self._validate_account_balance()
@@ -69,11 +70,16 @@ class Expense(Document):
 		- Direct Payment → the expense account of the category (debit side).
 		"""
 		if self.payment_type == "Against Purchase Invoice" and self.purchase_invoice:
-			supplier = frappe.db.get_value("Purchase Invoice", self.purchase_invoice, "supplier")
-			if supplier:
+			pi = frappe.db.get_value(
+				"Purchase Invoice",
+				self.purchase_invoice,
+				["supplier", "company"],
+				as_dict=True,
+			)
+			if pi and pi.supplier:
 				from erpnext.accounts.party import get_party_account
 
-				self.paid_to = get_party_account("Supplier", supplier, self.company)
+				self.paid_to = get_party_account("Supplier", pi.supplier, self.company or pi.company)
 		else:
 			self.paid_to = frappe.db.get_value("Expense Category", self.expense_category, "expense_account")
 
@@ -215,7 +221,6 @@ class Expense(Document):
 		if self.payment_type != "Against Purchase Invoice":
 			self.purchase_invoice = None
 			return
-
 		if not self.purchase_invoice:
 			frappe.throw("Purchase Invoice is required for Against Purchase Invoice payment type.")
 
@@ -249,6 +254,22 @@ class Expense(Document):
 		# Auto-set amount from invoice outstanding if not set
 		if not self.amount:
 			self.amount = pi.outstanding_amount
+
+	def _validate_bank_reference(self):
+		"""
+		Mirror Payment Entry's validate_transaction_reference: when the paying
+		account is a Bank account (bank transfer or cheque), the Cheque/Reference
+		No and Cheque/Reference Date are mandatory.
+		"""
+		if not self.paid_from:
+			return
+
+		account_type = frappe.get_cached_value("Account", self.paid_from, "account_type")
+		if account_type != "Bank":
+			return
+
+		if not self.reference_no or not self.reference_date:
+			frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
 
 	def _validate_account_balance(self):
 		"""
@@ -290,6 +311,9 @@ class Expense(Document):
 		je.voucher_type = "Journal Entry"
 		je.company = self.company
 		je.posting_date = self.expense_date
+		je.mode_of_payment = self.mode_of_payment
+		je.cheque_no = self.reference_no
+		je.cheque_date = self.reference_date
 		je.user_remark = f"Expense: {self.name} — {self.expense_description} | Payee: {self.payee or 'N/A'}"
 
 		# Debit — expense category GL account
@@ -365,8 +389,9 @@ class Expense(Document):
 		pe.received_amount = self.amount
 		pe.source_exchange_rate = 1
 		pe.target_exchange_rate = 1
-		pe.reference_no = self.name
-		pe.reference_date = self.expense_date
+		pe.mode_of_payment = self.mode_of_payment
+		pe.reference_no = self.reference_no or self.name
+		pe.reference_date = self.reference_date or self.expense_date
 		pe.remarks = (
 			f"Payment via Expense {self.name} — {self.expense_description} "
 			f"| Payee: {self.payee or pi.supplier}"

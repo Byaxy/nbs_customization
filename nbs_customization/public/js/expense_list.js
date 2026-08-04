@@ -103,6 +103,8 @@ function build_expense_table(dialog, categories, company) {
 						<th style="min-width:110px;">${__("Amount")} *</th>
 						<th style="min-width:160px;">${__("Category")} *</th>
 						<th style="min-width:160px;">${__("Payment Method")} *</th>
+						<th style="min-width:130px;">${__("Chq/Ref No")}</th>
+						<th style="min-width:120px;">${__("Ref Date")}</th>
 						<th style="min-width:110px;">${__("Balance")}</th>
 						<th style="min-width:110px;">${__("Payee")} *</th>
 						<th style="min-width:155px;">${__("Payment Type")} *</th>
@@ -167,6 +169,15 @@ function add_expense_row(wrapper, categories, company) {
 			<!-- Payment Method -->
 			<td>
 				<div class="exp-mode-of-payment-control"></div>
+			</td>
+			<!-- Cheque/Reference No + Date (required for Bank methods) -->
+			<td>
+				<input type="text" class="form-control form-control-sm exp-reference-no"
+					placeholder="${__("Chq / Bank Ref")}">
+			</td>
+			<td>
+				<input type="date" class="form-control form-control-sm exp-reference-date"
+					value="${today}">
 			</td>
 			<!-- Balance -->
 			<td>
@@ -320,7 +331,7 @@ function add_expense_row(wrapper, categories, company) {
 					row.find(".exp-payee").val(pi.supplier_name || pi.supplier);
 				}
 				row.find(".exp-invoice-outstanding").text(
-					`Outstanding: ${frappe.format_value(pi.outstanding_amount, { fieldtype: "Currency" })}`,
+					`Outstanding: ${frappe.format(pi.outstanding_amount, { fieldtype: "Currency" })}`,
 				);
 			},
 		});
@@ -406,6 +417,8 @@ function add_expense_row(wrapper, categories, company) {
 	bind_control_change(mode_of_payment_control, function () {
 		const method = mode_of_payment_control.get_value();
 		row.data("resolved_account", null);
+		row.data("needs_ref", false);
+		update_ref_required(row, false);
 		if (!method) {
 			row.find(".exp-balance")
 				.html("—")
@@ -418,6 +431,11 @@ function add_expense_row(wrapper, categories, company) {
 			callback(r) {
 				if (r.message) {
 					row.data("resolved_account", r.message.account);
+					frappe.db.get_value("Account", r.message.account, "account_type", (ar) => {
+						const bank = !!ar && ar.account_type === "Bank";
+						row.data("needs_ref", bank);
+						update_ref_required(row, bank);
+					});
 					fetch_row_balance(row, today);
 				}
 			},
@@ -429,6 +447,10 @@ function add_expense_row(wrapper, categories, company) {
 		if (mode_of_payment_control.get_value()) {
 			fetch_row_balance(row, row.find(".exp-date").val());
 		}
+	});
+
+	row.find(".exp-reference-no, .exp-reference-date").on("input change", function () {
+		update_ref_required(row, row.data("needs_ref"));
 	});
 
 	// ---------------------------------------------------------------- //
@@ -478,7 +500,7 @@ function fetch_row_balance(row, fallback_date) {
 		args: { account, date },
 		callback(r) {
 			const balance = r.message || 0;
-			const formatted = frappe.format_value(balance, { fieldtype: "Currency" });
+			const formatted = frappe.format(balance, { fieldtype: "Currency" });
 			const amount = parseFloat(row.find(".exp-amount").val()) || 0;
 
 			let cls = "text-success";
@@ -493,6 +515,17 @@ function fetch_row_balance(row, fallback_date) {
 			row.data("balance", balance);
 		},
 	});
+}
+
+// ------------------------------------------------------------------ //
+// Reference required helper (Bank methods)                             //
+// ------------------------------------------------------------------ //
+
+function update_ref_required(row, required) {
+	const filled =
+		row.find(".exp-reference-no").val()?.trim() && row.find(".exp-reference-date").val();
+	const mark = required && !filled;
+	row.find(".exp-reference-no, .exp-reference-date").toggleClass("is-invalid", mark);
 }
 
 // ------------------------------------------------------------------ //
@@ -520,6 +553,8 @@ function submit_bulk_expenses(dialog, listview, company) {
 		const category = controls.category?.get_value();
 		const mode_of_payment = controls.mode_of_payment?.get_value();
 		const paid_from = row.data("resolved_account") || null;
+		const reference_no = row.find(".exp-reference-no").val()?.trim();
+		const reference_date = row.find(".exp-reference-date").val();
 		const payee = row.find(".exp-payee").val()?.trim();
 		const payment_type = row.find(".exp-payment-type").val();
 		const purchase_invoice = controls.invoice?.get_value() || null;
@@ -548,13 +583,17 @@ function submit_bulk_expenses(dialog, listview, company) {
 		const missing_shipment =
 			is_accompanying && scope === "Inbound Shipment" && !linked_shipment;
 
+		const missing_ref = row.data("needs_ref") === true && (!reference_no || !reference_date);
+
 		if (
 			missing_basic ||
 			amount <= 0 ||
 			missing_invoice ||
 			missing_linked ||
-			missing_shipment
+			missing_shipment ||
+			missing_ref
 		) {
+			update_ref_required(row, missing_ref);
 			row.addClass("table-danger");
 			has_error = true;
 			return;
@@ -569,6 +608,8 @@ function submit_bulk_expenses(dialog, listview, company) {
 			expense_category: category,
 			mode_of_payment,
 			paid_from,
+			reference_no,
+			reference_date,
 			payee,
 			payment_type,
 			purchase_invoice,
@@ -710,7 +751,7 @@ function show_bulk_results(results, listview) {
 						<tr>
 							<td><a href="/app/expense/${r.name}" target="_blank">${r.name}</a></td>
 							<td>${r.description}</td>
-							<td>${frappe.format_value(r.amount, { fieldtype: "Currency" })}</td>
+							<td>${frappe.format(r.amount, { fieldtype: "Currency" })}</td>
 						</tr>
 					`,
 						)
@@ -741,7 +782,7 @@ function show_bulk_results(results, listview) {
 							(r) => `
 						<tr class="table-danger">
 							<td>${r.description}</td>
-							<td>${frappe.format_value(r.amount, { fieldtype: "Currency" })}</td>
+							<td>${frappe.format(r.amount, { fieldtype: "Currency" })}</td>
 							<td><small class="text-danger">${r.error}</small></td>
 						</tr>
 					`,

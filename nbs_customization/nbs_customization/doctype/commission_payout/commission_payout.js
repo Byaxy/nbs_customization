@@ -416,9 +416,9 @@ function fetch_account_balance(frm) {
 						{
 							message: __(
 								`Warning: Account balance ` +
-								`(${frappe.format_value(r.message, { fieldtype: "Currency" })}) ` +
+								`(${frappe.format(r.message, { fieldtype: "Currency" })}) ` +
 								`is less than Amount to Pay ` +
-								`(${frappe.format_value(frm.doc.amount_to_pay, { fieldtype: "Currency" })}).`,
+								`(${frappe.format(frm.doc.amount_to_pay, { fieldtype: "Currency" })}).`,
 							),
 							indicator: "orange",
 						},

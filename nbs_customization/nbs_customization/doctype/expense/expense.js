@@ -45,6 +45,8 @@ frappe.ui.form.on("Expense", {
 		toggle_accompanying_fields(frm);
 		toggle_payment_fields(frm);
 		toggle_lcv_button(frm);
+		resolve_paid_to(frm);
+		toggle_reference_required(frm);
 	},
 
 	// ---------------------------------------------------------------- //
@@ -117,9 +119,12 @@ frappe.ui.form.on("Expense", {
 		frappe.db.get_value(
 			"Account",
 			frm.doc.paid_from,
-			"account_currency",
+			["account_currency", "account_type"],
 			(r) => {
-				if (r) frm.set_value("paid_from_account_currency", r.account_currency);
+				if (r) {
+					frm.set_value("paid_from_account_currency", r.account_currency);
+					set_reference_required(frm, r.account_type === "Bank");
+				}
 			},
 		);
 		fetch_account_balance(frm);
@@ -133,6 +138,7 @@ frappe.ui.form.on("Expense", {
 			frm.set_value("linked_shipment", null);
 			frm.set_value("landed_cost_voucher", null);
 		}
+		resolve_paid_to(frm);
 	},
 
 	expense_scope(frm) {
@@ -162,7 +168,7 @@ frappe.ui.form.on("Expense", {
 					frappe.show_alert(
 						{
 							message: __(
-								`Outstanding: ${frappe.format_value(pi.outstanding_amount, { fieldtype: "Currency" })}`,
+								`Outstanding: ${frappe.format(pi.outstanding_amount, { fieldtype: "Currency" })}`,
 							),
 							indicator: "blue",
 						},
@@ -261,7 +267,7 @@ function resolve_paid_to(frm) {
 					method: "nbs_customization.nbs_customization.doctype.expense.expense.get_supplier_payable_details",
 					args: {
 						supplier: r.supplier,
-						company: frm.doc.company,
+						company: frm.doc.company || frappe.defaults.get_user_default("Company"),
 					},
 					callback(pr) {
 						if (pr.message) {
@@ -364,9 +370,9 @@ function fetch_account_balance(frm) {
 						{
 							message: __(
 								`Warning: Account balance ` +
-									`(${frappe.format_value(r.message, { fieldtype: "Currency" })}) ` +
-									`is less than expense amount ` +
-									`(${frappe.format_value(frm.doc.amount, { fieldtype: "Currency" })}).`,
+								`(${frappe.format(r.message, { fieldtype: "Currency" })}) ` +
+								`is less than expense amount ` +
+								`(${frappe.format(frm.doc.amount, { fieldtype: "Currency" })}).`,
 							),
 							indicator: "orange",
 						},
@@ -381,6 +387,21 @@ function fetch_account_balance(frm) {
 // ------------------------------------------------------------------ //
 // Custom action buttons                                                //
 // ------------------------------------------------------------------ //
+
+function set_reference_required(frm, required) {
+	frm.set_df_property("reference_no", "reqd", required);
+	frm.set_df_property("reference_date", "reqd", required);
+}
+
+function toggle_reference_required(frm) {
+	if (!frm.doc.paid_from) {
+		set_reference_required(frm, false);
+		return;
+	}
+	frappe.db.get_value("Account", frm.doc.paid_from, "account_type", (r) => {
+		set_reference_required(frm, !!r && r.account_type === "Bank");
+	});
+}
 
 function toggle_lcv_button(frm) {
 	frm.remove_custom_button(__("Make Landed Cost Voucher"), __("Create"));
