@@ -1,5 +1,5 @@
 /**
- * NBS Customization: Add row number ("No.") column to all List Views.
+ * NBS Customization: Add row number ("SN") column to all List Views.
  * Patches at the HTML-output level with stable regex anchors.
  */
 (function () {
@@ -11,7 +11,7 @@
 
 		frappe.views.ListView.prototype._row_number_patched = true;
 
-		// 1. Inject "No." into the header Subject column, after the checkbox<span>
+		// 1. Inject "SN" into the header Subject column, after the checkbox<span>
 		const _get_header_html = frappe.views.ListView.prototype.get_header_html;
 		frappe.views.ListView.prototype.get_header_html = function () {
 			const html = _get_header_html.apply(this, arguments);
@@ -19,7 +19,7 @@
 			// Anchors on the unique header-checkbox class
 			return html.replace(
 				/(<input\s+class="list-header-checkbox\s+list-check-all"[^>]*>\s*<\/span>)/,
-				"$1" + `<span class="nbs-row-no nbs-row-no-header">${__("No.")}</span>`,
+				"$1" + `<span class="nbs-row-no nbs-row-no-header">${__("SN")}</span>`,
 			);
 		};
 

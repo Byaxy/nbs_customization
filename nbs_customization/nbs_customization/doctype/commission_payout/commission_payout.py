@@ -46,9 +46,6 @@ class CommissionPayout(Document):
 		A manual override of paid_from is respected.
 		"""
 		if not self.mode_of_payment:
-			# Legacy fallback: old drafts without a payment method
-			if self.paying_account and not self.paid_from:
-				self.paid_from = self.paying_account
 			return
 
 		if not self.paid_from:

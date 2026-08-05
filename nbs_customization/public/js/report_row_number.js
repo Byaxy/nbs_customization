@@ -18,10 +18,10 @@
 			const _renderRows = _bodyRenderer.renderRows.bind(_bodyRenderer);
 			_bodyRenderer.renderRows = function (rows) {
 				if (dt.options.serialNoColumn) {
-					const srColIdx = dt.datamanager.getColumnIndexById("_rowIndex");
-					if (srColIdx != null) {
+					const snColIdx = dt.datamanager.getColumnIndexById("_rowIndex");
+					if (snColIdx != null) {
 						rows.forEach((row, idx) => {
-							const cell = row[srColIdx];
+							const cell = row[snColIdx];
 							if (cell) {
 								cell.content = idx + 1 + "";
 							}
@@ -31,7 +31,7 @@
 				return _renderRows(rows);
 			};
 
-			// Use MutationObserver to renumber SR cells after any DOM change
+			// Use MutationObserver to renumber SN cells after any DOM change
 			const mo = new MutationObserver(() => {
 				if (!dt.options.serialNoColumn) return;
 				const cells = _bodyRenderer.bodyScrollable.querySelectorAll(

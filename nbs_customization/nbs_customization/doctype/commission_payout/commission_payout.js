@@ -89,7 +89,6 @@ frappe.ui.form.on("Commission Payout", {
 	},
 
 	company(frm) {
-		frm.set_value("paying_account", null);
 		frm.set_value("cost_center", null);
 		frm.set_value("mode_of_payment", null);
 		frm.set_value("paid_from", null);
@@ -97,7 +96,6 @@ frappe.ui.form.on("Commission Payout", {
 		frm.set_value("paid_to", null);
 		frm.set_value("paid_to_account_currency", null);
 		frm.refresh_fields([
-			"paying_account",
 			"cost_center",
 			"mode_of_payment",
 			"paid_from",

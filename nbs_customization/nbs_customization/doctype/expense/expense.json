@@ -17,7 +17,6 @@
   "expense_category",
   "purchase_invoice",
   "mode_of_payment",
-  "paying_account",
   "section_break_znoi",
   "paid_from",
   "paid_from_account_currency",
@@ -104,14 +103,6 @@
    "reqd": 1
   },
   {
-   "description": "Legacy field. Use Payment Method to resolve the account.",
-   "fieldname": "paying_account",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Paying Account",
-   "options": "Account"
-  },
-  {
    "fieldname": "section_break_znoi",
    "fieldtype": "Section Break",
    "label": "Payment Accounts"
@@ -163,7 +154,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "default": "Today",
    "fieldname": "reference_date",
    "fieldtype": "Date",
    "label": "Cheque/Reference Date"
@@ -313,7 +303,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-03 19:41:00.438635",
+ "modified": "2026-08-05 17:31:53.939099",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Expense",

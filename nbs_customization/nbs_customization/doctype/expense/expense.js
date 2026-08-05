@@ -54,7 +54,6 @@ frappe.ui.form.on("Expense", {
 	// ---------------------------------------------------------------- //
 
 	company(frm) {
-		frm.set_value("paying_account", null);
 		frm.set_value("cost_center", null);
 		frm.set_value("purchase_invoice", null);
 		frm.set_value("linked_shipment", null);
@@ -64,7 +63,6 @@ frappe.ui.form.on("Expense", {
 		frm.set_value("paid_to", null);
 		frm.set_value("paid_to_account_currency", null);
 		frm.refresh_fields([
-			"paying_account",
 			"cost_center",
 			"purchase_invoice",
 			"linked_shipment",

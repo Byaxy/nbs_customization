@@ -202,78 +202,38 @@ def _inject_expense_items(sidebar_name):
 	frappe.db.commit()
 
 
-# ─── Expense paying account backfill ─────────────────────────────────────────
-
-
-def backfill_expense_paid_from():
-	"""Copy legacy `paying_account` values into `paid_from` for existing Expense records."""
-	_backfill_paying_account("Expense")
-
-
-def backfill_commission_payout_paid_from():
-	"""Copy legacy `paying_account` values into `paid_from` for existing Commission Payout records."""
-	_backfill_paying_account("Commission Payout")
-
-
-def _backfill_paying_account(doctype):
-	"""Shared, idempotent data migration for legacy `paying_account` fields.
-
-	Shipped ahead of the `paying_account` field removal. Runs on every migrate
-	until the column is dropped, then self-disables via `has_column`. Copies
-	`paying_account` → `paid_from` and reverse-looks-up `mode_of_payment` from a
-	matching Mode of Payment Account (company + default_account) when exactly one
-	exists.
-	"""
-	if not frappe.db.has_column(doctype, "paying_account"):
-		return
-
-	table = f"tab{doctype}"
-
-	frappe.db.sql(
-		f"""
-        UPDATE `{table}`
-        SET paid_from = paying_account
-        WHERE paid_from IS NULL AND paying_account IS NOT NULL AND paying_account != ''
-        """
-	)
-
-	frappe.db.sql(
-		f"""
-        UPDATE `{table}` e
-        LEFT JOIN (
-            SELECT mpa.company, mpa.default_account, mpa.parent
-            FROM `tabMode of Payment Account` mpa
-            GROUP BY mpa.company, mpa.default_account
-            HAVING COUNT(DISTINCT mpa.parent) = 1
-        ) cm ON cm.company = e.company AND cm.default_account = e.paying_account
-        LEFT JOIN (
-            SELECT mpa.default_account, mpa.parent
-            FROM `tabMode of Payment Account` mpa
-            GROUP BY mpa.default_account
-            HAVING COUNT(DISTINCT mpa.parent) = 1
-        ) am ON am.default_account = e.paying_account
-        SET e.mode_of_payment = COALESCE(cm.parent, am.parent)
-        WHERE e.mode_of_payment IS NULL
-            AND e.paying_account IS NOT NULL
-            AND e.paying_account != ''
-        """
-	)
-
-
 # ─── after_migrate entry point ────────────────────────────────────────────────
+
+
+def drop_paying_account_columns():
+	"""Drop leftover `paying_account` columns.
+
+	The field was removed from the Expense and Commission Payout doctypes.
+	Frappe only drops unique constraints for removed fields, not the columns
+	themselves, so drop them here. The guard queries `information_schema`
+	directly — `frappe.db.has_column` is unsafe here because table columns
+	are cached in Redis and never invalidated on DDL, so it can report a
+	stale `True` on later migrates.
+	"""
+	for doctype in ("Expense", "Commission Payout"):
+		exists = frappe.db.sql(
+			"SELECT 1 FROM information_schema.COLUMNS "
+			"WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = 'paying_account'",
+			f"tab{doctype}",
+		)
+		if exists:
+			frappe.db.sql_ddl(f"ALTER TABLE `tab{doctype}` DROP COLUMN `paying_account`")
 
 
 def after_migrate():
 	"""
-	0. Backfill legacy `paying_account` → `paid_from` on Expense and Commission Payout.
-	1. Inject NBS selling items into the Selling sidebar.
-	2. Inject NBS expense group into both Accounting and Invoicing sidebars.
+	1. Drop leftover legacy `paying_account` columns.
+	2. Inject NBS selling items into the Selling sidebar.
+	3. Inject NBS expense group into both Accounting and Invoicing sidebars.
 	Idempotent — only writes when a change is actually needed.
 	"""
 
-	# ── Expense / Commission Payout paying account backfill ────────────────
-	backfill_expense_paid_from()
-	backfill_commission_payout_paid_from()
+	drop_paying_account_columns()
 
 	# ── Selling sidebar ──────────────────────────────────────────────────────
 	if frappe.db.exists("Workspace Sidebar", "Selling"):
