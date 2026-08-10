@@ -63,6 +63,7 @@ function open_bulk_expense_dialog(listview) {
 		const dialog = new frappe.ui.Dialog({
 			title: __("Add Multiple Expenses"),
 			size: "extra-large",
+			static: 1,
 			fields: [
 				{ fieldtype: "HTML", fieldname: "expense_table_html" },
 				{ fieldtype: "Section Break" },
@@ -82,6 +83,7 @@ function open_bulk_expense_dialog(listview) {
 
 		build_expense_table(dialog, categories, company);
 		dialog.show();
+		dialog.get_close_btn().show();
 	});
 }
 
