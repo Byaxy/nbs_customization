@@ -21,12 +21,19 @@ frappe.ui.form.on("Expense", {
 			},
 		}));
 		frm.set_query("purchase_invoice", () => ({
+			query: "nbs_customization.nbs_customization.doctype.expense.expense.get_purchase_invoices_search",
 			filters: {
-				docstatus: 1,
 				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
-				status: ["not in", ["Paid", "Cancelled"]],
 			},
 		}));
+		frm.set_query("expense_category", () => {
+			if (!frm.doc.is_accompanying) return {};
+			return {
+				filters: {
+					is_accompanying_expense: 1,
+				},
+			};
+		});
 		frm.set_query("linked_purchase", () => ({
 			filters: {
 				docstatus: 1,

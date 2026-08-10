@@ -228,6 +228,14 @@ function add_expense_row(wrapper, categories, company) {
 		options: "Expense Category",
 		reqd: 1,
 		placeholder: __("Search Category"),
+		get_query() {
+			if (!row.find(".exp-accompanying").is(":checked")) return {};
+			return {
+				filters: {
+					is_accompanying_expense: 1,
+				},
+			};
+		},
 	});
 
 	const mode_of_payment_control = make_link_control(row.find(".exp-mode-of-payment-control"), {
@@ -250,10 +258,9 @@ function add_expense_row(wrapper, categories, company) {
 		placeholder: __("Search Purchase Invoice"),
 		get_query() {
 			return {
+				query: "nbs_customization.nbs_customization.doctype.expense.expense.get_purchase_invoices_search",
 				filters: {
-					docstatus: 1,
 					company: company,
-					status: ["not in", ["Paid", "Cancelled"]],
 				},
 			};
 		},

@@ -445,6 +445,44 @@ def get_invoice_details(purchase_invoice):
 
 
 @frappe.whitelist()
+def get_purchase_invoices_search(doctype, txt, searchfield, start, page_len, filters):
+	"""
+	Custom Link-search for the Purchase Invoice field on the Expense form.
+	Shows invoice no, supplier, grand total, outstanding amount and posting date
+	in the dropdown, and excludes already-paid/cancelled invoices.
+	"""
+	company = (filters or {}).get("company")
+
+	return frappe.db.sql(
+		"""
+		SELECT
+			pi.name,
+			pi.supplier_name,
+			pi.grand_total,
+			pi.outstanding_amount,
+			pi.posting_date
+		FROM `tabPurchase Invoice` pi
+		WHERE pi.docstatus = 1
+			AND pi.status NOT IN ('Paid', 'Cancelled')
+			AND (%(company)s IS NULL OR pi.company = %(company)s)
+			AND (
+				pi.name LIKE %(txt)s
+				OR IFNULL(pi.supplier_name, '') LIKE %(txt)s
+				OR IFNULL(pi.bill_no, '') LIKE %(txt)s
+			)
+		ORDER BY pi.posting_date DESC, pi.name DESC
+		LIMIT %(page_len)s OFFSET %(start)s
+		""",
+		{
+			"company": company,
+			"txt": f"%{txt}%",
+			"page_len": page_len,
+			"start": start,
+		},
+	)
+
+
+@frappe.whitelist()
 def get_payment_method_account(mode_of_payment, company):
 	"""
 	Resolves the default Cash/Bank account for a Mode of Payment and Company,
