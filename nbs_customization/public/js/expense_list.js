@@ -177,8 +177,7 @@ function add_expense_row(wrapper, categories, company) {
 					placeholder="${__("Chq / Bank Ref")}">
 			</td>
 			<td>
-				<input type="date" class="form-control form-control-sm exp-reference-date"
-					value="${today}">
+				<input type="date" class="form-control form-control-sm exp-reference-date">
 			</td>
 			<!-- Payee -->
 			<td>
