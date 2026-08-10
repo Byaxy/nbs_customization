@@ -49,6 +49,10 @@ frappe.ui.form.on("Expense", {
 		toggle_reference_required(frm);
 	},
 
+	on_submit(frm) {
+		frappe.set_route("List", "Expense");
+	},
+
 	// ---------------------------------------------------------------- //
 	// Field events                                                       //
 	// ---------------------------------------------------------------- //
