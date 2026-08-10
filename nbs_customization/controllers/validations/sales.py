@@ -1,5 +1,6 @@
 import frappe
 
+
 def validate_unique_items(doc, method=None):
      seen_items = set()
 
@@ -11,3 +12,9 @@ def validate_unique_items(doc, method=None):
                )
 
           seen_items.add(row.item_code)
+
+
+def prepare_quotation_test_record(doc, method=None):
+     """Test records built by the framework skip the app's mandatory RFQ number."""
+     if not doc.custom_request_for_quotation_number:
+          doc.custom_request_for_quotation_number = "TEST-RFQ-0001"

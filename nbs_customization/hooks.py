@@ -300,6 +300,7 @@ fixtures = [
                     "Stock Entry-custom_is_loan",
                     "Purchase Receipt-custom_inbound_shipment",
                     "Landed Cost Voucher-custom_linked_shipment",
+                    "Landed Cost Voucher-custom_linked_purchase_order",
                     "Sales Invoice-custom_is_commission_applied",
                     "Stock Reconciliation Item-custom_description",
                     "Purchase Receipt-custom_purchase_order",
@@ -334,7 +335,8 @@ doctype_list_js = {
 
 doc_events = {
     "Quotation": {
-        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
+        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
+        "before_test_insert": "nbs_customization.controllers.validations.sales.prepare_quotation_test_record",
     },
     "Sales Order": {
         "validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
