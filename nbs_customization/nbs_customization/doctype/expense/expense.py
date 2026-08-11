@@ -515,6 +515,42 @@ def get_purchase_invoices_search(doctype, txt, searchfield, start, page_len, fil
 
 
 @frappe.whitelist()
+def get_purchase_orders_search(doctype, txt, searchfield, start, page_len, filters):
+	"""
+	Custom Link-search for the Linked Purchase Order field on the Expense form.
+	Shows order no, supplier, grand total and transaction date, and excludes
+	cancelled orders.
+	"""
+	company = (filters or {}).get("company")
+
+	return frappe.db.sql(
+		"""
+		SELECT
+			po.name,
+			po.supplier_name,
+			po.grand_total,
+			po.transaction_date
+		FROM `tabPurchase Order` po
+		WHERE po.docstatus = 1
+			AND po.status != 'Cancelled'
+			AND (%(company)s IS NULL OR po.company = %(company)s)
+			AND (
+				po.name LIKE %(txt)s
+				OR IFNULL(po.supplier_name, '') LIKE %(txt)s
+			)
+		ORDER BY po.transaction_date DESC, po.name DESC
+		LIMIT %(page_len)s OFFSET %(start)s
+		""",
+		{
+			"company": company,
+			"txt": f"%{txt}%",
+			"page_len": page_len,
+			"start": start,
+		},
+	)
+
+
+@frappe.whitelist()
 def get_payment_method_account(mode_of_payment, company):
 	"""
 	Resolves the default Cash/Bank account for a Mode of Payment and Company,

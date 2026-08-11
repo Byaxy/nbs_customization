@@ -41,8 +41,8 @@ frappe.ui.form.on("Expense", {
 			},
 		}));
 		frm.set_query("linked_purchase_order", () => ({
+			query: "nbs_customization.nbs_customization.doctype.expense.expense.get_purchase_orders_search",
 			filters: {
-				docstatus: 1,
 				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
 			},
 		}));

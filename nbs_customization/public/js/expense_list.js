@@ -272,7 +272,12 @@ function add_expense_row(wrapper, categories, company) {
 		options: "Purchase Order",
 		placeholder: __("Search Purchase Order"),
 		get_query() {
-			return { filters: { docstatus: 1, company: company } };
+			return {
+				query: "nbs_customization.nbs_customization.doctype.expense.expense.get_purchase_orders_search",
+				filters: {
+					company: company,
+				},
+			};
 		},
 	});
 	set_control_enabled(po_control, false);
