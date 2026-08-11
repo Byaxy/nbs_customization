@@ -1,18 +1,17 @@
 import frappe
-from frappe import _
 
 # Capture originals at module import time — before any override swap can occur.
 # If captured inside a function body, the swap (_qr.run = run) would already be
 # in effect, making _original_run point back to our own function → recursion.
 import frappe.desk.query_report as _qr_module
-from frappe.desk.query_report import run as _ORIGINAL_RUN
+from frappe import _
 from frappe.desk.query_report import export_query as _ORIGINAL_EXPORT_QUERY
-
+from frappe.desk.query_report import run as _ORIGINAL_RUN
 
 REPORT_CONFIG = {
 	"Stock Balance": {
 		"remove_columns": ["item_name"],
-		"enrich_description": True,   # report SQL doesn't SELECT description
+		"enrich_description": True,  # report SQL doesn't SELECT description
 	},
 	"Stock Ledger": {
 		"remove_columns": ["item_name"],
@@ -20,12 +19,12 @@ REPORT_CONFIG = {
 	},
 	"Batch Item Expiry Status": {
 		"remove_columns": ["item_name"],
-		"enrich_description": True,   # report SQL doesn't SELECT description
+		"enrich_description": True,  # report SQL doesn't SELECT description
 		"item_code_field": "product",  # column fieldname is "product", not "item"
 	},
 	"Item Price Stock": {
 		"remove_columns": ["item_name"],
-		"enrich_description": True,   # report SQL doesn't SELECT description
+		"enrich_description": True,  # report SQL doesn't SELECT description
 	},
 	"Batch-Wise Balance History": {
 		"remove_columns": ["item_name"],
@@ -35,6 +34,10 @@ REPORT_CONFIG = {
 	},
 	"Stock Ageing": {
 		"remove_columns": ["item_name"],
+	},
+	"General Ledger": {
+		"move_columns_after": {"party_name": "account"},
+		"reverse_runs_with_field": "posting_date",  # show newest entries first by default
 	},
 }
 
@@ -133,6 +136,7 @@ def export_query():
 # Core transformation — shared between run() and (indirectly) export_query()
 # ---------------------------------------------------------------------------
 
+
 def _apply_column_customizations(report_name: str, result: dict, config: dict) -> dict:
 	columns = result.get("columns") or []
 	data = result.get("result") or []
@@ -146,18 +150,26 @@ def _apply_column_customizations(report_name: str, result: dict, config: dict) -
 		_enrich_rows_with_description(data, item_code_field=config.get("item_code_field", "item_code"))
 	# Reports that already SELECT description (e.g. Stock Ledger) just need the
 	# column repositioned below — the data rows already carry the value.
-
-	# Use the same field name for column positioning as for data enrichment
-	item_code_col_field = config.get("item_code_field", "item_code")
-	if any(c.get("fieldname") == "description" for c in columns):
-		# Already in columns (e.g. Stock Ledger): move to position after item code field
-		columns = _move_column_after(columns, "description", item_code_col_field)
-	else:
-		# Not in columns (e.g. Stock Balance): insert after item code field
-		columns = _insert_column_after(columns, DESCRIPTION_COLUMN, item_code_col_field)
+	# Skip reports that neither enrich nor already carry a description column.
+	has_description_col = any(c.get("fieldname") == "description" for c in columns)
+	if config.get("enrich_description") or has_description_col:
+		# Use the same field name for column positioning as for data enrichment
+		item_code_col_field = config.get("item_code_field", "item_code")
+		if has_description_col:
+			# Already in columns (e.g. Stock Ledger): move to position after item code field
+			columns = _move_column_after(columns, "description", item_code_col_field)
+		else:
+			# Not in columns (e.g. Stock Balance): insert after item code field
+			columns = _insert_column_after(columns, DESCRIPTION_COLUMN, item_code_col_field)
 
 	for fieldname in config.get("remove_columns", []):
 		columns = [c for c in columns if c.get("fieldname") != fieldname]
+
+	for fieldname, after_fieldname in (config.get("move_columns_after") or {}).items():
+		columns = _move_column_after(columns, fieldname, after_fieldname)
+
+	if reverse_field := config.get("reverse_runs_with_field"):
+		_reverse_dated_runs(data, reverse_field)
 
 	result["columns"] = columns
 	result["result"] = data
@@ -167,6 +179,7 @@ def _apply_column_customizations(report_name: str, result: dict, config: dict) -
 # ---------------------------------------------------------------------------
 # Data enrichment (Stock Balance only)
 # ---------------------------------------------------------------------------
+
 
 def _rows_have_field(data: list, fieldname: str) -> bool:
 	for row in data:
@@ -180,11 +193,7 @@ def _enrich_rows_with_description(data: list, item_code_field: str = "item_code"
 		return
 
 	item_codes = list(
-		{
-			row.get(item_code_field)
-			for row in data
-			if isinstance(row, dict) and row.get(item_code_field)
-		}
+		{row.get(item_code_field) for row in data if isinstance(row, dict) and row.get(item_code_field)}
 	)
 	if not item_codes:
 		return
@@ -210,8 +219,30 @@ def _enrich_rows_with_description(data: list, item_code_field: str = "item_code"
 
 
 # ---------------------------------------------------------------------------
+# Row ordering utilities
+# ---------------------------------------------------------------------------
+
+
+def _reverse_dated_runs(data: list, fieldname: str) -> None:
+	"""Reverse each maximal run of rows that carry a value in `fieldname`, in place.
+
+	Keeps marker rows (e.g. GL Opening / Total / Closing with no posting_date) in
+	place while flipping the transaction rows between them to descending order.
+	"""
+	run_start = None
+	for idx, row in enumerate([*data, {}]):
+		has_value = bool(isinstance(row, dict) and row.get(fieldname))
+		if has_value and run_start is None:
+			run_start = idx
+		elif not has_value and run_start is not None:
+			data[run_start:idx] = reversed(data[run_start:idx])
+			run_start = None
+
+
+# ---------------------------------------------------------------------------
 # Column utilities
 # ---------------------------------------------------------------------------
+
 
 def _insert_column_after(columns: list[dict], new_col: dict, after_fieldname: str) -> list[dict]:
 	"""Insert new_col immediately after the column with fieldname == after_fieldname."""
