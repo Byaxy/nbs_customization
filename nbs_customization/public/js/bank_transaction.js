@@ -18,7 +18,7 @@ function clear_cheque_dialog(frm) {
 					`${frm.doc.currency || ""} \u00b7 ${c.reference_no || __("no ref")} \u00b7 ${c.posting_date}`,
 			}));
 
-			let d = new frappe.ui.form.Dialog({
+			let d = new frappe.ui.Dialog({
 				title: __("Clear Cheque against Bank Transaction"),
 				fields: [
 					{

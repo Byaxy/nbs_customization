@@ -109,7 +109,7 @@ function add_check_clearing_buttons(frm) {
 }
 
 function clearing_dialog(frm) {
-	let d = new frappe.ui.form.Dialog({
+	let d = new frappe.ui.Dialog({
 		title: __("Mark Check Cleared"),
 		fields: [
 			{

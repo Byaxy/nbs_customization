@@ -262,7 +262,7 @@ class TestCheckClearing(IntegrationTestCase):
 		self.assertEqual(_account_balance(bank_gl.name, res["journal_entry"]), 1000)
 
 	def test_cheques_in_transit_report(self):
-		from nbs_customization.report.cheques_in_transit.cheques_in_transit import execute
+		from nbs_customization.nbs_customization.report.cheques_in_transit.cheques_in_transit import execute
 
 		pe = _make_check_pe("Receive", reference_no="REPORT-001")
 		_columns, data = execute(filters={"company": COMPANY})
