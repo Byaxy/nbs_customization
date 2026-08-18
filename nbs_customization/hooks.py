@@ -33,6 +33,8 @@ app_include_js = [
     "/assets/nbs_customization/js/nbs_theme.js",
     "/assets/nbs_customization/js/list_view_row_number.js",
     "/assets/nbs_customization/js/report_row_number.js",
+    "/assets/nbs_customization/js/payment_entry.js",
+    "/assets/nbs_customization/js/bank_transaction.js",
 ]
 
 # include js, css files in header of web template
@@ -308,7 +310,19 @@ fixtures = [
                     "Purchase Invoice-custom_purchase_order",
                     "Delivery Note-custom_sales_order",
                     "Batch-custom_batch_no",
-                    "Payment Entry-custom_receipt"
+                    "Payment Entry-custom_receipt",
+                    "Mode of Payment-is_check",
+                    "Mode of Payment-clearing_account_inward",
+                    "Mode of Payment-clearing_account_outward",
+                    "Mode of Payment-default_clearing_destination",
+                    "Payment Entry-is_check",
+                    "Payment Entry-clearing_destination_account",
+                    "Payment Entry-check_cleared",
+                    "Payment Entry-check_clearing_date",
+                    "Payment Entry-check_cleared_source",
+                    "Payment Entry-clearing_journal_entry",
+                    "Payment Entry-check_returned",
+                    "Payment Entry-check_return_date",
                 ]
             ]
         ]
@@ -327,6 +341,7 @@ doctype_js = {
     "Sales Invoice": "public/js/sales_invoice.js",
     "Batch": "public/js/batch.js",
     "Payment Entry": "public/js/payment_entry.js",
+    "Bank Transaction": "public/js/bank_transaction.js",
 }
 
 doctype_list_js = {
@@ -385,6 +400,9 @@ doc_events = {
     },
     "Batch": {
         "before_insert": "nbs_customization.controllers.batch.before_insert",
+    },
+    "Payment Entry": {
+        "validate": "nbs_customization.controllers.payment_entry.validate_check_payment_entry",
     },
     "Print Format": {
         "validate": "nbs_customization.print_designer.fix_layout_sort.validate_print_format",

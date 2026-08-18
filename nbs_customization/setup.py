@@ -225,11 +225,88 @@ def drop_paying_account_columns():
 			frappe.db.sql_ddl(f"ALTER TABLE `tab{doctype}` DROP COLUMN `paying_account`")
 
 
+# ── Cheque clearing setup (:idempotent:) ────────────────────────────────────────
+
+
+def _find_group(company, options):
+	"""Return the first existing group account among `options` for `company`."""
+	for name in options:
+		if frappe.db.exists("Account", {"company": company, "account_name": name, "is_group": 1}):
+			return frappe.db.get_value(
+				"Account", {"company": company, "account_name": name, "is_group": 1}, "name"
+			)
+	return None
+
+
+def _ensure_account(company, account_name, parent_account, root_type):
+	if frappe.db.exists("Account", {"company": company, "account_name": account_name}):
+		return frappe.db.get_value("Account", {"company": company, "account_name": account_name}, "name")
+
+	acc = frappe.get_doc(
+		{
+			"doctype": "Account",
+			"account_name": account_name,
+			"parent_account": parent_account,
+			"root_type": root_type,
+			"is_group": 0,
+			"company": company,
+			"account_currency": frappe.get_cached_value("Company", company, "default_currency"),
+		}
+	)
+	acc.insert(ignore_permissions=True)
+	return acc.name
+
+
+def _account_for(company, account_name):
+	return frappe.db.get_value("Account", {"company": company, "account_name": account_name}, "name")
+
+
+def _ensure_check_clearing_setup():
+	"""
+	Idempotent: create the two cheque clearing accounts per company and the
+	single 'Check' Mode of Payment wired to them. Clearing accounts carry no
+	account_type so they stay out of the standard Bank/Cash account pickers.
+	"""
+	company_to_accounts = {}
+	for company in frappe.get_all("Company", pluck="name"):
+		assets = _find_group(company, ["Current Assets", "Assets"])
+		liabilities = _find_group(company, ["Current Liabilities", "Liabilities"])
+		if not assets or not liabilities:
+			continue
+		inward = _ensure_account(company, "Cheques in Transit - Inward", assets, "Asset")
+		outward = _ensure_account(company, "Cheques in Transit - Outward", liabilities, "Liability")
+		company_to_accounts[company] = {"inward": inward, "outward": outward}
+
+	if not company_to_accounts:
+		return
+
+	if not frappe.db.exists("Mode of Payment", "Check"):
+		mop = frappe.get_doc({"doctype": "Mode of Payment", "mode_of_payment": "Check", "enabled": 1})
+		for company, accounts in company_to_accounts.items():
+			mop.append("accounts", {"company": company, "default_account": accounts["inward"]})
+		mop.insert(ignore_permissions=True)
+	else:
+		mop = frappe.get_doc("Mode of Payment", "Check")
+
+	company = next(iter(company_to_accounts))
+	accounts = company_to_accounts[company]
+	mop.is_check = 1
+	mop.clearing_account_inward = accounts["inward"]
+	mop.clearing_account_outward = accounts["outward"]
+	if not mop.default_clearing_destination:
+		mop.default_clearing_destination = frappe.get_cached_value(
+			"Company", company, "default_bank_account"
+		)
+	mop.flags.ignore_permissions = True
+	mop.save()
+
+
 def after_migrate():
 	"""
 	1. Drop leftover legacy `paying_account` columns.
 	2. Inject NBS selling items into the Selling sidebar.
 	3. Inject NBS expense group into both Accounting and Invoicing sidebars.
+	4. Create cheque clearing accounts + the Check Mode of Payment.
 	Idempotent — only writes when a change is actually needed.
 	"""
 
@@ -272,6 +349,9 @@ def after_migrate():
 
 	# ── Invoicing sidebar (v16 experimental) ────────────────────────────────
 	_inject_expense_items("Invoicing")
+
+	# ── Cheque clearing accounts + Check mode of payment ────────────────────
+	_ensure_check_clearing_setup()
 
 	# ── Placement Fee Items (PAUSED — revenue share / placement WIP) ─────
 	# Re-enable when the placement module is ready for production.
