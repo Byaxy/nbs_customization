@@ -91,6 +91,23 @@ NBS_EXPENSE_EXPECTED = {item["label"]: item for item in NBS_EXPENSE_SIDEBAR_ITEM
 # The anchor — inject after this item in both Accounting and Invoicing
 EXPENSE_ANCHOR = "Repost Payment Ledger"
 
+# ─── Daily Income & Expense dashboard link ────────────────────────────────────
+
+NBS_DASHBOARD_SIDEBAR_ITEMS = [
+	{
+		"label": "Daily Income & Expense",
+		"type": "Link",
+		"icon": "bar-chart",
+		"link_to": "daily_income_expense",
+		"link_type": "Page",
+		"child": 0,
+		"indent": 0,
+		"collapsible": 1,
+		"keep_closed": 0,
+		"open_in_new_tab": 0,
+	},
+]
+
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -191,6 +208,47 @@ def _inject_expense_items(sidebar_name):
 		new_items.append(new_row)
 
 	new_items += sidebar.items[insert_idx:]
+	sidebar.items = new_items
+
+	for i, row in enumerate(sidebar.items):
+		row.idx = i + 1
+
+	sidebar.flags.ignore_permissions = True
+	sidebar.flags.ignore_links = True
+	sidebar.save()
+	frappe.db.commit()
+
+
+def _inject_dashboard_item(sidebar_name):
+	"""
+	Injects the 'Daily Income & Expense' page link into the given
+	Workspace Sidebar, right after the NBS Expenses group. Idempotent.
+	"""
+	if not frappe.db.exists("Workspace Sidebar", sidebar_name):
+		return
+
+	sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
+
+	if any(row.label == NBS_DASHBOARD_SIDEBAR_ITEMS[0]["label"] for row in sidebar.items):
+		return
+
+	sidebar.items = [row for row in sidebar.items if row.label != NBS_DASHBOARD_SIDEBAR_ITEMS[0]["label"]]
+
+	insert_idx = next(
+		(i + 1 for i in reversed(range(len(sidebar.items))) if sidebar.items[i].label == "Expense"),
+		next(
+			(i + 1 for i, row in enumerate(sidebar.items) if row.label == EXPENSE_ANCHOR),
+			len(sidebar.items),
+		),
+	)
+
+	new_row = frappe.new_doc("Workspace Sidebar Item")
+	new_row.update(NBS_DASHBOARD_SIDEBAR_ITEMS[0])
+	new_row.parent = sidebar_name
+	new_row.parenttype = "Workspace Sidebar"
+	new_row.parentfield = "items"
+
+	new_items = [*sidebar.items[:insert_idx], new_row, *sidebar.items[insert_idx:]]
 	sidebar.items = new_items
 
 	for i, row in enumerate(sidebar.items):
@@ -349,6 +407,10 @@ def after_migrate():
 
 	# ── Invoicing sidebar (v16 experimental) ────────────────────────────────
 	_inject_expense_items("Invoicing")
+
+	# ── Daily Income & Expense dashboard link ────────────────────────────────
+	_inject_dashboard_item("Accounting")
+	_inject_dashboard_item("Invoicing")
 
 	# ── Cheque clearing accounts + Check mode of payment ────────────────────
 	_ensure_check_clearing_setup()

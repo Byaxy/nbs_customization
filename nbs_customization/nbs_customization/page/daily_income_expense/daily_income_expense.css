@@ -1,0 +1,98 @@
+.daily-ie-filters {
+	display: flex;
+	gap: 16px;
+	align-items: flex-end;
+	margin-top: 16px;
+	margin-bottom: 24px;
+}
+
+.daily-ie-filter {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	min-width: 220px;
+}
+
+.daily-ie-filter .frappe-control {
+	margin-bottom: 0;
+}
+
+.daily-ie-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	margin-bottom: 28px;
+}
+
+.daily-ie-card {
+	flex: 1 1 200px;
+	min-width: 200px;
+	padding: 16px;
+	border: 1px solid var(--border-color, #d1d8dd);
+	border-left-width: 4px;
+	border-radius: 8px;
+	background: var(--control-bg, #f4f5f6);
+}
+
+.daily-ie-card-label {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-muted, #8d99a6);
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	margin-bottom: 8px;
+}
+
+.daily-ie-card-value {
+	font-size: 1.6rem;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.daily-ie-cash {
+	color: var(--nbs-table-header-bg, #001b52);
+}
+
+.daily-ie-section {
+	margin-bottom: 28px;
+}
+
+.daily-ie-section h3 {
+	font-size: 1.05rem;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+
+.daily-ie-table-wrap {
+	border: 1px solid var(--border-color, #d1d8dd);
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--bg-color, #ffffff);
+}
+
+.daily-ie-table {
+	margin-bottom: 0;
+}
+
+.daily-ie-table thead th {
+	padding: 8px 16px !important;
+	white-space: nowrap;
+}
+
+.daily-ie-table tbody td {
+	padding: 8px 16px;
+}
+
+.daily-ie-table tbody tr {
+	cursor: default;
+}
+
+.daily-ie-table tbody tr:hover {
+	cursor: default;
+}
+
+.daily-ie-total td {
+	font-weight: 700;
+	background: var(--control-bg, #f4f5f6) !important;
+	border-top: 2px solid var(--nbs-table-header-bg, #001b52) !important;
+}
