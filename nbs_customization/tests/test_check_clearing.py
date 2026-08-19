@@ -280,3 +280,15 @@ class TestCheckClearing(IntegrationTestCase):
 		row = next((r for r in data if r["name"] == pe.name), None)
 		self.assertIsNotNone(row)
 		self.assertEqual(row["check_cleared"], 1)
+
+	def test_clearing_accounts_under_receivable_payable_groups(self):
+		from nbs_customization.setup import _account_for
+
+		inward = _account_for(COMPANY, "Cheques in Transit - Inward")
+		outward = _account_for(COMPANY, "Cheques in Transit - Outward")
+		self.assertEqual(
+			frappe.db.get_value("Account", inward, "parent_account"), "Accounts Receivable - _TC"
+		)
+		self.assertEqual(
+			frappe.db.get_value("Account", outward, "parent_account"), "Accounts Payable - _TC"
+		)

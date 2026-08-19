@@ -297,8 +297,14 @@ def _find_group(company, options):
 
 
 def _ensure_account(company, account_name, parent_account, root_type):
-	if frappe.db.exists("Account", {"company": company, "account_name": account_name}):
-		return frappe.db.get_value("Account", {"company": company, "account_name": account_name}, "name")
+	existing = frappe.db.get_value("Account", {"company": company, "account_name": account_name}, "name")
+	if existing:
+		if frappe.db.get_value("Account", existing, "parent_account") != parent_account:
+			acc = frappe.get_doc("Account", existing)
+			acc.parent_account = parent_account
+			acc.flags.ignore_permissions = True
+			acc.save()
+		return existing
 
 	acc = frappe.get_doc(
 		{
@@ -319,20 +325,42 @@ def _account_for(company, account_name):
 	return frappe.db.get_value("Account", {"company": company, "account_name": account_name}, "name")
 
 
+def _receivable_payable_groups(company):
+	"""Return the (receivable, payable) group account names for `company`.
+
+	Resolves the group accounts from the company's default receivable/payable
+	accounts (their parents), falling back to the standard chart names.
+	"""
+	receivable = payable = None
+	default_receivable = frappe.get_cached_value("Company", company, "default_receivable_account")
+	default_payable = frappe.get_cached_value("Company", company, "default_payable_account")
+	if default_receivable:
+		receivable = frappe.db.get_value("Account", default_receivable, "parent_account")
+	if default_payable:
+		payable = frappe.db.get_value("Account", default_payable, "parent_account")
+	receivable = receivable or _find_group(company, ["Accounts Receivable", "Debtors"])
+	payable = payable or _find_group(company, ["Accounts Payable", "Creditors"])
+	return receivable, payable
+
+
 def _ensure_check_clearing_setup():
 	"""
 	Idempotent: create the two cheque clearing accounts per company and the
 	single 'Check' Mode of Payment wired to them. Clearing accounts carry no
 	account_type so they stay out of the standard Bank/Cash account pickers.
+	The inward (asset) account nests under Accounts Receivable and the outward
+	(liability) account under Accounts Payable.
 	"""
 	company_to_accounts = {}
 	for company in frappe.get_all("Company", pluck="name"):
-		assets = _find_group(company, ["Current Assets", "Assets"])
-		liabilities = _find_group(company, ["Current Liabilities", "Liabilities"])
-		if not assets or not liabilities:
+		receivable, payable = _receivable_payable_groups(company)
+		if not receivable or not payable:
+			receivable = receivable or _find_group(company, ["Current Assets", "Assets"])
+			payable = payable or _find_group(company, ["Current Liabilities", "Liabilities"])
+		if not receivable or not payable:
 			continue
-		inward = _ensure_account(company, "Cheques in Transit - Inward", assets, "Asset")
-		outward = _ensure_account(company, "Cheques in Transit - Outward", liabilities, "Liability")
+		inward = _ensure_account(company, "Cheques in Transit - Inward", receivable, "Asset")
+		outward = _ensure_account(company, "Cheques in Transit - Outward", payable, "Liability")
 		company_to_accounts[company] = {"inward": inward, "outward": outward}
 
 	if not company_to_accounts:
@@ -352,9 +380,7 @@ def _ensure_check_clearing_setup():
 	mop.clearing_account_inward = accounts["inward"]
 	mop.clearing_account_outward = accounts["outward"]
 	if not mop.default_clearing_destination:
-		mop.default_clearing_destination = frappe.get_cached_value(
-			"Company", company, "default_bank_account"
-		)
+		mop.default_clearing_destination = frappe.get_cached_value("Company", company, "default_bank_account")
 	mop.flags.ignore_permissions = True
 	mop.save()
 
