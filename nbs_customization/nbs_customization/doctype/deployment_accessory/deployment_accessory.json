@@ -1,0 +1,84 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-07-16 09:51:34.080048",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "description",
+  "section_break_wize",
+  "qty",
+  "column_break_dbts",
+  "serial_batch_no",
+  "section_break_ugyi",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "PID",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.description",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "serial_batch_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Serial / Batch No"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "section_break_wize",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_dbts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_ugyi",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-16 09:56:27.989214",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Deployment Accessory",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

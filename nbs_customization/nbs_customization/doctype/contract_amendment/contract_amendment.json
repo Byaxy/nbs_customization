@@ -1,0 +1,270 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-16 12:49:52.931008",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "contract",
+  "effective_date",
+  "column_break_vlka",
+  "contract_type",
+  "amendment_date",
+  "reason",
+  "terms_being_changed_section",
+  "previous_declared_volume",
+  "previous_min_value",
+  "previous_share_pct",
+  "new_pricing_worksheet",
+  "column_break_kryc",
+  "new_declared_volume",
+  "new_min_value",
+  "new_share_pct",
+  "financial_snapshot_at_time_of_amendment_section",
+  "original_recovery_target",
+  "new_recovery_target",
+  "column_break_ofis",
+  "cumulative_collected_at_amendment",
+  "outstanding_at_amendment",
+  "approval_section",
+  "approved_by",
+  "customer_signed_amendment",
+  "status",
+  "section_break_emca",
+  "notes",
+  "section_break_uhrb",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_uhrb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Contract Amendment",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Series",
+   "options": "NBSCAM-.YYYY./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contract",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Contract",
+   "options": "Instrument Placement Contract",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_vlka",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "contract.contract_type",
+   "fieldname": "contract_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contract Type",
+   "read_only": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "amendment_date",
+   "fieldtype": "Date",
+   "label": "Amendment Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "effective_date",
+   "fieldtype": "Date",
+   "label": "Effective Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Select",
+   "label": "Reason",
+   "options": "Customer Volume Change Request\nPricing Adjustment\nTerm Extension\nAnalyzer Upgrade\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "terms_being_changed_section",
+   "fieldtype": "Section Break",
+   "label": "Terms Being Changed"
+  },
+  {
+   "fieldname": "previous_declared_volume",
+   "fieldtype": "Int",
+   "label": "Previous Declared Monthly Test Volume",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_kryc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "new_declared_volume",
+   "fieldtype": "Int",
+   "label": "New Declared Monthly Test Volume",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:[\"RRA\",\"RLO\"].includes(doc.contract_type);",
+   "fetch_from": "contract.min_monthly_value",
+   "fetch_if_empty": 1,
+   "fieldname": "previous_min_value",
+   "fieldtype": "Currency",
+   "label": "Previous Minimum Monthly Purchase Value",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:[\"RRA\",\"RLO\"].includes(doc.contract_type);",
+   "fieldname": "new_min_value",
+   "fieldtype": "Currency",
+   "label": "New Minimum Monthly Purchase Value",
+   "non_negative": 1
+  },
+  {
+   "depends_on": "eval:doc.contract_type==\"CPT\";",
+   "fetch_from": "contract.revenue_share_pct",
+   "fetch_if_empty": 1,
+   "fieldname": "previous_share_pct",
+   "fieldtype": "Percent",
+   "label": "Previous Revenue Share %",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.contract_type==\"CPT\";",
+   "fieldname": "new_share_pct",
+   "fieldtype": "Percent",
+   "label": "New Revenue Share %",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "new_pricing_worksheet",
+   "fieldtype": "Link",
+   "label": "Recalculated Pricing Worksheet",
+   "options": "Instrument Pricing Worksheet"
+  },
+  {
+   "fieldname": "financial_snapshot_at_time_of_amendment_section",
+   "fieldtype": "Section Break",
+   "label": "Financial Snapshot at Time of Amendment"
+  },
+  {
+   "fetch_from": "contract.total_recovery_target",
+   "fetch_if_empty": 1,
+   "fieldname": "original_recovery_target",
+   "fieldtype": "Currency",
+   "label": "Total Recovery Target (Original)"
+  },
+  {
+   "fieldname": "column_break_ofis",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "contract.cumulative_collected",
+   "fetch_if_empty": 1,
+   "fieldname": "cumulative_collected_at_amendment",
+   "fieldtype": "Currency",
+   "label": "Cumulative Collected at Amendment Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.outstanding_on_contract",
+   "fetch_if_empty": 1,
+   "fieldname": "outstanding_at_amendment",
+   "fieldtype": "Currency",
+   "label": "Outstanding at Amendment Date",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "new_pricing_worksheet.final_revenue_target",
+   "fieldname": "new_recovery_target",
+   "fieldtype": "Currency",
+   "label": "New Recovery Target (If Changed)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approval_section",
+   "fieldtype": "Section Break",
+   "label": "Approval"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "customer_signed_amendment",
+   "fieldtype": "Attach",
+   "label": "Customer Signed Amendment"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nPending Customer Signature\nApproved\nEffective"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "section_break_emca",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-17 00:52:51.201313",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Contract Amendment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

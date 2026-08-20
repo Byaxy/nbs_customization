@@ -1,0 +1,300 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "autoname": "RSS-{contract}-{period}",
+ "creation": "2026-07-16 11:54:17.685087",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "contract",
+  "customer",
+  "customer_name",
+  "period_start",
+  "period_end",
+  "status",
+  "column_break_okfr",
+  "contract_type",
+  "active_amendment",
+  "asset",
+  "period",
+   "calculation_section",
+   "declared_volume",
+   "revenue_share_pct",
+   "our_share_amount",
+   "kits_to_deliver",
+   "column_break_mmpm",
+   "fixed_monthly_gross_revenue",
+   "gross_revenue",
+  "customer_share_amount",
+  "recovery_tracking_section",
+  "invoiced_this_period",
+  "cumulative_invoiced",
+  "recovery_pct_collected",
+  "column_break_qqlc",
+  "collected_this_period",
+  "cumulative_collected",
+  "linked_documents_section",
+  "sales_invoice",
+  "column_break_lzlw",
+  "waybill_kit_dispatch",
+  "section_break_vtbz",
+  "notes",
+  "section_break_tbaz",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_tbaz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Revenue Share Statement",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "contract",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Contract",
+   "options": "Instrument Placement Contract",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_okfr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "contract.contract_type",
+   "fieldname": "contract_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contract Type",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.customer",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.asset",
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "label": "Asset",
+   "options": "Asset",
+   "read_only": 1
+  },
+  {
+   "description": "Format YYYY-MM",
+   "fieldname": "period",
+   "fieldtype": "Data",
+   "label": "Period",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "label": "Period Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "label": "Period End Date",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nGenerated\nInvoiced",
+   "reqd": 1
+  },
+  {
+   "fieldname": "calculation_section",
+   "fieldtype": "Section Break",
+   "label": "Calculation"
+  },
+  {
+   "fieldname": "declared_volume",
+   "fieldtype": "Int",
+   "label": "Declared Monthly Test Volume (This Period)",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mmpm",
+   "fieldtype": "Column Break"
+  },
+   {
+    "fetch_from": "contract.fixed_monthly_gross_revenue",
+    "fieldname": "fixed_monthly_gross_revenue",
+    "fieldtype": "Currency",
+    "label": "Fixed Monthly Gross Revenue (per contract)",
+    "read_only": 1
+   },
+  {
+   "fetch_from": "contract.revenue_share_pct",
+   "fieldname": "revenue_share_pct",
+   "fieldtype": "Percent",
+   "label": "Revenue Share %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gross_revenue",
+   "fieldtype": "Currency",
+   "label": "Gross Test Revenue",
+   "read_only": 1
+  },
+  {
+   "fieldname": "our_share_amount",
+   "fieldtype": "Currency",
+   "label": "Our Share Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_share_amount",
+   "fieldtype": "Currency",
+   "label": "Customer Share Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "kits_to_deliver",
+   "fieldtype": "Float",
+   "label": "Kits to Deliver This Period",
+   "read_only": 1
+  },
+  {
+   "fieldname": "recovery_tracking_section",
+   "fieldtype": "Section Break",
+   "label": "Recovery Tracking"
+  },
+  {
+   "fieldname": "invoiced_this_period",
+   "fieldtype": "Currency",
+   "label": "Amount Invoiced This Period",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_qqlc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "collected_this_period",
+   "fieldtype": "Currency",
+   "label": "Amount Collected This Period",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cumulative_invoiced",
+   "fieldtype": "Currency",
+   "label": "Cumulative Invoiced to Date",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cumulative_collected",
+   "fieldtype": "Currency",
+   "label": "Cumulative Collected to Date",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "recovery_pct_collected",
+   "fieldtype": "Percent",
+   "label": "Recovery Percentage (Collected)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "linked_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Linked Documents"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_lzlw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "waybill_kit_dispatch",
+   "fieldtype": "Link",
+   "label": "Waybill (Kit Dispatch)",
+   "options": "Delivery Note",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_vtbz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "active_amendment",
+   "fieldtype": "Link",
+   "label": "Active Amendment",
+   "options": "Contract Amendment",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-16 19:13:41.181595",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Revenue Share Statement",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

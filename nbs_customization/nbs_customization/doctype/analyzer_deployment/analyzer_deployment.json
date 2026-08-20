@@ -1,0 +1,335 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-16 09:57:27.784016",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "contract",
+  "analyzer_pid",
+  "analyzer_description",
+  "column_break_aavd",
+  "asset",
+  "asset_location",
+  "asset_storage_location",
+  "serial_no",
+  "section_break_aorc",
+  "customer",
+  "customer_name",
+  "column_break_wmjj",
+  "customer_site",
+  "section_break_bwkf",
+  "deployment_date",
+  "condition_at_deployment",
+  "deployment_status",
+  "column_break_edjh",
+  "installation_date",
+  "installed_by",
+  "accessories_and_acceptance_section",
+  "accessories_delivered",
+  "acceptance_signed",
+  "acceptance_date",
+  "acceptance_attachment",
+  "notes",
+  "service_schedule_tab",
+  "biomedical_engineer",
+  "next_service_due",
+  "column_break_bgav",
+  "service_interval_days",
+  "retrieval_tab",
+  "retrieval_date",
+  "condition_at_return",
+  "repossession_request",
+  "ownership_transfer_request",
+  "column_break_iurd",
+  "retrieval_reason",
+  "retrieved_by",
+  "section_break_gxvh",
+  "retrieval_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Series",
+   "options": "NBSAD-.YYYY./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contract",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Contract",
+   "options": "Instrument Placement Contract",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_aavd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Asset",
+   "options": "Asset",
+   "reqd": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_aorc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fetch_from": "contract.customer",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_wmjj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_site",
+   "fieldtype": "Link",
+   "label": "Customer Site",
+   "options": "Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "asset_location",
+   "fieldtype": "Link",
+   "label": "Asset Location",
+   "options": "Location",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_bwkf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "deployment_date",
+   "fieldtype": "Date",
+   "label": "Deployment Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_edjh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "installation_date",
+   "fieldtype": "Date",
+   "label": "Installation Date"
+  },
+  {
+   "fieldname": "condition_at_deployment",
+   "fieldtype": "Select",
+   "label": "Analyzer Condition at Deployment",
+   "options": "New\nRefurbished\nPreviously Deployed"
+  },
+  {
+   "default": "Deployed",
+   "fieldname": "deployment_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Deployment Status",
+   "options": "Deployed\nUnder Service\nTemporarily Retrieved\nPermanently Retrieved",
+   "reqd": 1
+  },
+  {
+   "fieldname": "installed_by",
+   "fieldtype": "Link",
+   "label": "Installed By",
+   "options": "User"
+  },
+  {
+   "fieldname": "accessories_and_acceptance_section",
+   "fieldtype": "Section Break",
+   "label": "Accessories and Acceptance"
+  },
+  {
+   "fieldname": "accessories_delivered",
+   "fieldtype": "Table",
+   "label": "Accessories Delivered",
+   "options": "Deployment Accessory"
+  },
+  {
+   "default": "0",
+   "fieldname": "acceptance_signed",
+   "fieldtype": "Check",
+   "label": "Customer Acceptance Signed"
+  },
+  {
+   "depends_on": "eval:doc.acceptance_signed==1;",
+   "fieldname": "acceptance_date",
+   "fieldtype": "Date",
+   "label": "Acceptance Date"
+  },
+  {
+   "fieldname": "acceptance_attachment",
+   "fieldtype": "Attach",
+   "label": "Acceptance Attachment"
+  },
+  {
+   "fieldname": "service_schedule_tab",
+   "fieldtype": "Tab Break",
+   "label": "Service Schedule"
+  },
+  {
+   "fieldname": "biomedical_engineer",
+   "fieldtype": "Link",
+   "label": "Assigned Biomedical Engineer",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_bgav",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "service_interval_days",
+   "fieldtype": "Int",
+   "label": "Service Interval (Days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "next_service_due",
+   "fieldtype": "Date",
+   "label": "Next Service Due",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:[\"Temporarily Retrieved\",\"Permanently Retrieved\"].includes(doc.deployment_status);",
+   "fieldname": "retrieval_tab",
+   "fieldtype": "Tab Break",
+   "label": "Retrieval"
+  },
+  {
+   "fieldname": "retrieval_date",
+   "fieldtype": "Date",
+   "label": "Retrieval Date"
+  },
+  {
+   "fieldname": "column_break_iurd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "retrieval_reason",
+   "fieldtype": "Select",
+   "label": "Retrieval Reason",
+   "options": "Contract Breach\nContract Fulfilled\nOwnership Transfer\nAnalyzer Service\nAnalyzer Upgrade\nCustomer Request\nContract Expiry\nOther"
+  },
+  {
+   "fieldname": "condition_at_return",
+   "fieldtype": "Select",
+   "label": "Analyzer Condition at Return",
+   "options": "Good\nDamaged\nNeeds Repair"
+  },
+  {
+   "fieldname": "retrieved_by",
+   "fieldtype": "Link",
+   "label": "Retrieved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "repossession_request",
+   "fieldtype": "Link",
+   "label": "Repossession Request",
+   "options": "Repossession Request"
+  },
+  {
+   "fieldname": "ownership_transfer_request",
+   "fieldtype": "Link",
+   "label": "Ownership Transfer Request",
+   "options": "Ownership Transfer Request"
+  },
+  {
+   "fieldname": "section_break_gxvh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "retrieval_notes",
+   "fieldtype": "Small Text",
+   "label": "Retrieval Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fetch_from": "asset.item_code",
+   "fetch_if_empty": 1,
+   "fieldname": "analyzer_pid",
+   "fieldtype": "Link",
+   "label": "Analyzer PID",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "analyzer_pid.description",
+   "fetch_if_empty": 1,
+   "fieldname": "analyzer_description",
+   "fieldtype": "Small Text",
+   "label": "Analyzer Description",
+   "read_only": 1
+  },
+  {
+   "fieldname": "asset_storage_location",
+   "fieldtype": "Link",
+   "label": "Asset Storage Location",
+   "options": "Location",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-17 10:18:55.576652",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Analyzer Deployment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

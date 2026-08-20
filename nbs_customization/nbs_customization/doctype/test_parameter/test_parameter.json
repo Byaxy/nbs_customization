@@ -1,0 +1,82 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "field:parameter_code",
+ "creation": "2026-07-08 15:00:54.843913",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "parameter_code",
+  "test_panel_group",
+  "column_break_orui",
+  "parameter_name",
+  "section_break_jxzj",
+  "description"
+ ],
+ "fields": [
+  {
+   "fieldname": "parameter_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Parameter Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_orui",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "parameter_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Parameter Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "section_break_jxzj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "test_panel_group",
+   "fieldtype": "Link",
+   "label": "Test Panel Group",
+   "options": "Test Panel Group"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-08 17:51:13.816498",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Test Parameter",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

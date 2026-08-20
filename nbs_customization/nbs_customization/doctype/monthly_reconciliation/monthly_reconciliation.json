@@ -1,0 +1,287 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "autoname": "MRC-{contract}-{period}",
+ "creation": "2026-07-16 10:41:09.557423",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "contract",
+  "customer",
+  "customer_name",
+  "period_start",
+  "period_end",
+  "reconciliation_status",
+  "column_break_iywt",
+  "contract_type",
+  "asset",
+  "period",
+  "purchase_performance_section",
+  "minimum_value_required",
+  "total_actual_value",
+  "shortfall_value",
+  "consecutive_breach_count",
+  "column_break_vlhh",
+  "actual_reagent_value",
+  "actual_consumable_value",
+  "compliance_status",
+  "recovery_tracking_section",
+  "invoiced_this_period",
+  "cumulative_invoiced",
+  "recovery_pct_collected",
+  "column_break_pxig",
+  "collected_this_period",
+  "cumulative_collected",
+  "exception_handling_section",
+  "penalty_invoice",
+  "linked_documents_section",
+  "linked_invoices",
+  "notes",
+  "section_break_maun",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_maun",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Monthly Reconciliation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "contract",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Contract",
+   "options": "Instrument Placement Contract",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "contract.contract_type",
+   "fieldname": "contract_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contract Type",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.customer",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_iywt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.asset",
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "label": "Asset",
+   "options": "Asset",
+   "read_only": 1
+  },
+  {
+   "description": "Format YYYY-MM",
+   "fieldname": "period",
+   "fieldtype": "Data",
+   "label": "Period",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "label": "Period Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "label": "Period End Date",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "reconciliation_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Reconciliation Status",
+   "options": "Draft\nVerified\nInvoiced\nClosed",
+   "reqd": 1
+  },
+  {
+   "fieldname": "purchase_performance_section",
+   "fieldtype": "Section Break",
+   "label": "Purchase Performance"
+  },
+  {
+   "fetch_from": "contract.min_monthly_value",
+   "fieldname": "minimum_value_required",
+   "fieldtype": "Currency",
+   "label": "Minimum Value Required"
+  },
+  {
+   "fieldname": "column_break_vlhh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "actual_reagent_value",
+   "fieldtype": "Currency",
+   "label": "Actual Reagent Purchase Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_consumable_value",
+   "fieldtype": "Currency",
+   "label": "Actual Consumable Purchase Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_actual_value",
+   "fieldtype": "Currency",
+   "label": "Total Actual Purchase Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shortfall_value",
+   "fieldtype": "Currency",
+   "label": "Shortfall Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "compliance_status",
+   "fieldtype": "Select",
+   "label": "Compliance Status",
+   "options": "Compliant\nShortfall\nGrace Period\nBreach",
+   "read_only": 1
+  },
+  {
+   "fieldname": "consecutive_breach_count",
+   "fieldtype": "Int",
+   "label": "Consecutive Breach Count (After This Period)",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "recovery_tracking_section",
+   "fieldtype": "Section Break",
+   "label": "Recovery Tracking"
+  },
+  {
+   "fieldname": "invoiced_this_period",
+   "fieldtype": "Currency",
+   "label": "Amount Invoiced This Period",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pxig",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "collected_this_period",
+   "fieldtype": "Currency",
+   "label": "Amount Collected This Period",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cumulative_invoiced",
+   "fieldtype": "Currency",
+   "label": "Cumulative Invoiced to Date",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cumulative_collected",
+   "fieldtype": "Currency",
+   "label": "Cumulative Collected to Date",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "recovery_pct_collected",
+   "fieldtype": "Percent",
+   "label": "Recovery Percentage (Collected)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "exception_handling_section",
+   "fieldtype": "Section Break",
+   "label": "Exception Handling"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "penalty_invoice",
+   "fieldtype": "Link",
+   "label": "Shortfall Penalty Invoice",
+   "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "linked_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Linked Documents"
+  },
+  {
+   "fieldname": "linked_invoices",
+   "fieldtype": "Table",
+   "label": "Linked Sales Invoices",
+   "options": "Reconciliation Linked Invoice"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-16 11:21:03.910464",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Monthly Reconciliation",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,151 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "autoname": "field:item",
+ "creation": "2026-07-10 13:22:14.750656",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "description",
+  "column_break_azyb",
+  "reagent_role",
+  "test_panel_group",
+  "test_reagent_details_section",
+  "default_pack_volume_ml",
+  "default_cogs_per_pack",
+  "column_break_ahme",
+  "default_tests_per_pack",
+  "non_test_consumable_details_section",
+  "default_consumption_qty",
+  "default_cogs_per_unit",
+  "column_break_mnua",
+  "default_consumption_frequency"
+ ],
+ "fields": [
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Product",
+   "options": "Item",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fetch_from": "item.description",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Description"
+  },
+  {
+   "fieldname": "column_break_azyb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reagent_role",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Reagent Role",
+   "options": "Test Reagent\nNon-Test Consumable",
+   "reqd": 1
+  },
+  {
+   "fieldname": "test_panel_group",
+   "fieldtype": "Link",
+   "label": "Test Panel Group",
+   "mandatory_depends_on": "eval:doc.reagent_role==\"Test Reagent\";",
+   "options": "Test Panel Group"
+  },
+  {
+   "depends_on": "eval:doc.reagent_role==\"Test Reagent\";",
+   "fieldname": "test_reagent_details_section",
+   "fieldtype": "Section Break",
+   "label": "Test Reagent Details"
+  },
+  {
+   "fieldname": "default_pack_volume_ml",
+   "fieldtype": "Float",
+   "label": "Default Pack Volume (ml)",
+   "non_negative": 1,
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_ahme",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_tests_per_pack",
+   "fieldtype": "Int",
+   "label": "Default Tests per Pack",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "default_cogs_per_pack",
+   "fieldtype": "Currency",
+   "label": "Default COGS per Pack",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "default_consumption_qty",
+   "fieldtype": "Float",
+   "label": "Default Consumption Qty",
+   "non_negative": 1,
+   "precision": "2"
+  },
+  {
+   "depends_on": "eval:doc.reagent_role==\"Non-Test Consumable\";",
+   "fieldname": "non_test_consumable_details_section",
+   "fieldtype": "Section Break",
+   "label": "Non-Test Consumable Details"
+  },
+  {
+   "fieldname": "column_break_mnua",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_consumption_frequency",
+   "fieldtype": "Select",
+   "label": "Default Consumption Frequency",
+   "options": "Per Month\nPer Service Interval\nPer Year"
+  },
+  {
+   "fieldname": "default_cogs_per_unit",
+   "fieldtype": "Currency",
+   "label": "Default COGS per Unit",
+   "non_negative": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-20 18:26:34.709063",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Reagent Specification",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

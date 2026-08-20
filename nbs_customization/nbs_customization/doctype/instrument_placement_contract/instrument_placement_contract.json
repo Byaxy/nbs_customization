@@ -1,0 +1,473 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-10 14:33:43.358492",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_khtr",
+  "naming_series",
+  "customer",
+  "customer_name",
+  "contract_title",
+  "column_break_dpxb",
+  "contract_type",
+  "customer_site",
+  "section_break_cnlq",
+  "pricing_worksheet",
+  "start_date",
+  "end_date",
+  "column_break_uudr",
+  "contract_price_list",
+  "contract_duration_months",
+  "contract_status",
+  "section_break_rvnv",
+  "asset",
+  "analyzer_pid",
+  "analyzer_description",
+  "column_break_gmvt",
+  "serial_no",
+  "section_break_osor",
+  "signed_contract",
+  "column_break_bzwc",
+  "recovery_tracking_section",
+  "total_recovery_target",
+  "cumulative_collected",
+  "recovery_pct_invoiced",
+  "column_break_jcuu",
+  "cumulative_invoiced",
+  "outstanding_on_contract",
+  "recovery_pct_collected",
+  "rra__rlo_terms_section",
+  "min_monthly_value",
+  "breach_threshold",
+  "shortfall_penalty_type",
+  "column_break_zcpc",
+  "grace_period_days",
+  "consecutive_breach_count",
+  "penalty_value",
+  "rlo_ownership_transfer_secction",
+  "ownership_threshold_met",
+  "estimated_transfer_date",
+  "cpt_revenue_share_terms_section",
+  "revenue_share_pct",
+  "fixed_monthly_gross_revenue",
+  "column_break_mevk",
+  "fixed_monthly_share_amount",
+  "contract_lines_section",
+  "contract_reagent_lines",
+  "contract_consumable_line_section",
+  "contract_consumable_lines",
+  "admin_section",
+  "approved_by",
+  "column_break_ijqj",
+  "approval_date",
+  "section_break_qswe",
+  "notes",
+  "section_break_ikas",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ikas",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Instrument Placement Contract",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "NBSIPC-.YYYY./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_khtr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "contract_title",
+   "fieldtype": "Data",
+   "label": "Contract Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_dpxb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_type",
+   "fieldtype": "Select",
+   "label": "Contract Type",
+   "options": "RRA\nRLO\nCPT",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_site",
+   "fieldtype": "Link",
+   "label": "Customer Site",
+   "options": "Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_rvnv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Asset",
+   "options": "Asset",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_gmvt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "asset.custom_serial_no",
+   "fetch_if_empty": 1,
+   "fieldname": "serial_no",
+   "fieldtype": "Data",
+   "label": "Serial No",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+    "fieldname": "analyzer_pid",
+    "fieldtype": "Link",
+    "label": "Analyzer PID",
+    "options": "Item",
+    "read_only": 1,
+    "reqd": 1
+  },
+  {
+   "fetch_from": "analyzer_pid.description",
+   "fetch_if_empty": 1,
+   "fieldname": "analyzer_description",
+   "fieldtype": "Small Text",
+   "label": "Analyzer Description",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_cnlq",
+   "fieldtype": "Section Break",
+   "label": "Pricing Worksheet"
+  },
+  {
+   "fieldname": "pricing_worksheet",
+   "fieldtype": "Link",
+   "label": "Pricing Worksheet",
+   "options": "Instrument Pricing Worksheet"
+  },
+  {
+   "fieldname": "column_break_uudr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_price_list",
+   "fieldtype": "Link",
+   "label": "Contract Price List",
+   "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Contract Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "Contract End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contract_duration_months",
+   "fieldtype": "Int",
+   "label": "Contract Duration (Months)",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "Draft",
+   "fieldname": "contract_status",
+   "fieldtype": "Select",
+   "label": "Contract Status",
+   "options": "Draft\nActive\nFulfilled\nBreached\nTerminated\nExpired",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_osor",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "signed_contract",
+   "fieldtype": "Attach",
+   "label": "Signed Contract Attachment"
+  },
+  {
+   "fieldname": "recovery_tracking_section",
+   "fieldtype": "Section Break",
+   "label": "Recovery Tracking"
+  },
+  {
+   "fieldname": "total_recovery_target",
+   "fieldtype": "Currency",
+   "label": "Total Recovery Target",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cumulative_invoiced",
+   "fieldtype": "Currency",
+   "label": "Cumulative Amount Invoiced",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_jcuu",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "cumulative_collected",
+   "fieldtype": "Currency",
+   "label": "Cumulative Amount Collected",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "outstanding_on_contract",
+   "fieldtype": "Currency",
+   "label": "Outstanding on Contract",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "recovery_pct_invoiced",
+   "fieldtype": "Percent",
+   "label": "Recovery Percentage (Invoiced)",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "recovery_pct_collected",
+   "fieldtype": "Percent",
+   "label": "Recovery Percentage (Collected)",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:[\"RRA\",\"RLO\"].includes(doc.contract_type);",
+   "fieldname": "rra__rlo_terms_section",
+   "fieldtype": "Section Break",
+   "label": "RRA / RLO Terms"
+  },
+  {
+   "fieldname": "min_monthly_value",
+   "fieldtype": "Currency",
+   "label": "Minimum Monthly Purchase Value",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "column_break_zcpc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "grace_period_days",
+   "fieldtype": "Int",
+   "label": "Grace Period (Days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "breach_threshold",
+   "fieldtype": "Int",
+   "label": "Breach Threshold (Consecutive Months)",
+   "non_negative": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "consecutive_breach_count",
+   "fieldtype": "Int",
+   "label": "Consecutive Breach Count",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "default": "None",
+   "fieldname": "shortfall_penalty_type",
+   "fieldtype": "Select",
+   "label": "Shortfall Penalty Type",
+   "options": "None\nFixed Amount\nPercentage of Shortfall"
+  },
+  {
+   "depends_on": "eval:doc.shortfall_penalty_type!=\"None\";",
+   "fieldname": "penalty_value",
+   "fieldtype": "Float",
+   "label": "Penalty Value",
+   "non_negative": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "ownership_threshold_met",
+   "fieldtype": "Check",
+   "label": "Ownership Transfer Eligible",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "estimated_transfer_date",
+   "fieldtype": "Date",
+   "label": "Estimated Transfer Date"
+  },
+  {
+   "fieldname": "revenue_share_pct",
+   "fieldtype": "Percent",
+   "label": "Required Revenue Share %",
+   "non_negative": 1
+  },
+  {
+   "depends_on": "eval:doc.contract_type==\"RLO\";",
+   "fieldname": "rlo_ownership_transfer_secction",
+   "fieldtype": "Section Break",
+   "label": "RLO \u2014 Ownership Transfer"
+  },
+  {
+   "depends_on": "eval:doc.contract_type==\"CPT\";",
+   "fieldname": "cpt_revenue_share_terms_section",
+   "fieldtype": "Section Break",
+   "label": "CPT \u2014 Revenue Share Terms"
+  },
+  {
+   "fieldname": "column_break_mevk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fixed_monthly_gross_revenue",
+   "fieldtype": "Currency",
+   "label": "Fixed Monthly Gross Revenue",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fixed_monthly_share_amount",
+   "fieldtype": "Currency",
+   "label": "Fixed Monthly Share Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_lines_section",
+   "fieldtype": "Section Break",
+   "label": "Contract Test Reagent Lines"
+  },
+  {
+   "fieldname": "admin_section",
+   "fieldtype": "Section Break",
+   "label": "Admin"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_ijqj",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approval_date",
+   "fieldtype": "Date",
+   "label": "Approval Date"
+  },
+  {
+   "fieldname": "section_break_qswe",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "column_break_bzwc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_reagent_lines",
+   "fieldtype": "Table",
+   "options": "Contract Test Reagent Line",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contract_consumable_line_section",
+   "fieldtype": "Section Break",
+   "label": "Contract Consumable Lines"
+  },
+  {
+   "fieldname": "contract_consumable_lines",
+   "fieldtype": "Table",
+   "options": "Contract Consumable Line"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-30 19:33:09.037587",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Instrument Placement Contract",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

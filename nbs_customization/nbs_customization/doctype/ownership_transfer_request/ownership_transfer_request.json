@@ -1,0 +1,298 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-16 18:42:33.208523",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "contract",
+  "customer",
+  "customer_name",
+  "column_break_jmgw",
+  "asset",
+  "serial_no",
+  "recovery_summary_section",
+  "total_recovery_target",
+  "outstanding_balance",
+  "column_break_ntrf",
+  "total_collected",
+  "asset_accounting_section",
+  "analyzer_cost",
+  "analyzer_recovery_collected",
+  "column_break_labb",
+  "net_book_value",
+  "gain_loss",
+  "transfer_documentation_section",
+  "transfer_date",
+  "transfer_certificate",
+  "column_break_axrw",
+  "transfer_certificate_no",
+  "transfer_invoice",
+  "approvals_section",
+  "finance_reviewed_by",
+  "finance_review_date",
+  "status",
+  "column_break_esvi",
+  "legal_reviewed_by",
+  "legal_review_date",
+  "section_break_rqbj",
+  "notes",
+  "section_break_dviv",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_dviv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Ownership Transfer Request",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Series",
+   "options": "NBSOTR-YYYY./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contract",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Contract",
+   "options": "Instrument Placement Contract",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_jmgw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "contract.asset",
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "label": "Asset",
+   "options": "Asset",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.serial_no",
+   "fetch_if_empty": 1,
+   "fieldname": "serial_no",
+   "fieldtype": "Link",
+   "label": "Serial No",
+   "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.customer",
+   "fetch_if_empty": 1,
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "recovery_summary_section",
+   "fieldtype": "Section Break",
+   "label": "Recovery Summary"
+  },
+  {
+   "fetch_from": "contract.total_recovery_target",
+   "fetch_if_empty": 1,
+   "fieldname": "total_recovery_target",
+   "fieldtype": "Currency",
+   "label": "Total Recovery Target",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ntrf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "contract.cumulative_collected",
+   "fetch_if_empty": 1,
+   "fieldname": "total_collected",
+   "fieldtype": "Currency",
+   "label": "Total Amount Collected",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.outstanding_on_contract",
+   "fetch_if_empty": 1,
+   "fieldname": "outstanding_balance",
+   "fieldtype": "Currency",
+   "label": "Outstanding Balance at Transfer"
+  },
+  {
+   "fieldname": "asset_accounting_section",
+   "fieldtype": "Section Break",
+   "label": "Asset Accounting"
+  },
+  {
+   "fieldname": "analyzer_cost",
+   "fieldtype": "Currency",
+   "label": "Analyzer Original Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_labb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "asset.value_after_depreciation",
+   "fieldname": "net_book_value",
+   "fieldtype": "Currency",
+   "label": "Net Book Value at Transfer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "analyzer_recovery_collected",
+   "fieldtype": "Currency",
+   "label": "Total Analyzer Recovery Collected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gain_loss",
+   "fieldtype": "Currency",
+   "label": "Gain or Loss on Transfer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "transfer_documentation_section",
+   "fieldtype": "Section Break",
+   "label": "Transfer Documentation"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "transfer_date",
+   "fieldtype": "Date",
+   "label": "Transfer Date"
+  },
+  {
+   "fieldname": "column_break_axrw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "transfer_certificate_no",
+   "fieldtype": "Data",
+   "label": "Transfer Certificate Number"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "transfer_certificate",
+   "fieldtype": "Attach",
+   "label": "Transfer Certificate"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "transfer_invoice",
+   "fieldtype": "Link",
+   "label": "Nominal Transfer Invoice",
+   "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "approvals_section",
+   "fieldtype": "Section Break",
+   "label": "Approvals"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "finance_reviewed_by",
+   "fieldtype": "Link",
+   "label": "Finance Reviewed By",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_esvi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "finance_review_date",
+   "fieldtype": "Date",
+   "label": "Finance Review Date"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "legal_reviewed_by",
+   "fieldtype": "Link",
+   "label": "Legal Reviewed By",
+   "options": "User"
+  },
+  {
+   "fieldname": "legal_review_date",
+   "fieldtype": "Date",
+   "label": "Legal Review Date",
+   "read_only": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nPending Finance Review\nPending Legal Review\nApproved\nTransfer Completed",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_rqbj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-16 19:05:49.502735",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Ownership Transfer Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

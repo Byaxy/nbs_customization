@@ -91,7 +91,7 @@ web_include_js = "/assets/nbs_customization/js/nbs_theme.js"
 # 	"filters": "nbs_customization.utils.jinja_filters"
 # }
 
-# Print Designer – default templates folder path (auto-installed by print_designer hooks)
+# Print Designer - default templates folder path (auto-installed by print_designer hooks)
 pd_standard_format_folder = "default_templates"
 
 # Installation
@@ -162,23 +162,16 @@ override_whitelisted_methods = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"nbs_customization.tasks.all"
-# 	],
-# 	"daily": [
-# 		"nbs_customization.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"nbs_customization.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"nbs_customization.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"nbs_customization.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+    "monthly": [
+        "nbs_customization.tasks.monthly_generate_reconciliations",
+        "nbs_customization.tasks.monthly_generate_revenue_share",
+    ],
+    "daily": [
+        "nbs_customization.tasks.daily_process_amendments",
+        "nbs_customization.tasks.daily_check_rlo_ownership",
+    ],
+}
 
 # Testing
 # -------
@@ -323,6 +316,20 @@ fixtures = [
                     "Payment Entry-clearing_journal_entry",
                     "Payment Entry-check_returned",
                     "Payment Entry-check_return_date",
+                    "Item-custom_is_placement_item",
+                    "Item-custom_instrument_specification",
+                    "Item-custom_reagent_specification",
+                    "Asset-custom_current_placement_contract",
+                    "Asset-custom_current_deployment_status",
+                    "Asset-custom_instrument_specification",
+                    "Sales Order-custom_instrument_placement_contract",
+                    "Sales Order-custom_placement_transaction_type",
+                    "Delivery Note-custom_instrument_placement_contract",
+                    "Delivery Note-custom_placement_transaction_type",
+                    "Sales Invoice-custom_instrument_placement_contract",
+                    "Sales Invoice-custom_placement_transaction_type",
+                    "Sales Invoice-custom_counts_toward_recovery",
+                    "Asset-custom_serial_no",
                 ]
             ]
         ]
@@ -341,6 +348,8 @@ doctype_js = {
     "Sales Invoice": "public/js/sales_invoice.js",
     "Batch": "public/js/batch.js",
     "Payment Entry": "public/js/payment_entry.js",
+    "Item": "public/js/item.js",
+    "Asset": "public/js/asset.js",
     "Bank Transaction": "public/js/bank_transaction.js",
 }
 
@@ -354,22 +363,40 @@ doc_events = {
         "before_test_insert": "nbs_customization.controllers.validations.sales.prepare_quotation_test_record",
     },
     "Sales Order": {
-        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
+        "validate": [
+            "nbs_customization.controllers.validations.sales.validate_unique_items",
+            "nbs_customization.controllers.placement.sales_validate.validate_placement_transaction",
+            "nbs_customization.controllers.placement.sales_validate.validate_free_issue_zero_rates",
+        ],
     },
     "Delivery Note": {
         "before_save": "nbs_customization.controllers.delivery_note.before_save",
         "validate": [
             "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
             "nbs_customization.controllers.delivery_note.validate",
+            "nbs_customization.controllers.placement.sales_validate.validate_placement_transaction",
+            "nbs_customization.controllers.placement.sales_validate.validate_free_issue_zero_rates",
         ],
         "before_submit": "nbs_customization.controllers.delivery_note.before_submit",
         "on_submit": "nbs_customization.controllers.delivery_note.on_submit",
         "on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
     },
     "Sales Invoice": {
-        "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
-        "before_save":   "nbs_customization.controllers.sales_invoice.before_save",
+        "validate": [
+            "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
+            "nbs_customization.controllers.placement.sales_invoice.validate",
+            "nbs_customization.controllers.placement.sales_validate.validate_free_issue_zero_rates",
+        ],
+        "before_save": [
+            "nbs_customization.controllers.sales_invoice.before_save",
+        ],
         "before_submit": "nbs_customization.controllers.sales_invoice.before_submit",
+        "on_submit": [
+            "nbs_customization.controllers.placement.sales_invoice.on_submit",
+        ],
+        "on_cancel": [
+            "nbs_customization.controllers.placement.sales_invoice.on_cancel",
+        ],
     },
     "Stock Entry": {
         "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
@@ -403,8 +430,13 @@ doc_events = {
     },
     "Payment Entry": {
         "validate": "nbs_customization.controllers.payment_entry.validate_check_payment_entry",
+        "on_submit": "nbs_customization.controllers.placement.payment_entry.on_submit",
+        "on_cancel": "nbs_customization.controllers.placement.payment_entry.on_cancel",
     },
     "Print Format": {
         "validate": "nbs_customization.print_designer.fix_layout_sort.validate_print_format",
+    },
+    "Item": {
+        "validate": "nbs_customization.controllers.item.validate",
     },
 }

@@ -1,0 +1,329 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-07-16 14:05:42.210867",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "contract",
+  "contract_type",
+  "customer",
+  "customer_name",
+  "column_break_bnea",
+  "analyzer_deployment",
+  "asset",
+  "reason",
+  "breach_details_rrarlo_section",
+  "breach_count",
+  "column_break_xqgq",
+  "months_breached",
+  "non_payment_details_section",
+  "unpaid_statements",
+  "financial_position_section",
+  "outstanding_balance",
+  "request_details_section",
+  "requested_by",
+  "request_date",
+  "column_break_grcg",
+  "approved_by",
+  "approval_date",
+  "section_break_hppr",
+  "status",
+  "notes",
+  "section_break_y5dw",
+  "amended_from",
+  "retrieval_execution_tab",
+  "scheduled_retrieval_date",
+  "retrieved_by",
+  "analyzer_condition_on_return",
+  "column_break_rccc",
+  "actual_retrieval_date",
+  "customer_notification_tab",
+  "customer_notified",
+  "notification_attachment",
+  "column_break_wvtv",
+  "customer_notification_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_y5dw",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Repossession Request",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Series",
+   "options": "NBSRPR-.YYYY./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contract",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Contract",
+   "options": "Instrument Placement Contract",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_bnea",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "analyzer_deployment",
+   "fieldtype": "Link",
+   "label": "Analyzer Deployment",
+   "options": "Analyzer Deployment",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "analyzer_deployment.asset",
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "label": "Asset",
+   "options": "Asset",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "contract.customer",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Select",
+   "label": "Reason",
+   "options": "Minimum Purchase Breach\nNon-Payment of Revenue Share\nNon-Payment of Invoices\nContract Expiry\nCustomer Request\nAnalyzer Upgrade\nOther",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:[\"RRA\",\"RLO\"].includes(doc.contract_type);",
+   "fieldname": "breach_details_rrarlo_section",
+   "fieldtype": "Section Break",
+   "label": "Breach Details (RRA/RLO)"
+  },
+  {
+   "fieldname": "breach_count",
+   "fieldtype": "Int",
+   "label": "Consecutive Breach Count at Trigger",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "column_break_xqgq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "months_breached",
+   "fieldtype": "Int",
+   "label": "Total Months Breached",
+   "non_negative": 1
+  },
+  {
+   "depends_on": "eval:doc.contract_type==\"CPT\";",
+   "fieldname": "non_payment_details_section",
+   "fieldtype": "Section Break",
+   "label": "Non-Payment Details (CPT)"
+  },
+  {
+   "fieldname": "unpaid_statements",
+   "fieldtype": "Int",
+   "label": "Unpaid Revenue Share Statements",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "financial_position_section",
+   "fieldtype": "Section Break",
+   "label": "Financial Position"
+  },
+  {
+   "fetch_from": "contract.outstanding_on_contract",
+   "fetch_if_empty": 1,
+   "fieldname": "outstanding_balance",
+   "fieldtype": "Currency",
+   "label": "Total Outstanding Balance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "request_details_section",
+   "fieldtype": "Section Break",
+   "label": "Request Details"
+  },
+  {
+   "fieldname": "requested_by",
+   "fieldtype": "Link",
+   "label": "Requested By",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "request_date",
+   "fieldtype": "Date",
+   "label": "Request Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_grcg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "approval_date",
+   "fieldtype": "Date",
+   "label": "Approval Date"
+  },
+  {
+   "fieldname": "section_break_hppr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nPending Approval\nApproved\nAnalyzer Retrieved\nClosed",
+   "reqd": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "retrieval_execution_tab",
+   "fieldtype": "Tab Break",
+   "label": "Retrieval Execution"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "scheduled_retrieval_date",
+   "fieldtype": "Date",
+   "label": "Scheduled Retrieval Date"
+  },
+  {
+   "fieldname": "column_break_rccc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "actual_retrieval_date",
+   "fieldtype": "Date",
+   "label": "Actual Retrieval Date"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "retrieved_by",
+   "fieldtype": "Link",
+   "label": "Retrieved By",
+   "options": "User"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "analyzer_condition_on_return",
+   "fieldtype": "Select",
+   "label": "Analyzer Condition on Return",
+   "options": "Good\nDamaged\nNeeds Repair"
+  },
+  {
+   "fieldname": "customer_notification_tab",
+   "fieldtype": "Tab Break",
+   "label": "Customer Notification"
+  },
+  {
+   "allow_on_submit": 1,
+   "default": "0",
+   "fieldname": "customer_notified",
+   "fieldtype": "Check",
+   "label": "Customer Notified"
+  },
+  {
+   "allow_on_submit": 1,
+   "depends_on": "eval:doc.customer_notified==1;",
+   "fieldname": "customer_notification_date",
+   "fieldtype": "Date",
+   "label": "Customer Notification Date"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "notification_attachment",
+   "fieldtype": "Attach",
+   "label": "Notification Attachment"
+  },
+  {
+   "fieldname": "column_break_wvtv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "contract.contract_type",
+   "fetch_if_empty": 1,
+   "fieldname": "contract_type",
+   "fieldtype": "Data",
+   "label": "Contract Type",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-16 14:36:23.950644",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Repossession Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

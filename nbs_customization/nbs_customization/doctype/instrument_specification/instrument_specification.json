@@ -1,0 +1,97 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "autoname": "field:item",
+ "creation": "2026-07-08 18:08:28.664877",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+  "field_order": [
+   "analyzer_type",
+   "column_break_bqid",
+   "item",
+   "description",
+  "section_break_vtgp",
+  "supported_test_methods",
+  "section_break_mpbp",
+  "required_consumables"
+ ],
+ "fields": [
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "PID",
+   "options": "Item",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_bqid",
+   "fieldtype": "Column Break"
+  },
+   {
+    "fieldname": "section_break_vtgp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "supported_test_methods",
+   "fieldtype": "Table",
+   "label": "Supported Test Methods",
+   "options": "Instrument Test Method"
+  },
+  {
+   "fieldname": "section_break_mpbp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "required_consumables",
+   "fieldtype": "Table",
+   "label": "Required Consumables",
+   "options": "Instrument Consumable Requirement"
+  },
+  {
+   "fieldname": "analyzer_type",
+   "fieldtype": "Link",
+   "label": "Analyzer Type",
+   "options": "Analyzer Type"
+  },
+  {
+   "fetch_from": "item.description",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-21 14:24:26.779737",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Instrument Specification",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

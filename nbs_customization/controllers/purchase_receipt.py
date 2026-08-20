@@ -57,9 +57,9 @@ def before_save(doc, method=None):
 
 
 def before_submit(doc, method=None):
-    """
-    Re-run on submit so that any last-minute item changes are captured.
-    (before_save runs first, but being explicit here is safer for
-    workflows that skip the save step before submission.)
-    """
-    _set_custom_purchase_order(doc)
+	"""
+	Re-run on submit so that any last-minute item changes are captured.
+	(before_save runs first, but being explicit here is safer for
+	workflows that skip the save step before submission.)
+	"""
+	_set_custom_purchase_order(doc)
