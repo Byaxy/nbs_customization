@@ -61,12 +61,10 @@
  ],
  "fields": [
   {
-   "default": "NBSQT-.YYYY.-.####",
    "fieldname": "naming_series",
    "fieldtype": "Select",
-   "in_list_view": 1,
    "label": "Series",
-   "options": "NBSQT-.YYYY.-.####",
+   "options": "NBSQT-.YYYY.-.####\nPBSQT-.YYYY.-.####",
    "reqd": 1
   },
   {
@@ -77,7 +75,6 @@
   {
    "fieldname": "company",
    "fieldtype": "Link",
-   "in_list_view": 1,
    "label": "Company",
    "options": "Company",
    "reqd": 1
@@ -371,7 +368,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-01 19:10:20.758517",
+ "modified": "2026-09-01 19:47:34.016359",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Item Pricing Quotation Batch",

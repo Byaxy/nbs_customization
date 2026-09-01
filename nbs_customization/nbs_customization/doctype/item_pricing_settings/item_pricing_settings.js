@@ -126,7 +126,7 @@ function _show_preview(frm) {
 		["Commission + Tax", d.rate_commission_tax, d.price_list_commission_tax],
 	];
 	const current = flt(d.current_selling_price);
-	let html = `<div style="max-height:320px;overflow:auto;"><table class="table table-bordered small">
+	let html = `<div style="max-height:420px;overflow:auto;"><table class="table table-bordered small" style="min-width:720px;">
 		<thead><tr><th>Tier</th><th>Price List</th><th class="text-right">Rate</th><th>vs Current</th></tr></thead><tbody>`;
 	for (const [label, rate, pl] of rows) {
 		const r = flt(rate);
@@ -144,12 +144,19 @@ function _show_preview(frm) {
 	html += `</tbody></table>`;
 	html += `<div class="text-muted small">Standard Selling source: <b>${d.standard_selling_source_tier || "30%"}</b> → Suggested ${format_currency(d.suggested_selling_price)} | Current ${format_currency(current)} | Mode ${d.pricing_mode}</div></div>`;
 
-	frappe.msgprint({ title: __("Tier Preview — ") + d.item_code, message: html, wide: true });
+	const preview = new frappe.ui.Dialog({
+		title: __("Tier Preview — ") + d.item_code,
+		size: "extra-large",
+		indicator: "blue",
+	});
+	preview.$body.html(html);
+	preview.show();
 }
 
 function _show_apply_dialog(frm) {
 	const d = new frappe.ui.Dialog({
 		title: __("Apply Tier Prices — ") + frm.doc.item_code,
+		size: "extra-large",
 		fields: [
 			{ fieldname: "info", fieldtype: "HTML", options: `<div class="text-muted small">Standard Selling will be set from <b>${frm.doc.standard_selling_source_tier || "30%"}</b> (${format_currency(frm.doc.suggested_selling_price)}). Choose tiers to create/update Item Price rows. History kept via <code>valid_from</code>.</div>` },
 			{ fieldname: "tier_basic", fieldtype: "Check", label: __("Basic (") + format_currency(frm.doc.basic_rate) + " → " + (frm.doc.price_list_basic || "Selling - Basic") + ")" },

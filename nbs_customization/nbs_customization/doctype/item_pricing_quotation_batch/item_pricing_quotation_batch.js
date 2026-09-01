@@ -79,12 +79,18 @@ function _add_buttons(frm) {
 		frm.add_custom_button(
 			__("Preview Totals"),
 			() => {
-				let html = `<table class="table table-bordered small"><thead><tr><th>Item</th><th>Qty</th><th>True Cost / Unit</th><th>Final / Unit</th><th>Final Total</th></tr></thead><tbody>`;
+				let html = `<div style="max-height:420px;overflow:auto;"><table class="table table-bordered small" style="min-width:720px;"><thead><tr><th>Item</th><th>Qty</th><th>True Cost / Unit</th><th>Final / Unit</th><th>Final Total</th></tr></thead><tbody>`;
 				for (const r of frm.doc.items) {
 					html += `<tr><td>${r.item_code}</td><td class="text-right">${r.qty}</td><td class="text-right">${format_currency(r.true_cost_per_unit || 0)}</td><td class="text-right" style="font-weight:600">${format_currency(r.final_rate_per_unit || 0)}</td><td class="text-right">${format_currency(r.final_total || 0)}</td></tr>`;
 				}
-				html += `</tbody></table><div class="text-muted small">Totals — Base ${format_currency(frm.doc.total_base || 0)} · True Cost ${format_currency(frm.doc.total_true_cost || 0)} · Final ${format_currency(frm.doc.total_final || 0)} · Standard Selling source ${frm.doc.standard_selling_source_tier || "30%"} (FX ${frm.doc.exchange_rate || 1})</div>`;
-				frappe.msgprint({ title: __("Allocation Preview"), message: html, wide: true });
+				html += `</tbody></table><div class="text-muted small">Totals — Base ${format_currency(frm.doc.total_base || 0)} · True Cost ${format_currency(frm.doc.total_true_cost || 0)} · Final ${format_currency(frm.doc.total_final || 0)} · Standard Selling source ${frm.doc.standard_selling_source_tier || "30%"} (FX ${frm.doc.exchange_rate || 1})</div></div>`;
+				const preview = new frappe.ui.Dialog({
+					title: __("Allocation Preview"),
+					size: "extra-large",
+					indicator: "blue",
+				});
+				preview.$body.html(html);
+				preview.show();
 			},
 			__("Actions")
 		);
