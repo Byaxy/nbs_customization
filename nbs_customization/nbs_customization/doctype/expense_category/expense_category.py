@@ -16,16 +16,12 @@ class ExpenseCategory(Document):
 		"""
 		if not self.is_accompanying_expense:
 			return
-		
+
 		if not self.expense_account:
-			frappe.throw(
-				"Expense Account is required for Accompanying Expense Categories."
-			)
-		
-		account_type = frappe.db.get_value(
-			"Account", self.expense_account, "account_type"
-		)
-		
+			frappe.throw("Expense Account is required for Accompanying Expense Categories.")
+
+		account_type = frappe.db.get_value("Account", self.expense_account, "account_type")
+
 		if account_type != "Expenses Included In Valuation":
 			frappe.throw(
 				f"For Accompanying Expense Categories, the Expense Account must have "

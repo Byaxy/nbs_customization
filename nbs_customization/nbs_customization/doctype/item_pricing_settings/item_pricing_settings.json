@@ -9,18 +9,62 @@
  "field_order": [
   "item_code",
   "description",
+  "standard_selling_source_tier",
   "column_break_egzb",
   "item_group",
   "price_list",
   "pricing_configuration_section",
+  "pricing_mode",
   "target_margin_pct",
+  "column_break_pricing",
+  "commission_pct",
+  "wht_pct",
+  "section_break_iiyn",
   "pricing_notes",
+  "fx_section",
+  "quote_currency",
+  "company_currency",
+  "column_break_fx",
+  "exchange_rate",
+  "exchange_rate_date",
+  "manual_estimate_section",
+  "estimated_base_rate",
+  "manual_qty",
+  "column_break_manual",
+  "estimated_true_cost_override",
+  "manual_bank_charges",
+  "manual_freight",
+  "manual_clearing_fees",
+  "column_break_manual2",
+  "manual_transport_in",
+  "manual_transport_out",
+  "manual_overhead",
+  "manual_fixed_cost",
+  "manual_true_cost",
   "computed_values_section",
   "current_valuation_rate",
   "suggested_selling_price",
   "column_break_xfrs",
   "current_selling_price",
-  "last_updated"
+  "last_updated",
+  "tier_rates_section",
+  "basic_rate",
+  "rate_15",
+  "rate_30",
+  "rate_45",
+  "column_break_tier",
+  "rate_commission",
+  "rate_commission_tax",
+  "final_rate_per_unit",
+  "tier_price_lists_section",
+  "price_list_basic",
+  "price_list_15",
+  "price_list_30",
+  "column_break_tier_pl",
+  "price_list_45",
+  "price_list_commission",
+  "price_list_commission_tax",
+  "reference_quotation_batch"
  ],
  "fields": [
   {
@@ -58,8 +102,18 @@
    "fieldname": "price_list",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Price List",
+   "label": "Price List (Legacy)",
    "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "default": "30%",
+   "description": "Which tier drives Standard Selling (ERPNext default) \u2014 hard-coded 30% default, overridable. For daily Quotation/Sales Order without manual Price List pick.",
+   "fieldname": "standard_selling_source_tier",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Standard Selling Source Tier",
+   "options": "Basic\n15%\n30%\n45%\nCommission\nCommission (Tax)",
    "reqd": 1
   },
   {
@@ -68,16 +122,165 @@
    "label": "Pricing Configuration"
   },
   {
-   "description": "Gross margin applied on top of landed cost (valuation rate)",
+   "default": "Auto",
+   "fieldname": "pricing_mode",
+   "fieldtype": "Select",
+   "label": "Pricing Mode",
+   "options": "Auto\nManual",
+   "reqd": 1
+  },
+  {
+   "description": "Gross margin applied on top of landed cost (valuation rate) \u2014 per-line margin in batch is independent",
    "fieldname": "target_margin_pct",
    "fieldtype": "Percent",
    "label": "Target Margin (%)",
    "reqd": 1
   },
   {
+   "default": "10",
+   "description": "Commission % of selling price (default 10%) \u2014 editable per item/batch",
+   "fieldname": "commission_pct",
+   "fieldtype": "Percent",
+   "label": "Commission (%)"
+  },
+  {
+   "default": "3",
+   "description": "Withholding Tax % (default 3% whole-batch) \u2014 rarely changes",
+   "fieldname": "wht_pct",
+   "fieldtype": "Percent",
+   "label": "WHT (%)"
+  },
+  {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "pricing_notes",
    "fieldtype": "Small Text",
    "label": "Pricing Notes"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "fx_section",
+   "fieldtype": "Section Break",
+   "label": "Currency / FX (Manual only)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "quote_currency",
+   "fieldtype": "Link",
+   "label": "Quote Currency",
+   "options": "Currency"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "company_currency",
+   "fieldtype": "Link",
+   "label": "Company Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.quote_currency && doc.company_currency && doc.quote_currency != doc.company_currency",
+   "fieldname": "exchange_rate",
+   "fieldtype": "Float",
+   "label": "Exchange Rate",
+   "precision": "6"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "exchange_rate_date",
+   "fieldtype": "Date",
+   "label": "Exchange Rate Date"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_estimate_section",
+   "fieldtype": "Section Break",
+   "label": "Manual Quotation Estimate (no SLE)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "estimated_base_rate",
+   "fieldtype": "Currency",
+   "label": "Estimated Base Rate (per unit, quote currency)"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_qty",
+   "fieldtype": "Int",
+   "label": "Qty (for audit)"
+  },
+  {
+   "fieldname": "column_break_manual",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "description": "If filled, overrides breakdown sum as true cost shortcut",
+   "fieldname": "estimated_true_cost_override",
+   "fieldtype": "Currency",
+   "label": "Estimated True Cost Override (per unit)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_bank_charges",
+   "fieldtype": "Currency",
+   "label": "Bank Charges (per unit)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_freight",
+   "fieldtype": "Currency",
+   "label": "Freight (per unit)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_clearing_fees",
+   "fieldtype": "Currency",
+   "label": "Clearing Fees (per unit)"
+  },
+  {
+   "fieldname": "column_break_manual2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_transport_in",
+   "fieldtype": "Currency",
+   "label": "Transport In (per unit)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_transport_out",
+   "fieldtype": "Currency",
+   "label": "Transport Out (per unit)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_overhead",
+   "fieldtype": "Currency",
+   "label": "Overhead (per unit)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_fixed_cost",
+   "fieldtype": "Currency",
+   "label": "Fixed Cost (per unit, per-quotation input)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "fieldname": "manual_true_cost",
+   "fieldtype": "Currency",
+   "label": "Manual True Cost (per unit)",
+   "read_only": 1
   },
   {
    "fieldname": "computed_values_section",
@@ -96,7 +299,7 @@
    "fieldname": "suggested_selling_price",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Suggested Selling Price",
+   "label": "Suggested Selling Price (drives Standard Selling)",
    "read_only": 1
   },
   {
@@ -115,12 +318,126 @@
    "fieldtype": "Datetime",
    "label": "Last Updated",
    "read_only": 1
+  },
+  {
+   "fieldname": "tier_rates_section",
+   "fieldtype": "Section Break",
+   "label": "Tier Rates (all 6)"
+  },
+  {
+   "fieldname": "basic_rate",
+   "fieldtype": "Currency",
+   "label": "Basic Rate (0% margin)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_15",
+   "fieldtype": "Currency",
+   "label": "Rate 15%",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_30",
+   "fieldtype": "Currency",
+   "label": "Rate 30%",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_45",
+   "fieldtype": "Currency",
+   "label": "Rate 45%",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tier",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rate_commission",
+   "fieldtype": "Currency",
+   "label": "Commission Rate (10%)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_commission_tax",
+   "fieldtype": "Currency",
+   "label": "Commission + Tax Rate (10% + 3%)",
+   "read_only": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "final_rate_per_unit",
+   "fieldtype": "Currency",
+   "label": "Final Rate per Unit (target + commission + WHT)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tier_price_lists_section",
+   "fieldtype": "Section Break",
+   "label": "Tier Price List Mapping (overridable)"
+  },
+  {
+   "default": "Selling - Basic",
+   "fieldname": "price_list_basic",
+   "fieldtype": "Link",
+   "label": "Price List - Basic",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - 15%",
+   "fieldname": "price_list_15",
+   "fieldtype": "Link",
+   "label": "Price List - 15%",
+   "options": "Price List"
+  },
+  {
+   "default": "Standard Selling",
+   "fieldname": "price_list_30",
+   "fieldtype": "Link",
+   "label": "Price List - 30% (Standard Selling)",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "column_break_tier_pl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Selling - 45%",
+   "fieldname": "price_list_45",
+   "fieldtype": "Link",
+   "label": "Price List - 45%",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - Commission",
+   "fieldname": "price_list_commission",
+   "fieldtype": "Link",
+   "label": "Price List - Commission",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - Commission (Tax)",
+   "fieldname": "price_list_commission_tax",
+   "fieldtype": "Link",
+   "label": "Price List - Commission (Tax)",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "reference_quotation_batch",
+   "fieldtype": "Link",
+   "label": "Reference Quotation Batch",
+   "options": "Item Pricing Quotation Batch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_iiyn",
+   "fieldtype": "Section Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-04-04 09:12:40.413733",
+ "modified": "2026-09-01 18:45:37.704402",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Item Pricing Settings",

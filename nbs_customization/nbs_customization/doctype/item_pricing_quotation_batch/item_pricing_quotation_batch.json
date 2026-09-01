@@ -1,0 +1,439 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-08-29 13:20:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "amended_from",
+  "naming_series",
+  "title",
+  "column_break_id",
+  "posting_date",
+  "company",
+  "fx_section",
+  "quote_currency",
+  "company_currency",
+  "column_break_fx",
+  "exchange_rate",
+  "exchange_rate_date",
+  "shared_costs_section",
+  "total_bank_charges",
+  "total_freight",
+  "total_clearing_fees",
+  "column_break_shared",
+  "total_transport_in",
+  "total_transport_out",
+  "total_overhead",
+  "total_fixed_cost",
+  "pricing_defaults_section",
+  "commission_pct",
+  "standard_selling_source_tier",
+  "column_break_pricing_defaults",
+  "wht_pct",
+  "items_section",
+  "items",
+  "price_lists_section",
+  "price_list_basic",
+  "price_list_15",
+  "price_list_30",
+  "column_break_pl",
+  "price_list_45",
+  "price_list_commission",
+  "price_list_commission_tax",
+  "secondary_price_lists_section",
+  "price_list_basic_secondary",
+  "price_list_15_secondary",
+  "price_list_30_secondary",
+  "column_break_sec_pl",
+  "price_list_45_secondary",
+  "price_list_commission_secondary",
+  "price_list_commission_tax_secondary",
+  "totals_section",
+  "total_base",
+  "total_true_cost",
+  "column_break_totals",
+  "total_final",
+  "section_break_zxcg",
+  "pricing_notes"
+ ],
+ "fields": [
+  {
+   "default": "NBSQT-.YYYY.-.####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Series",
+   "options": "NBSQT-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_id",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Item Pricing Quotation Batch",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "fx_section",
+   "fieldtype": "Section Break",
+   "label": "Currency / FX"
+  },
+  {
+   "fieldname": "quote_currency",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Quote Currency",
+   "options": "Currency",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company_currency",
+   "fieldtype": "Link",
+   "label": "Company Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "exchange_rate",
+   "fieldtype": "Float",
+   "label": "Exchange Rate (Quote \u2192 Company)",
+   "precision": "6",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "exchange_rate_date",
+   "fieldtype": "Date",
+   "label": "Exchange Rate Date"
+  },
+  {
+   "fieldname": "shared_costs_section",
+   "fieldtype": "Section Break",
+   "label": "Shared Costs (totals in Quote Currency \u2014 allocated by value weight)"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_bank_charges",
+   "fieldtype": "Currency",
+   "label": "Total Bank Charges"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_freight",
+   "fieldtype": "Currency",
+   "label": "Total Freight"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_clearing_fees",
+   "fieldtype": "Currency",
+   "label": "Total Clearing Fees"
+  },
+  {
+   "fieldname": "column_break_shared",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_transport_in",
+   "fieldtype": "Currency",
+   "label": "Total Transport In"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_transport_out",
+   "fieldtype": "Currency",
+   "label": "Total Transport Out"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_overhead",
+   "fieldtype": "Currency",
+   "label": "Total Overhead"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_fixed_cost",
+   "fieldtype": "Currency",
+   "label": "Total Fixed Cost (per-quotation input)"
+  },
+  {
+   "fieldname": "pricing_defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing Defaults"
+  },
+  {
+   "default": "10",
+   "fieldname": "commission_pct",
+   "fieldtype": "Percent",
+   "label": "Commission (%)"
+  },
+  {
+   "default": "3",
+   "fieldname": "wht_pct",
+   "fieldtype": "Percent",
+   "label": "WHT (%)"
+  },
+  {
+   "default": "30%",
+   "fieldname": "standard_selling_source_tier",
+   "fieldtype": "Select",
+   "label": "Standard Selling Source Tier",
+   "options": "Basic\n15%\n30%\n45%\nCommission\nCommission (Tax)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_pricing_defaults",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "pricing_notes",
+   "fieldtype": "Small Text",
+   "label": "Pricing Notes"
+  },
+  {
+   "fieldname": "price_lists_section",
+   "fieldtype": "Section Break",
+   "label": "Price Lists (Quote Currency \u2014 overridable, 30% \u2192 Standard Selling)"
+  },
+  {
+   "default": "Selling - Basic",
+   "fieldname": "price_list_basic",
+   "fieldtype": "Link",
+   "label": "Price List - Basic",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - 15%",
+   "fieldname": "price_list_15",
+   "fieldtype": "Link",
+   "label": "Price List - 15%",
+   "options": "Price List"
+  },
+  {
+   "default": "Standard Selling",
+   "fieldname": "price_list_30",
+   "fieldtype": "Link",
+   "label": "Price List - 30% (Standard Selling)",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "column_break_pl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Selling - 45%",
+   "fieldname": "price_list_45",
+   "fieldtype": "Link",
+   "label": "Price List - 45%",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - Commission",
+   "fieldname": "price_list_commission",
+   "fieldtype": "Link",
+   "label": "Price List - Commission",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - Commission (Tax)",
+   "fieldname": "price_list_commission_tax",
+   "fieldtype": "Link",
+   "label": "Price List - Commission (Tax)",
+   "options": "Price List"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval:doc.quote_currency && doc.company_currency && doc.quote_currency != doc.company_currency",
+   "fieldname": "secondary_price_lists_section",
+   "fieldtype": "Section Break",
+   "label": "Secondary Price Lists (Company Currency \u2014 for FX dual write)"
+  },
+  {
+   "fieldname": "price_list_basic_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - Basic",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "price_list_15_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - 15%",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "price_list_30_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - 30% (Standard Selling)",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "column_break_sec_pl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "price_list_45_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - 45%",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "price_list_commission_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - Commission",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "price_list_commission_tax_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - Commission (Tax)",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Items (qty \u00d7 unit_cost \u2192 allocated costs \u2192 6 tiers)"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "Item Pricing Quotation Batch Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_base",
+   "fieldtype": "Currency",
+   "label": "Total Base",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_true_cost",
+   "fieldtype": "Currency",
+   "label": "Total True Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_final",
+   "fieldtype": "Currency",
+   "label": "Total Final (all items)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_zxcg",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-01 19:10:20.758517",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Item Pricing Quotation Batch",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Purchase Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
