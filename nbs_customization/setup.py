@@ -387,12 +387,13 @@ def _ensure_check_clearing_setup():
 
 def _ensure_tier_price_lists():
 	"""
-	Idempotent: create the 5 tier Price Lists + ensure Standard Selling exists.
-	Standard Selling is the 30% tier (hard-coded default) — do NOT create a duplicate 'Selling - 30%'.
+	Idempotent: create tier Price Lists. Fixed 30% tier is Selling - 30% (Standard Selling is separate, driven by Standard Selling Source Tier).
+	Price List — Target Margin uses Standard Selling by default (user creates Selling - 20% etc when needed).
 	"""
 	candidates = [
 		("Selling - Basic", "GHS"),
 		("Selling - 15%", "GHS"),
+		("Selling - 30%", "GHS"),
 		("Selling - 45%", "GHS"),
 		("Selling - Commission", "GHS"),
 		("Selling - Commission (Tax)", "GHS"),
@@ -400,7 +401,9 @@ def _ensure_tier_price_lists():
 	]
 	# Use default company currency if present; fallback to GHS
 	default_company = frappe.db.get_single_value("Global Defaults", "default_company")
-	company_ccy = frappe.get_cached_value("Company", default_company, "default_currency") if default_company else None
+	company_ccy = (
+		frappe.get_cached_value("Company", default_company, "default_currency") if default_company else None
+	)
 	for name, fallback_ccy in candidates:
 		if frappe.db.exists("Price List", name):
 			continue

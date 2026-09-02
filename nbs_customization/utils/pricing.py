@@ -1,7 +1,6 @@
 import frappe
 from frappe.utils import flt, now_datetime
 
-
 # ── Pure tier calculator (PDF formulas, margin is % of selling price) ──────────
 
 STANDARD_TIER_MAP = {
@@ -9,22 +8,29 @@ STANDARD_TIER_MAP = {
 	"15%": "rate_15",
 	"30%": "rate_30",
 	"45%": "rate_45",
+	"Target": "target_rate",
 	"Commission": "rate_commission",
 	"Commission (Tax)": "rate_commission_tax",
+	"Target Commission": "rate_target_commission",
+	"Target Commission (Tax)": "rate_target_commission_tax",
 }
 
 
 def compute_tiers(true_cost, target_margin_pct=0, commission_pct=10, wht_pct=3):
 	"""
-	Compute all 6 tier rates from true_cost (per unit, in quote currency).
+	Compute all tier rates from true_cost (per unit, in quote currency).
 
 	- basic = true_cost
-	- rate_X = true_cost / (1 - margin_X/100)
-	- commission tier = rate_target / (1 - commission/100)  (if commission>0)
-	- commission_tax tier = commission_tier / (1 - wht/100)  (if wht>0)
-	- final = commission_tax tier (target + commission + wHT)
+	- rate_X = true_cost / (1 - margin_X/100) for X in 15/30/45
+	- target = true_cost / (1 - target_margin/100)
+	- fixed commission 10%  = target / (1 - 0.10)
+	- fixed commission+tax 10+3% = fixed_commission / (1 - 0.03)
+	- target commission (variable c%) = target / (1 - commission_pct/100)
+	- target commission+tax (variable c%+w%) = target_commission / (1 - wht_pct/100)
+	- final = target commission+tax (variable)
 
 	Margins are % of selling price, not markup — matches PDF: SP = Cost / (1 - Margin%)
+	Fixed 10%/3% tiers mirror selling - Basic/15/30/45; variable targets use header c%/w%.
 	"""
 	true_cost = flt(true_cost, 2)
 	target_margin_pct = flt(target_margin_pct)
@@ -46,26 +52,32 @@ def compute_tiers(true_cost, target_margin_pct=0, commission_pct=10, wht_pct=3):
 	# target margin tier (used as primary for this item)
 	r_target = _rate(true_cost, target_margin_pct)
 
-	# commission applied on top of target margin tier
-	if commission_pct > 0 and commission_pct < 100 and r_target:
-		r_commission = flt(r_target / (1 - commission_pct / 100), 2)
-	else:
-		r_commission = flt(r_target, 2)
+	# fixed commission 10% and fixed commission+tax 10%+3% — always 10/3 regardless of variable c/w
+	r_commission = flt(r_target / (1 - 0.10), 2) if r_target and 0 < 10 < 100 else flt(r_target, 2)
+	r_commission_tax = flt(r_commission / (1 - 0.03), 2) if r_commission and 0 < 3 < 100 else flt(r_commission, 2)
 
-	# WHT applied on top of commission tier
-	if wht_pct > 0 and wht_pct < 100 and r_commission:
-		r_commission_tax = flt(r_commission / (1 - wht_pct / 100), 2)
+	# variable target commission / target commission+tax from header c%/w%
+	if commission_pct > 0 and commission_pct < 100 and r_target:
+		r_target_commission = flt(r_target / (1 - commission_pct / 100), 2)
 	else:
-		r_commission_tax = flt(r_commission, 2)
+		r_target_commission = flt(r_target, 2)
+
+	if wht_pct > 0 and wht_pct < 100 and r_target_commission:
+		r_target_commission_tax = flt(r_target_commission / (1 - wht_pct / 100), 2)
+	else:
+		r_target_commission_tax = flt(r_target_commission, 2)
 
 	return {
 		"basic_rate": basic,
+		"target_rate": r_target,
 		"rate_15": r15,
 		"rate_30": r30,
 		"rate_45": r45,
 		"rate_commission": r_commission,
 		"rate_commission_tax": r_commission_tax,
-		"final_rate_per_unit": r_commission_tax,
+		"rate_target_commission": r_target_commission,
+		"rate_target_commission_tax": r_target_commission_tax,
+		"final_rate_per_unit": r_target_commission_tax,
 		"rate_target": r_target,
 	}
 
@@ -102,9 +114,11 @@ def get_exchange_rate(from_currency, to_currency, date=None):
 
 def allocate_shared_costs(batch_doc):
 	"""
-	Distribute header shared costs across child rows by value weight:
+	Distribute header shared costs across child rows by value weight,
+	except Fixed Cost which is per-unit x qty (SELLING PRICE 2.pdf p213):
 	  weight_i = base_total_i / sum(base_total)
-	  allocated_*_i = total_* * weight_i
+	  allocated_*_i = total_* * weight_i  (for bank/freight/clearing/tin/tout/overhead)
+	  allocated_fixed_cost_i = fixed_cost_per_unit * qty_i
 
 	Mutates batch_doc.items in place, also computes true_cost + tiers per row.
 	"""
@@ -120,22 +134,23 @@ def allocate_shared_costs(batch_doc):
 	if not total_base:
 		return
 
-	# collect header totals (in quote currency)
+	# collect header totals (in quote currency) — all except Fixed Cost are quotation totals
 	t_bank = flt(batch_doc.total_bank_charges)
 	t_freight = flt(batch_doc.total_freight)
 	t_clearing = flt(batch_doc.total_clearing_fees)
 	t_tin = flt(batch_doc.total_transport_in)
 	t_tout = flt(batch_doc.total_transport_out)
 	t_over = flt(batch_doc.total_overhead)
-	t_fixed = flt(batch_doc.total_fixed_cost)
+	fixed_per_unit = flt(batch_doc.total_fixed_cost)
 
-	# last-row delta correction to fix rounding
+	# last-row delta correction to fix rounding (Fixed Cost excluded — per-unit)
 	n = len(items)
-	cum = {"bank": 0, "freight": 0, "clearing": 0, "tin": 0, "tout": 0, "over": 0, "fixed": 0}
+	cum = {"bank": 0, "freight": 0, "clearing": 0, "tin": 0, "tout": 0, "over": 0}
 
 	for idx, row in enumerate(items):
 		is_last = idx == n - 1
 		weight = flt(row.base_total) / total_base if total_base else 0
+		qty = flt(row.qty)
 
 		if is_last:
 			row.allocated_bank_charges = flt(t_bank - cum["bank"], 2)
@@ -144,7 +159,7 @@ def allocate_shared_costs(batch_doc):
 			row.allocated_transport_in = flt(t_tin - cum["tin"], 2)
 			row.allocated_transport_out = flt(t_tout - cum["tout"], 2)
 			row.allocated_overhead = flt(t_over - cum["over"], 2)
-			row.allocated_fixed_cost = flt(t_fixed - cum["fixed"], 2)
+			row.allocated_fixed_cost = flt(fixed_per_unit * qty, 2)
 		else:
 			row.allocated_bank_charges = flt(t_bank * weight, 2)
 			row.allocated_freight = flt(t_freight * weight, 2)
@@ -152,14 +167,13 @@ def allocate_shared_costs(batch_doc):
 			row.allocated_transport_in = flt(t_tin * weight, 2)
 			row.allocated_transport_out = flt(t_tout * weight, 2)
 			row.allocated_overhead = flt(t_over * weight, 2)
-			row.allocated_fixed_cost = flt(t_fixed * weight, 2)
+			row.allocated_fixed_cost = flt(fixed_per_unit * qty, 2)
 			cum["bank"] += row.allocated_bank_charges
 			cum["freight"] += row.allocated_freight
 			cum["clearing"] += row.allocated_clearing_fees
 			cum["tin"] += row.allocated_transport_in
 			cum["tout"] += row.allocated_transport_out
 			cum["over"] += row.allocated_overhead
-			cum["fixed"] += row.allocated_fixed_cost
 
 		allocated_sum = (
 			flt(row.allocated_bank_charges)
@@ -171,7 +185,9 @@ def allocate_shared_costs(batch_doc):
 			+ flt(row.allocated_fixed_cost)
 		)
 		row.true_cost = flt(flt(row.base_total) + allocated_sum, 2)
-		row.true_cost_per_unit = flt(row.true_cost / flt(row.qty), 2) if flt(row.qty) else flt(row.true_cost, 2)
+		row.true_cost_per_unit = (
+			flt(row.true_cost / flt(row.qty), 2) if flt(row.qty) else flt(row.true_cost, 2)
+		)
 
 		tiers = compute_tiers(
 			row.true_cost_per_unit,
@@ -180,16 +196,23 @@ def allocate_shared_costs(batch_doc):
 			wht_pct=batch_doc.wht_pct,
 		)
 		row.basic_rate = tiers["basic_rate"]
+		row.target_rate = tiers["target_rate"]
 		row.rate_15 = tiers["rate_15"]
 		row.rate_30 = tiers["rate_30"]
 		row.rate_45 = tiers["rate_45"]
 		row.rate_commission = tiers["rate_commission"]
 		row.rate_commission_tax = tiers["rate_commission_tax"]
+		row.rate_target_commission = tiers["rate_target_commission"]
+		row.rate_target_commission_tax = tiers["rate_target_commission_tax"]
 		row.final_rate_per_unit = tiers["final_rate_per_unit"]
 		row.final_total = flt(flt(row.final_rate_per_unit) * flt(row.qty), 2)
 
 		# dual currency preview if FX applicable
-		if batch_doc.quote_currency and batch_doc.company_currency and batch_doc.quote_currency != batch_doc.company_currency:
+		if (
+			batch_doc.quote_currency
+			and batch_doc.company_currency
+			and batch_doc.quote_currency != batch_doc.company_currency
+		):
 			rate = flt(batch_doc.exchange_rate) or get_exchange_rate(
 				batch_doc.quote_currency, batch_doc.company_currency, batch_doc.exchange_rate_date
 			)
@@ -198,21 +221,29 @@ def allocate_shared_costs(batch_doc):
 
 
 def recompute_manual_estimate(doc):
-	"""Compute tiers for a single Manual-mode Item Pricing Settings doc."""
+	"""Compute tiers for a single Manual-mode Item Pricing Settings doc (totals → per-unit)."""
+	qty = flt(doc.manual_qty) or 1
 	if flt(doc.estimated_true_cost_override):
-		true_cost = flt(doc.estimated_true_cost_override, 2)
+		# Treat override as TOTAL for qty; per-unit = total/qty (qty=1 unchanged for compat)
+		true_cost = (
+			flt(flt(doc.estimated_true_cost_override) / qty, 2)
+			if qty > 1
+			else flt(doc.estimated_true_cost_override, 2)
+		)
 	else:
-		true_cost = flt(
-			flt(doc.estimated_base_rate)
-			+ flt(doc.manual_bank_charges)
+		base_total = flt(doc.estimated_base_rate) * qty
+		# Fixed Cost is per-unit x qty; other costs are totals for qty
+		fixed_total = flt(doc.manual_fixed_cost) * qty
+		other_totals = (
+			flt(doc.manual_bank_charges)
 			+ flt(doc.manual_freight)
 			+ flt(doc.manual_clearing_fees)
 			+ flt(doc.manual_transport_in)
 			+ flt(doc.manual_transport_out)
 			+ flt(doc.manual_overhead)
-			+ flt(doc.manual_fixed_cost),
-			2,
 		)
+		true_cost_total = base_total + other_totals + fixed_total
+		true_cost = flt(true_cost_total / qty, 2) if qty else flt(true_cost_total, 2)
 	tiers = compute_tiers(
 		true_cost,
 		target_margin_pct=doc.target_margin_pct,
@@ -227,20 +258,22 @@ def _tier_values_for_settings(doc, true_cost, tiers):
 	standard_rate = get_standard_rate(tiers, doc.standard_selling_source_tier)
 	values = {
 		"manual_true_cost": flt(true_cost, 2) if doc.pricing_mode == "Manual" else 0,
-		"current_valuation_rate": flt(true_cost, 4) if doc.pricing_mode == "Auto" else flt(doc.current_valuation_rate, 4),
+		"current_valuation_rate": flt(true_cost, 4)
+		if doc.pricing_mode == "Auto"
+		else flt(doc.current_valuation_rate, 4),
 		"basic_rate": tiers["basic_rate"],
+		"target_rate": tiers["target_rate"],
 		"rate_15": tiers["rate_15"],
 		"rate_30": tiers["rate_30"],
 		"rate_45": tiers["rate_45"],
 		"rate_commission": tiers["rate_commission"],
 		"rate_commission_tax": tiers["rate_commission_tax"],
+		"rate_target_commission": tiers["rate_target_commission"],
+		"rate_target_commission_tax": tiers["rate_target_commission_tax"],
 		"final_rate_per_unit": tiers["final_rate_per_unit"],
 		"suggested_selling_price": standard_rate,
 		"last_updated": now_datetime(),
 	}
-	# keep legacy price_list in sync with price_list_30 (Standard Selling)
-	if doc.price_list_30:
-		values["price_list"] = doc.price_list_30
 	return values
 
 
@@ -323,6 +356,8 @@ def recompute_suggested_price(item_code):
 			"rate_45": tiers["rate_45"],
 			"rate_commission": tiers["rate_commission"],
 			"rate_commission_tax": tiers["rate_commission_tax"],
+			"rate_target_commission": tiers["rate_target_commission"],
+			"rate_target_commission_tax": tiers["rate_target_commission_tax"],
 			"final_rate_per_unit": tiers["final_rate_per_unit"],
 			"suggested_selling_price": flt(standard_rate, 2),
 			"current_selling_price": flt(current_sp, 2),

@@ -23,30 +23,36 @@
   "total_bank_charges",
   "total_freight",
   "total_clearing_fees",
+  "total_fixed_cost",
   "column_break_shared",
   "total_transport_in",
   "total_transport_out",
   "total_overhead",
-  "total_fixed_cost",
   "pricing_defaults_section",
   "commission_pct",
+  "wht_pct",
   "standard_selling_source_tier",
   "column_break_pricing_defaults",
-  "wht_pct",
+  "price_list_target",
+  "price_list_target_commission",
+  "price_list_target_commission_tax",
   "items_section",
   "items",
   "price_lists_section",
   "price_list_basic",
   "price_list_15",
   "price_list_30",
-  "column_break_pl",
   "price_list_45",
+  "column_break_pl",
   "price_list_commission",
   "price_list_commission_tax",
   "secondary_price_lists_section",
   "price_list_basic_secondary",
   "price_list_15_secondary",
   "price_list_30_secondary",
+  "price_list_target_secondary",
+  "price_list_target_commission_secondary",
+  "price_list_target_commission_tax_secondary",
   "column_break_sec_pl",
   "price_list_45_secondary",
   "price_list_commission_secondary",
@@ -140,7 +146,7 @@
   {
    "fieldname": "shared_costs_section",
    "fieldtype": "Section Break",
-   "label": "Shared Costs (totals in Quote Currency \u2014 allocated by value weight)"
+   "label": "Shared Costs (totals in Quote Currency \u2014 allocated by value weight; Fixed Cost is per unit)"
   },
   {
    "default": "0",
@@ -184,9 +190,10 @@
   },
   {
    "default": "0",
+   "description": "Per-unit fixed cost \u2014 row Fixed = header \u00d7 qty. Other shared costs are quotation totals allocated by value weight.",
    "fieldname": "total_fixed_cost",
    "fieldtype": "Currency",
-   "label": "Total Fixed Cost (per-quotation input)"
+   "label": "Fixed Cost (per unit)"
   },
   {
    "fieldname": "pricing_defaults_section",
@@ -195,22 +202,25 @@
   },
   {
    "default": "10",
+   "description": "Target commission % \u2014 10% default for fixed Selling - Commission (10%); override to 5%/6% etc. for Target Commission tier",
    "fieldname": "commission_pct",
    "fieldtype": "Percent",
-   "label": "Commission (%)"
+   "label": "Target Commission (%)"
   },
   {
    "default": "3",
+   "description": "Target WHT % \u2014 3% default for fixed Selling - Commission (Tax) (10%+3%); rarely changes, e.g. 2%. Drives Target Commission (Tax) tier",
    "fieldname": "wht_pct",
    "fieldtype": "Percent",
-   "label": "WHT (%)"
+   "label": "Target WHT (%)"
   },
   {
    "default": "30%",
+   "description": "Which tier drives Standard Selling \u2014 30% default (fixed Selling - 30% separate), choose Target to drive Standard Selling from custom Target margin. Use Target Commission / Target Commission (Tax) for variable c%/w%",
    "fieldname": "standard_selling_source_tier",
    "fieldtype": "Select",
    "label": "Standard Selling Source Tier",
-   "options": "Basic\n15%\n30%\n45%\nCommission\nCommission (Tax)",
+   "options": "Basic\n15%\n30%\n45%\nTarget\nCommission (10%)\nCommission (Tax) (10%+3%)\nTarget Commission\nTarget Commission (Tax)",
    "reqd": 1
   },
   {
@@ -242,10 +252,35 @@
    "options": "Price List"
   },
   {
-   "default": "Standard Selling",
+   "default": "Selling - 30%",
+   "description": "Fixed 30% tier \u2014 always Selling - 30% (Standard Selling separate)",
    "fieldname": "price_list_30",
    "fieldtype": "Link",
-   "label": "Price List - 30% (Standard Selling)",
+   "label": "Price List - 30%",
+   "options": "Price List"
+  },
+  {
+   "default": "Standard Selling",
+   "description": "Price List where per-row Target Margin % rates are written. Per-row override available in Items table.",
+   "fieldname": "price_list_target",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Margin",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - Commission (Target)",
+   "description": "Price List where Target Commission % (header Target Commission %) rates are written. Per-row override available in Items table. Fixed 10% uses Price List - Commission (10% fixed) below",
+   "fieldname": "price_list_target_commission",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Commission",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - Commission (Tax) (Target)",
+   "description": "Price List where Target Commission (Tax) % (Target Commission + Target WHT) rates are written. Per-row override available in Items table. Fixed 10%+3% uses Price List - Commission (Tax) (10%+3% fixed) below",
+   "fieldname": "price_list_target_commission_tax",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Commission (Tax)",
    "options": "Price List"
   },
   {
@@ -260,17 +295,19 @@
    "options": "Price List"
   },
   {
-   "default": "Selling - Commission",
+   "default": "Selling - Commission (10%)",
+   "description": "Fixed 10% tier \u2014 always 10% regardless of header Target Commission %. Variable Target Commission uses Price List \u2014 Target Commission above",
    "fieldname": "price_list_commission",
    "fieldtype": "Link",
-   "label": "Price List - Commission",
+   "label": "Price List - Commission (10% fixed)",
    "options": "Price List"
   },
   {
-   "default": "Selling - Commission (Tax)",
+   "default": "Selling - Commission (Tax) (10%+3%)",
+   "description": "Fixed 10%+3% tier \u2014 always 10%+3% regardless of header %. Variable Target Commission (Tax) uses Price List \u2014 Target Commission (Tax) above",
    "fieldname": "price_list_commission_tax",
    "fieldtype": "Link",
-   "label": "Price List - Commission (Tax)",
+   "label": "Price List - Commission (Tax) (10%+3% fixed)",
    "options": "Price List"
   },
   {
@@ -299,6 +336,24 @@
    "options": "Price List"
   },
   {
+   "fieldname": "price_list_target_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - Target Margin",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "price_list_target_commission_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - Target Commission",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "price_list_target_commission_tax_secondary",
+   "fieldtype": "Link",
+   "label": "Secondary - Target Commission (Tax)",
+   "options": "Price List"
+  },
+  {
    "fieldname": "column_break_sec_pl",
    "fieldtype": "Column Break"
   },
@@ -311,19 +366,19 @@
   {
    "fieldname": "price_list_commission_secondary",
    "fieldtype": "Link",
-   "label": "Secondary - Commission",
+   "label": "Secondary - Commission (10% fixed)",
    "options": "Price List"
   },
   {
    "fieldname": "price_list_commission_tax_secondary",
    "fieldtype": "Link",
-   "label": "Secondary - Commission (Tax)",
+   "label": "Secondary - Commission (Tax) (10%+3% fixed)",
    "options": "Price List"
   },
   {
    "fieldname": "items_section",
    "fieldtype": "Section Break",
-   "label": "Items (qty \u00d7 unit_cost \u2192 allocated costs \u2192 6 tiers)"
+   "label": "Items (qty \u00d7 unit_cost \u2192 allocated costs \u2192 9 tiers)"
   },
   {
    "fieldname": "items",
@@ -368,7 +423,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-09-01 19:47:34.016359",
+ "modified": "2026-09-02 20:30:05.211531",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Item Pricing Quotation Batch",

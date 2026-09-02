@@ -94,25 +94,34 @@ def _ensure_pricing_settings_for_batch_row(batch, row):
 		"Item", row.item_code, "stock_uom"
 	)
 
-	# map tiers from row
+	# map tiers from row (9 tiers: 5 fixed + Target + Commission 10% + 10+3% + Target Commission + Target Commission Tax)
 	tiers = {
 		"basic_rate": row.basic_rate,
+		"target_rate": getattr(row, "target_rate", 0),
 		"rate_15": row.rate_15,
 		"rate_30": row.rate_30,
 		"rate_45": row.rate_45,
 		"rate_commission": row.rate_commission,
 		"rate_commission_tax": row.rate_commission_tax,
+		"rate_target_commission": getattr(row, "rate_target_commission", 0),
+		"rate_target_commission_tax": getattr(row, "rate_target_commission_tax", 0),
 		"final_rate_per_unit": row.final_rate_per_unit,
 	}
 
-	# standard rate for Standard Selling = source tier (batch-level)
+	# standard rate for Standard Selling = source tier (batch-level, includes Target)
 	source_map = {
 		"Basic": row.basic_rate,
 		"15%": row.rate_15,
 		"30%": row.rate_30,
 		"45%": row.rate_45,
+		"Target": getattr(row, "target_rate", 0),
+		"Commission (10%)": row.rate_commission,
+		"Commission (Tax) (10%+3%)": row.rate_commission_tax,
+		# backward compat for old docs still storing Commission without suffix
 		"Commission": row.rate_commission,
 		"Commission (Tax)": row.rate_commission_tax,
+		"Target Commission": getattr(row, "rate_target_commission", 0),
+		"Target Commission (Tax)": getattr(row, "rate_target_commission_tax", 0),
 	}
 	standard_rate = flt(source_map.get(batch.standard_selling_source_tier or "30%"), 2) or flt(row.rate_30, 2)
 
@@ -131,13 +140,19 @@ def _ensure_pricing_settings_for_batch_row(batch, row):
 		doc.manual_qty = row.qty
 		doc.manual_true_cost = row.true_cost_per_unit
 		doc.basic_rate = tiers["basic_rate"]
+		doc.target_rate = tiers["target_rate"]
 		doc.rate_15 = tiers["rate_15"]
 		doc.rate_30 = tiers["rate_30"]
 		doc.rate_45 = tiers["rate_45"]
 		doc.rate_commission = tiers["rate_commission"]
 		doc.rate_commission_tax = tiers["rate_commission_tax"]
+		doc.rate_target_commission = tiers["rate_target_commission"]
+		doc.rate_target_commission_tax = tiers["rate_target_commission_tax"]
 		doc.final_rate_per_unit = tiers["final_rate_per_unit"]
 		doc.suggested_selling_price = standard_rate
+		doc.price_list = getattr(row, "price_list_target", None) or getattr(batch, "price_list_target", None) or batch.price_list_basic
+		doc.price_list_target_commission = getattr(row, "price_list_target_commission", None) or getattr(batch, "price_list_target_commission", None) or batch.price_list_commission
+		doc.price_list_target_commission_tax = getattr(row, "price_list_target_commission_tax", None) or getattr(batch, "price_list_target_commission_tax", None) or batch.price_list_commission_tax
 		doc.price_list_basic = batch.price_list_basic
 		doc.price_list_15 = batch.price_list_15
 		doc.price_list_30 = batch.price_list_30
@@ -165,13 +180,19 @@ def _ensure_pricing_settings_for_batch_row(batch, row):
 				"manual_qty": row.qty,
 				"manual_true_cost": row.true_cost_per_unit,
 				"basic_rate": tiers["basic_rate"],
+				"target_rate": tiers["target_rate"],
 				"rate_15": tiers["rate_15"],
 				"rate_30": tiers["rate_30"],
 				"rate_45": tiers["rate_45"],
 				"rate_commission": tiers["rate_commission"],
 				"rate_commission_tax": tiers["rate_commission_tax"],
+				"rate_target_commission": tiers["rate_target_commission"],
+				"rate_target_commission_tax": tiers["rate_target_commission_tax"],
 				"final_rate_per_unit": tiers["final_rate_per_unit"],
 				"suggested_selling_price": standard_rate,
+				"price_list": getattr(row, "price_list_target", None) or getattr(batch, "price_list_target", None) or "Standard Selling",
+				"price_list_target_commission": getattr(row, "price_list_target_commission", None) or getattr(batch, "price_list_target_commission", None) or "Selling - Commission (Target)",
+				"price_list_target_commission_tax": getattr(row, "price_list_target_commission_tax", None) or getattr(batch, "price_list_target_commission_tax", None) or "Selling - Commission (Tax) (Target)",
 				"price_list_basic": batch.price_list_basic,
 				"price_list_15": batch.price_list_15,
 				"price_list_30": batch.price_list_30,
@@ -188,22 +209,31 @@ def _ensure_pricing_settings_for_batch_row(batch, row):
 
 
 def _apply_tiers_from_batch(batch, row, settings_doc, uom, standard_rate):
-	"""Bulk upsert Item Price per tier, including dual-currency secondary lists if FX."""
+	"""Bulk upsert Item Price per tier (9 incl Target + Target Commission), including dual-currency secondary lists if FX."""
+	target_pl = getattr(row, "price_list_target", None) or getattr(batch, "price_list_target", None) or "Standard Selling"
+	target_commission_pl = getattr(row, "price_list_target_commission", None) or getattr(batch, "price_list_target_commission", None) or batch.price_list_commission
+	target_commission_tax_pl = getattr(row, "price_list_target_commission_tax", None) or getattr(batch, "price_list_target_commission_tax", None) or batch.price_list_commission_tax
 	tier_price_lists = {
 		"basic": (row.basic_rate, batch.price_list_basic),
+		"target": (getattr(row, "target_rate", 0), target_pl),
 		"15": (row.rate_15, batch.price_list_15),
-		"30": (standard_rate, batch.price_list_30),
+		"30": (row.rate_30, batch.price_list_30),
 		"45": (row.rate_45, batch.price_list_45),
 		"commission": (row.rate_commission, batch.price_list_commission),
 		"commission_tax": (row.rate_commission_tax, batch.price_list_commission_tax),
+		"target_commission": (getattr(row, "rate_target_commission", 0), target_commission_pl),
+		"target_commission_tax": (getattr(row, "rate_target_commission_tax", 0), target_commission_tax_pl),
 	}
 	secondary_map = {
 		"basic": batch.price_list_basic_secondary,
+		"target": getattr(batch, "price_list_target_secondary", None) if hasattr(batch, "price_list_target_secondary") else None,
 		"15": batch.price_list_15_secondary,
 		"30": batch.price_list_30_secondary,
 		"45": batch.price_list_45_secondary,
 		"commission": batch.price_list_commission_secondary,
 		"commission_tax": batch.price_list_commission_tax_secondary,
+		"target_commission": getattr(batch, "price_list_target_commission_secondary", None) if hasattr(batch, "price_list_target_commission_secondary") else None,
+		"target_commission_tax": getattr(batch, "price_list_target_commission_tax_secondary", None) if hasattr(batch, "price_list_target_commission_tax_secondary") else None,
 	}
 
 	for tier_key, (rate, pl) in tier_price_lists.items():
@@ -264,6 +294,42 @@ def _apply_tiers_from_batch(batch, row, settings_doc, uom, standard_rate):
 						"buying": 0,
 					}
 				).insert(ignore_permissions=True)
+
+	# Ensure Standard Selling (separate from Selling - 30%) reflects source tier
+	if flt(standard_rate):
+		std_currency = frappe.get_cached_value("Price List", "Standard Selling", "currency")
+		std_existing = frappe.db.get_value(
+			"Item Price", {"item_code": row.item_code, "price_list": "Standard Selling", "selling": 1}, "name"
+		)
+		if std_existing:
+			frappe.db.set_value(
+				"Item Price", std_existing, {"price_list_rate": flt(standard_rate, 2), "currency": std_currency, "valid_from": today()}, update_modified=True
+			)
+		else:
+			frappe.get_doc(
+				{
+					"doctype": "Item Price",
+					"item_code": row.item_code,
+					"price_list": "Standard Selling",
+					"price_list_rate": flt(standard_rate, 2),
+					"currency": std_currency,
+					"uom": uom,
+					"valid_from": today(),
+					"selling": 1,
+					"buying": 0,
+				}
+			).insert(ignore_permissions=True)
+		# FX for Standard Selling secondary if exists
+		std_sec = getattr(batch, "price_list_target_secondary", None) if hasattr(batch, "price_list_target_secondary") else None
+		# fallback: if Standard Selling secondary not defined, try generic secondary mapping for Standard Selling?
+		if std_sec and batch.quote_currency != batch.company_currency and flt(batch.exchange_rate):
+			converted = flt(standard_rate * flt(batch.exchange_rate), 2)
+			currency2 = frappe.get_cached_value("Price List", std_sec, "currency")
+			existing2 = frappe.db.get_value("Item Price", {"item_code": row.item_code, "price_list": std_sec, "selling": 1}, "name")
+			if existing2:
+				frappe.db.set_value("Item Price", existing2, {"price_list_rate": converted, "currency": currency2, "valid_from": today()}, update_modified=True)
+			else:
+				frappe.get_doc({"doctype": "Item Price", "item_code": row.item_code, "price_list": std_sec, "price_list_rate": converted, "currency": currency2, "uom": uom, "valid_from": today(), "selling": 1, "buying": 0}).insert(ignore_permissions=True)
 
 	# update live current_selling_price on settings
 	frappe.db.set_value(

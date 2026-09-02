@@ -9,16 +9,18 @@
  "field_order": [
   "item_code",
   "description",
-  "standard_selling_source_tier",
   "column_break_egzb",
   "item_group",
-  "price_list",
+  "standard_selling_source_tier",
   "pricing_configuration_section",
   "pricing_mode",
   "target_margin_pct",
-  "column_break_pricing",
   "commission_pct",
   "wht_pct",
+  "column_break_pricing",
+  "price_list",
+  "price_list_target_commission",
+  "price_list_target_commission_tax",
   "section_break_iiyn",
   "pricing_notes",
   "fx_section",
@@ -28,19 +30,24 @@
   "exchange_rate",
   "exchange_rate_date",
   "manual_estimate_section",
-  "estimated_base_rate",
+  "manual_cost_mode",
+  "column_break_dtxc",
   "manual_qty",
+  "breakdown_section",
+  "estimated_base_rate",
+  "manual_fixed_cost",
+  "manual_overhead",
   "column_break_manual",
-  "estimated_true_cost_override",
   "manual_bank_charges",
   "manual_freight",
   "manual_clearing_fees",
   "column_break_manual2",
   "manual_transport_in",
   "manual_transport_out",
-  "manual_overhead",
-  "manual_fixed_cost",
+  "override_section",
+  "estimated_true_cost_override",
   "manual_true_cost",
+  "column_break_ngul",
   "computed_values_section",
   "current_valuation_rate",
   "suggested_selling_price",
@@ -49,12 +56,15 @@
   "last_updated",
   "tier_rates_section",
   "basic_rate",
+  "target_rate",
   "rate_15",
   "rate_30",
   "rate_45",
   "column_break_tier",
   "rate_commission",
   "rate_commission_tax",
+  "rate_target_commission",
+  "rate_target_commission_tax",
   "final_rate_per_unit",
   "tier_price_lists_section",
   "price_list_basic",
@@ -99,21 +109,23 @@
   },
   {
    "default": "Standard Selling",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "description": "Price List where the Target Margin % rate is written (e.g., Selling - 20%). 6 fixed tiers go to their own lists below. Leave as Standard Selling to reuse it for the target.",
    "fieldname": "price_list",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Price List (Legacy)",
-   "options": "Price List",
-   "read_only": 1
+   "label": "Price List \u2014 Target Margin",
+   "mandatory_depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "options": "Price List"
   },
   {
    "default": "30%",
-   "description": "Which tier drives Standard Selling (ERPNext default) \u2014 hard-coded 30% default, overridable. For daily Quotation/Sales Order without manual Price List pick.",
+   "description": "Which tier drives Standard Selling (ERPNext default) \u2014 30% default, overridable. Target Commission/Tax use header Target Commission %/Target WHT %; Commission 10% is fixed.",
    "fieldname": "standard_selling_source_tier",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Standard Selling Source Tier",
-   "options": "Basic\n15%\n30%\n45%\nCommission\nCommission (Tax)",
+   "options": "Basic\n15%\n30%\n45%\nTarget\nCommission (10%)\nCommission (Tax) (10%+3%)\nTarget Commission\nTarget Commission (Tax)",
    "reqd": 1
   },
   {
@@ -138,17 +150,35 @@
   },
   {
    "default": "10",
-   "description": "Commission % of selling price (default 10%) \u2014 editable per item/batch",
+   "description": "Target commission % \u2014 10% default for fixed Selling - Commission (10%); override to 5%/6% etc. for Target Commission tier",
    "fieldname": "commission_pct",
    "fieldtype": "Percent",
-   "label": "Commission (%)"
+   "label": "Target Commission (%)"
   },
   {
    "default": "3",
-   "description": "Withholding Tax % (default 3% whole-batch) \u2014 rarely changes",
+   "description": "Target WHT % \u2014 3% default for fixed Selling - Commission (Tax) (10%+3%); rarely changes, e.g. 2%. Drives Target Commission (Tax) tier",
    "fieldname": "wht_pct",
    "fieldtype": "Percent",
-   "label": "WHT (%)"
+   "label": "Target WHT (%)"
+  },
+  {
+   "default": "Selling - Commission (Target)",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "description": "Price List where Target Commission % rates are written. Fixed 10% uses Price List - Commission (10% fixed) below",
+   "fieldname": "price_list_target_commission",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Commission",
+   "options": "Price List"
+  },
+  {
+   "default": "Selling - Commission (Tax) (Target)",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "description": "Price List where Target Commission (Tax) % (Target Commission + Target WHT) rates are written. Fixed 10%+3% uses Price List - Commission (Tax) (10%+3% fixed) below",
+   "fieldname": "price_list_target_commission_tax",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Commission (Tax)",
+   "options": "Price List"
   },
   {
    "fieldname": "column_break_pricing",
@@ -199,17 +229,19 @@
    "label": "Exchange Rate Date"
   },
   {
-   "collapsible": 1,
    "depends_on": "eval:doc.pricing_mode==\"Manual\"",
    "fieldname": "manual_estimate_section",
    "fieldtype": "Section Break",
-   "label": "Manual Quotation Estimate (no SLE)"
+   "label": "Manual Quotation Estimate \u2014 Enter Totals for Qty (no SLE; Fixed Cost is per unit)"
   },
   {
+   "default": "Breakdown",
    "depends_on": "eval:doc.pricing_mode==\"Manual\"",
-   "fieldname": "estimated_base_rate",
-   "fieldtype": "Currency",
-   "label": "Estimated Base Rate (per unit, quote currency)"
+   "description": "Breakdown = Base Rate + shared totals (most quotations). Override = already-known True Cost Total for qty (shortcut). Only one active at a time.",
+   "fieldname": "manual_cost_mode",
+   "fieldtype": "Select",
+   "label": "Manual Cost Input Mode",
+   "options": "Breakdown\nOverride"
   },
   {
    "default": "1",
@@ -219,67 +251,94 @@
    "label": "Qty (for audit)"
   },
   {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "fieldname": "breakdown_section",
+   "fieldtype": "Section Break",
+   "label": "Cost Breakdown \u2014 Totals for Qty (Fixed Cost is per unit)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "fieldname": "estimated_base_rate",
+   "fieldtype": "Currency",
+   "label": "Estimated Base Rate (per unit, quote currency)",
+   "mandatory_depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\""
+  },
+  {
    "fieldname": "column_break_manual",
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
-   "description": "If filled, overrides breakdown sum as true cost shortcut",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && (doc.manual_cost_mode==\"Override\" || doc.estimated_true_cost_override)",
+   "description": "If filled, overrides breakdown sum. Enter shipment TOTAL for this qty; per-unit = total / qty.",
    "fieldname": "estimated_true_cost_override",
    "fieldtype": "Currency",
-   "label": "Estimated True Cost Override (per unit)"
+   "label": "Estimated True Cost Override (Total for Qty)",
+   "mandatory_depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Override\""
   },
   {
-   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "description": "Batch total for this qty; per-unit = total / qty shown in summary.",
    "fieldname": "manual_bank_charges",
    "fieldtype": "Currency",
-   "label": "Bank Charges (per unit)"
+   "label": "Total Bank Charges"
   },
   {
-   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "description": "Batch total for this qty; per-unit = total / qty shown in summary.",
    "fieldname": "manual_freight",
    "fieldtype": "Currency",
-   "label": "Freight (per unit)"
+   "label": "Total Freight"
   },
   {
-   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "description": "Batch total for this qty; per-unit = total / qty shown in summary.",
    "fieldname": "manual_clearing_fees",
    "fieldtype": "Currency",
-   "label": "Clearing Fees (per unit)"
+   "label": "Total Clearing Fees"
   },
   {
    "fieldname": "column_break_manual2",
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "description": "Batch total for this qty; per-unit = total / qty shown in summary.",
    "fieldname": "manual_transport_in",
    "fieldtype": "Currency",
-   "label": "Transport In (per unit)"
+   "label": "Total Transport In"
   },
   {
-   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "description": "Batch total for this qty; per-unit = total / qty shown in summary.",
    "fieldname": "manual_transport_out",
    "fieldtype": "Currency",
-   "label": "Transport Out (per unit)"
+   "label": "Total Transport Out"
   },
   {
-   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "description": "Batch total for this qty; per-unit = total / qty shown in summary.",
    "fieldname": "manual_overhead",
    "fieldtype": "Currency",
-   "label": "Overhead (per unit)"
+   "label": "Total Overhead"
   },
   {
-   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "description": "Per-unit fixed cost \u00d7 Qty ",
    "fieldname": "manual_fixed_cost",
    "fieldtype": "Currency",
-   "label": "Fixed Cost (per unit, per-quotation input)"
+   "label": "Fixed Cost (per unit)"
+  },
+  {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && (doc.manual_cost_mode==\"Override\" || doc.estimated_true_cost_override)",
+   "fieldname": "override_section",
+   "fieldtype": "Section Break",
+   "label": "True Cost Override \u2014 Shortcut"
   },
   {
    "depends_on": "eval:doc.pricing_mode==\"Manual\"",
    "fieldname": "manual_true_cost",
    "fieldtype": "Currency",
-   "label": "Manual True Cost (per unit)",
+   "label": "True Cost / Unit (computed)",
    "read_only": 1
   },
   {
@@ -322,12 +381,19 @@
   {
    "fieldname": "tier_rates_section",
    "fieldtype": "Section Break",
-   "label": "Tier Rates (all 6)"
+   "label": "Tier Rates (9) \u2014 Basic/15/30/45/Target + Commission 10% + Commission Tax 10+3% + Target Commission + Target Commission Tax"
   },
   {
    "fieldname": "basic_rate",
    "fieldtype": "Currency",
    "label": "Basic Rate (0% margin)",
+   "read_only": 1
+  },
+  {
+   "description": "Plain Target Margin % rate = true_cost/(1-target%) before commission/WHT",
+   "fieldname": "target_rate",
+   "fieldtype": "Currency",
+   "label": "Target Rate",
    "read_only": 1
   },
   {
@@ -355,20 +421,32 @@
   {
    "fieldname": "rate_commission",
    "fieldtype": "Currency",
-   "label": "Commission Rate (10%)",
+   "label": "Commission Rate (10% fixed)",
    "read_only": 1
   },
   {
    "fieldname": "rate_commission_tax",
    "fieldtype": "Currency",
-   "label": "Commission + Tax Rate (10% + 3%)",
+   "label": "Commission + Tax Rate (10%+3% fixed)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_target_commission",
+   "fieldtype": "Currency",
+   "label": "Target Commission Rate",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_target_commission_tax",
+   "fieldtype": "Currency",
+   "label": "Target Commission (Tax) Rate",
    "read_only": 1
   },
   {
    "bold": 1,
    "fieldname": "final_rate_per_unit",
    "fieldtype": "Currency",
-   "label": "Final Rate per Unit (target + commission + WHT)",
+   "label": "Final Rate per Unit (Target Commission Tax)",
    "read_only": 1
   },
   {
@@ -391,10 +469,11 @@
    "options": "Price List"
   },
   {
-   "default": "Standard Selling",
+   "default": "Selling - 30%",
+   "description": "Fixed 30% tier \u2014 always Selling - 30% (Standard Selling is separate, driven by Standard Selling Source Tier).",
    "fieldname": "price_list_30",
    "fieldtype": "Link",
-   "label": "Price List - 30% (Standard Selling)",
+   "label": "Price List - 30%",
    "options": "Price List"
   },
   {
@@ -409,17 +488,19 @@
    "options": "Price List"
   },
   {
-   "default": "Selling - Commission",
+   "default": "Selling - Commission (10%)",
+   "description": "Fixed 10% tier \u2014 always 10% regardless of Target Commission %. Variable Target Commission uses Price List \u2014 Target Commission above",
    "fieldname": "price_list_commission",
    "fieldtype": "Link",
-   "label": "Price List - Commission",
+   "label": "Price List - Commission (10% fixed)",
    "options": "Price List"
   },
   {
-   "default": "Selling - Commission (Tax)",
+   "default": "Selling - Commission (Tax) (10%+3%)",
+   "description": "Fixed 10%+3% tier \u2014 always 10%+3% regardless of header %. Variable Target Commission (Tax) uses Price List \u2014 Target Commission (Tax) above",
    "fieldname": "price_list_commission_tax",
    "fieldtype": "Link",
-   "label": "Price List - Commission (Tax)",
+   "label": "Price List - Commission (Tax) (10%+3% fixed)",
    "options": "Price List"
   },
   {
@@ -432,12 +513,20 @@
   {
    "fieldname": "section_break_iiyn",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_dtxc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_ngul",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-01 18:45:37.704402",
+ "modified": "2026-09-02 20:48:46.360627",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Item Pricing Settings",

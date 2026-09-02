@@ -21,6 +21,7 @@ try:
 				from print_designer.print_designer.page.print_designer.print_designer import (
 					convert_uom,
 				)
+
 				extra_in = convert_uom(extra_px, "px", "in", only_number=True)
 				self.body_page.options["paperHeight"] += extra_in
 

@@ -85,9 +85,7 @@ def mark_check_returned(name: str):
 		# Break the circular PE <-> JE link first, otherwise Frappe blocks the
 		# clearing Journal Entry from being cancelled (the submitted Payment
 		# Entry points back at it via `clearing_journal_entry`).
-		frappe.db.set_value(
-			"Payment Entry", pe.name, "clearing_journal_entry", None, update_modified=False
-		)
+		frappe.db.set_value("Payment Entry", pe.name, "clearing_journal_entry", None, update_modified=False)
 		clearing_je = frappe.get_doc("Journal Entry", pe.clearing_journal_entry)
 		if clearing_je.docstatus == 1:
 			clearing_je.cancel()

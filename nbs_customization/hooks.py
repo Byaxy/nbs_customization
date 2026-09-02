@@ -26,15 +26,15 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 app_include_css = [
-    "/assets/nbs_customization/css/nbs_theme.css",
-    "/assets/nbs_customization/css/list_view_row_number.css"
+	"/assets/nbs_customization/css/nbs_theme.css",
+	"/assets/nbs_customization/css/list_view_row_number.css",
 ]
 app_include_js = [
-    "/assets/nbs_customization/js/nbs_theme.js",
-    "/assets/nbs_customization/js/list_view_row_number.js",
-    "/assets/nbs_customization/js/report_row_number.js",
-    "/assets/nbs_customization/js/payment_entry.js",
-    "/assets/nbs_customization/js/bank_transaction.js",
+	"/assets/nbs_customization/js/nbs_theme.js",
+	"/assets/nbs_customization/js/list_view_row_number.js",
+	"/assets/nbs_customization/js/report_row_number.js",
+	"/assets/nbs_customization/js/payment_entry.js",
+	"/assets/nbs_customization/js/bank_transaction.js",
 ]
 
 # include js, css files in header of web template
@@ -103,8 +103,8 @@ pd_standard_format_folder = "default_templates"
 after_migrate = ["nbs_customization.setup.after_migrate"]
 
 override_whitelisted_methods = {
-    "frappe.desk.query_report.run": "nbs_customization.report_customizer.run",
-    "frappe.desk.query_report.export_query": "nbs_customization.report_customizer.export_query",
+	"frappe.desk.query_report.run": "nbs_customization.report_customizer.run",
+	"frappe.desk.query_report.export_query": "nbs_customization.report_customizer.export_query",
 }
 
 # Uninstallation
@@ -272,139 +272,136 @@ before_request = ["nbs_customization.pdf_patch.apply_patches"]
 # Fixtures
 
 fixtures = [
-
-    {
-        "dt": "Custom Field",
-        "filters": [
-            [
-                "name", "in", [
-                    "Item-custom_item_type",
-                    "Company-custom_bank_name",
-                    "Company-custom_bank_address",
-                    "Company-custom_account_number",
-                    "Company-custom_swift_code",
-                    "Company-custom_pdf_water_mark",
-                    "Company-custom_phone_no_2",
-                    "Company-custom_address_line_1",
-                    "Company-custom_address_line_2",
-                    "Quotation-custom_request_for_quotation_number",
-                    "Delivery Note-custom_waybill_type",
-                    "Delivery Note-custom_officer_details",
-                    "Delivery Note-custom_loan_waybill_section",
-                    "Delivery Note-custom_source_loan_waybill",
-                    "Delivery Note-custom_loan_waybill_column_break",
-                    "Delivery Note-custom_conversion_date",
-                    "Delivery Note-custom_is_conversion",
-                    "Delivery Note-custom_officer_details",
-                    "Delivery Note-custom_delivered_by",
-                    "Delivery Note-custom_officer_column_break",
-                    "Delivery Note-custom_received_by",
-                    "Stock Entry-custom_is_loan",
-                    "Purchase Receipt-custom_inbound_shipment",
-                    "Landed Cost Voucher-custom_linked_shipment",
-                    "Landed Cost Voucher-custom_linked_purchase_order",
-                    "Sales Invoice-custom_is_commission_applied",
-                    "Stock Reconciliation Item-custom_description",
-                    "Purchase Receipt-custom_purchase_order",
-                    "Sales Invoice-custom_sales_order",
-                    "Purchase Invoice-custom_purchase_order",
-                    "Delivery Note-custom_sales_order",
-                    "Batch-custom_batch_no",
-                    "Payment Entry-custom_receipt",
-                    "Mode of Payment-is_check",
-                    "Mode of Payment-clearing_account_inward",
-                    "Mode of Payment-clearing_account_outward",
-                    "Mode of Payment-default_clearing_destination",
-                    "Payment Entry-is_check",
-                    "Payment Entry-clearing_destination_account",
-                    "Payment Entry-check_cleared",
-                    "Payment Entry-check_clearing_date",
-                    "Payment Entry-check_cleared_source",
-                    "Payment Entry-clearing_journal_entry",
-                    "Payment Entry-check_returned",
-                    "Payment Entry-check_return_date",
-                ]
-            ]
-        ]
-    },
-    {
-        "dt": "Carrier",
-    },
+	{
+		"dt": "Custom Field",
+		"filters": [
+			[
+				"name",
+				"in",
+				[
+					"Item-custom_item_type",
+					"Company-custom_bank_name",
+					"Company-custom_bank_address",
+					"Company-custom_account_number",
+					"Company-custom_swift_code",
+					"Company-custom_pdf_water_mark",
+					"Company-custom_phone_no_2",
+					"Company-custom_address_line_1",
+					"Company-custom_address_line_2",
+					"Quotation-custom_request_for_quotation_number",
+					"Delivery Note-custom_waybill_type",
+					"Delivery Note-custom_officer_details",
+					"Delivery Note-custom_loan_waybill_section",
+					"Delivery Note-custom_source_loan_waybill",
+					"Delivery Note-custom_loan_waybill_column_break",
+					"Delivery Note-custom_conversion_date",
+					"Delivery Note-custom_is_conversion",
+					"Delivery Note-custom_officer_details",
+					"Delivery Note-custom_delivered_by",
+					"Delivery Note-custom_officer_column_break",
+					"Delivery Note-custom_received_by",
+					"Stock Entry-custom_is_loan",
+					"Purchase Receipt-custom_inbound_shipment",
+					"Landed Cost Voucher-custom_linked_shipment",
+					"Landed Cost Voucher-custom_linked_purchase_order",
+					"Sales Invoice-custom_is_commission_applied",
+					"Stock Reconciliation Item-custom_description",
+					"Purchase Receipt-custom_purchase_order",
+					"Sales Invoice-custom_sales_order",
+					"Purchase Invoice-custom_purchase_order",
+					"Delivery Note-custom_sales_order",
+					"Batch-custom_batch_no",
+					"Payment Entry-custom_receipt",
+					"Mode of Payment-is_check",
+					"Mode of Payment-clearing_account_inward",
+					"Mode of Payment-clearing_account_outward",
+					"Mode of Payment-default_clearing_destination",
+					"Payment Entry-is_check",
+					"Payment Entry-clearing_destination_account",
+					"Payment Entry-check_cleared",
+					"Payment Entry-check_clearing_date",
+					"Payment Entry-check_cleared_source",
+					"Payment Entry-clearing_journal_entry",
+					"Payment Entry-check_returned",
+					"Payment Entry-check_return_date",
+				],
+			]
+		],
+	},
+	{
+		"dt": "Carrier",
+	},
 ]
 
 
 doctype_js = {
-    "Sales Order": "public/js/sales_order.js",
-    "Delivery Note": "public/js/delivery_note.js",
-    "Landed Cost Voucher": "public/js/landed_cost_voucher.js",
-    "Purchase Receipt": "public/js/purchase_receipt.js",
-    "Sales Invoice": "public/js/sales_invoice.js",
-    "Batch": "public/js/batch.js",
-    "Payment Entry": "public/js/payment_entry.js",
-    "Bank Transaction": "public/js/bank_transaction.js",
+	"Sales Order": "public/js/sales_order.js",
+	"Delivery Note": "public/js/delivery_note.js",
+	"Landed Cost Voucher": "public/js/landed_cost_voucher.js",
+	"Purchase Receipt": "public/js/purchase_receipt.js",
+	"Sales Invoice": "public/js/sales_invoice.js",
+	"Batch": "public/js/batch.js",
+	"Payment Entry": "public/js/payment_entry.js",
+	"Bank Transaction": "public/js/bank_transaction.js",
 }
 
-doctype_list_js = {
-    "Expense": "public/js/expense_list.js"
-}
+doctype_list_js = {"Expense": "public/js/expense_list.js"}
 
 doc_events = {
-    "Quotation": {
-        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
-        "before_test_insert": "nbs_customization.controllers.validations.sales.prepare_quotation_test_record",
-    },
-    "Sales Order": {
-        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
-    },
-    "Delivery Note": {
-        "before_save": "nbs_customization.controllers.delivery_note.before_save",
-        "validate": [
-            "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
-            "nbs_customization.controllers.delivery_note.validate",
-        ],
-        "before_submit": "nbs_customization.controllers.delivery_note.before_submit",
-        "on_submit": "nbs_customization.controllers.delivery_note.on_submit",
-        "on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
-    },
-    "Sales Invoice": {
-        "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
-        "before_save":   "nbs_customization.controllers.sales_invoice.before_save",
-        "before_submit": "nbs_customization.controllers.sales_invoice.before_submit",
-    },
-    "Stock Entry": {
-        "validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
-        "before_cancel": "nbs_customization.controllers.stock_entry.before_cancel",
-    },
-    "Loan Waybill": {
-        "validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
-    },
-    "Purchase Receipt": {
-        "before_save":   "nbs_customization.controllers.purchase_receipt.before_save",
-        "before_submit": "nbs_customization.controllers.purchase_receipt.before_submit",
-        "validate": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.validate_purchase_receipt_shipment_link",
-        "on_submit": [
-            "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
-            "nbs_customization.utils.pricing.on_purchase_receipt_submit",
-        ],
-        "on_cancel": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel",
-    },
-    "Landed Cost Voucher": {
-        "on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",
-    },
-    "Purchase Invoice": {
-        "before_save":   "nbs_customization.controllers.purchase_invoice.before_save",
-        "before_submit": "nbs_customization.controllers.purchase_invoice.before_submit",
-    },
-    "Shipment": {
-        "validate": "nbs_customization.controllers.shipment.validate",
-    },
-    "Batch": {
-        "before_insert": "nbs_customization.controllers.batch.before_insert",
-    },
-    "Payment Entry": {
-        "validate": "nbs_customization.controllers.payment_entry.validate_check_payment_entry",
-    },
-    "Print Format": {
-        "validate": "nbs_customization.print_designer.fix_layout_sort.validate_print_format",
-    },
+	"Quotation": {
+		"validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
+		"before_test_insert": "nbs_customization.controllers.validations.sales.prepare_quotation_test_record",
+	},
+	"Sales Order": {
+		"validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
+	},
+	"Delivery Note": {
+		"before_save": "nbs_customization.controllers.delivery_note.before_save",
+		"validate": [
+			"nbs_customization.controllers.validations.stock.validate_unique_item_batch",
+			"nbs_customization.controllers.delivery_note.validate",
+		],
+		"before_submit": "nbs_customization.controllers.delivery_note.before_submit",
+		"on_submit": "nbs_customization.controllers.delivery_note.on_submit",
+		"on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
+	},
+	"Sales Invoice": {
+		"validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
+		"before_save": "nbs_customization.controllers.sales_invoice.before_save",
+		"before_submit": "nbs_customization.controllers.sales_invoice.before_submit",
+	},
+	"Stock Entry": {
+		"validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
+		"before_cancel": "nbs_customization.controllers.stock_entry.before_cancel",
+	},
+	"Loan Waybill": {"validate": "nbs_customization.controllers.validations.sales.validate_unique_items"},
+	"Purchase Receipt": {
+		"before_save": "nbs_customization.controllers.purchase_receipt.before_save",
+		"before_submit": "nbs_customization.controllers.purchase_receipt.before_submit",
+		"validate": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.validate_purchase_receipt_shipment_link",
+		"on_submit": [
+			"nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_submit",
+			"nbs_customization.utils.pricing.on_purchase_receipt_submit",
+		],
+		"on_cancel": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.on_purchase_receipt_cancel",
+	},
+	"Landed Cost Voucher": {
+		"on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",
+	},
+	"Purchase Invoice": {
+		"before_save": "nbs_customization.controllers.purchase_invoice.before_save",
+		"before_submit": "nbs_customization.controllers.purchase_invoice.before_submit",
+	},
+	"Shipment": {
+		"validate": "nbs_customization.controllers.shipment.validate",
+	},
+	"Batch": {
+		"before_insert": "nbs_customization.controllers.batch.before_insert",
+	},
+	"Payment Entry": {
+		"validate": "nbs_customization.controllers.payment_entry.validate_check_payment_entry",
+	},
+	"Print Format": {
+		"validate": "nbs_customization.print_designer.fix_layout_sort.validate_print_format",
+	},
 }

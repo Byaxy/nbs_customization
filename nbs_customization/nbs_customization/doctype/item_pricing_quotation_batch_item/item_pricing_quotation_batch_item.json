@@ -6,37 +6,43 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": [
-  "item_code",
-  "description",
-  "column_break_item",
-  "qty",
-  "unit_cost",
-  "base_total",
-  "target_margin_pct",
-  "allocated_section",
-  "allocated_bank_charges",
-  "allocated_freight",
-  "allocated_clearing_fees",
-  "column_break_alloc",
-  "allocated_transport_in",
-  "allocated_transport_out",
-  "allocated_overhead",
-  "allocated_fixed_cost",
-  "true_cost",
-  "true_cost_per_unit",
-  "tier_section",
-  "basic_rate",
-  "rate_15",
-  "rate_30",
-  "rate_45",
-  "column_break_tier",
-  "rate_commission",
-  "rate_commission_tax",
-  "final_rate_per_unit",
-  "final_total",
-  "final_rate_per_unit_company_currency"
- ],
+  "field_order": [
+   "item_code",
+   "description",
+   "column_break_item",
+   "qty",
+   "unit_cost",
+   "base_total",
+   "target_margin_pct",
+   "allocated_section",
+   "allocated_bank_charges",
+   "allocated_freight",
+   "allocated_clearing_fees",
+   "column_break_alloc",
+   "allocated_transport_in",
+   "allocated_transport_out",
+   "allocated_overhead",
+   "allocated_fixed_cost",
+   "true_cost",
+   "true_cost_per_unit",
+   "tier_section",
+   "basic_rate",
+   "target_rate",
+   "rate_15",
+   "rate_30",
+   "rate_45",
+   "column_break_tier",
+   "rate_commission",
+   "rate_commission_tax",
+   "rate_target_commission",
+   "rate_target_commission_tax",
+   "final_rate_per_unit",
+   "final_total",
+   "price_list_target",
+   "price_list_target_commission",
+   "price_list_target_commission_tax",
+   "final_rate_per_unit_company_currency"
+  ],
  "fields": [
   {
    "fieldname": "item_code",
@@ -153,15 +159,21 @@
    "label": "True Cost / Unit",
    "read_only": 1
   },
-  {
-   "fieldname": "tier_section",
-   "fieldtype": "Section Break",
-   "label": "Tier Rates (per unit)"
-  },
+   {
+    "fieldname": "tier_section",
+    "fieldtype": "Section Break",
+    "label": "Tier Rates (per unit) — 9 tiers: Basic/15/30/45/Target + Commission 10% + Commission Tax 10+3% + Target Commission + Target Commission Tax"
+   },
   {
    "fieldname": "basic_rate",
    "fieldtype": "Currency",
    "label": "Basic",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_rate",
+   "fieldtype": "Currency",
+   "label": "Target",
    "read_only": 1
   },
   {
@@ -182,34 +194,67 @@
    "label": "45%",
    "read_only": 1
   },
-  {
-   "fieldname": "column_break_tier",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "rate_commission",
-   "fieldtype": "Currency",
-   "label": "Commission",
-   "read_only": 1
-  },
-  {
-   "fieldname": "rate_commission_tax",
-   "fieldtype": "Currency",
-   "label": "Commission+Tax",
-   "read_only": 1
-  },
-  {
-   "fieldname": "final_rate_per_unit",
-   "fieldtype": "Currency",
-   "label": "Final / Unit",
-   "read_only": 1
-  },
+   {
+    "fieldname": "column_break_tier",
+    "fieldtype": "Column Break"
+   },
+   {
+    "fieldname": "rate_commission",
+    "fieldtype": "Currency",
+    "label": "Commission (10%)",
+    "read_only": 1
+   },
+   {
+    "fieldname": "rate_commission_tax",
+    "fieldtype": "Currency",
+    "label": "Commission+Tax (10%+3%)",
+    "read_only": 1
+   },
+   {
+    "fieldname": "rate_target_commission",
+    "fieldtype": "Currency",
+    "label": "Target Commission",
+    "read_only": 1
+   },
+   {
+    "fieldname": "rate_target_commission_tax",
+    "fieldtype": "Currency",
+    "label": "Target Commission (Tax)",
+    "read_only": 1
+   },
+   {
+    "fieldname": "final_rate_per_unit",
+    "fieldtype": "Currency",
+    "label": "Final / Unit (Target Commission Tax)",
+    "read_only": 1
+   },
   {
    "fieldname": "final_total",
    "fieldtype": "Currency",
    "label": "Final Total",
    "read_only": 1
   },
+   {
+    "fieldname": "price_list_target",
+    "fieldtype": "Link",
+    "label": "Price List — Target (override)",
+    "options": "Price List",
+    "description": "Optional per-row override; falls back to header Price List — Target Margin"
+   },
+   {
+    "fieldname": "price_list_target_commission",
+    "fieldtype": "Link",
+    "label": "Price List — Target Commission (override)",
+    "options": "Price List",
+    "description": "Optional per-row override; falls back to header Price List — Target Commission"
+   },
+   {
+    "fieldname": "price_list_target_commission_tax",
+    "fieldtype": "Link",
+    "label": "Price List — Target Commission (Tax) (override)",
+    "options": "Price List",
+    "description": "Optional per-row override; falls back to header Price List — Target Commission (Tax)"
+   },
   {
    "fieldname": "final_rate_per_unit_company_currency",
    "fieldtype": "Currency",

@@ -289,6 +289,4 @@ class TestCheckClearing(IntegrationTestCase):
 		self.assertEqual(
 			frappe.db.get_value("Account", inward, "parent_account"), "Accounts Receivable - _TC"
 		)
-		self.assertEqual(
-			frappe.db.get_value("Account", outward, "parent_account"), "Accounts Payable - _TC"
-		)
+		self.assertEqual(frappe.db.get_value("Account", outward, "parent_account"), "Accounts Payable - _TC")
