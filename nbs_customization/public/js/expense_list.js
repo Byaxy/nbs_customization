@@ -433,8 +433,17 @@ function add_expense_row(wrapper, categories, company) {
 			args: { mode_of_payment: method, company },
 			callback(r) {
 				if (r.message) {
-					row.data("resolved_account", r.message.account);
-					frappe.db.get_value("Account", r.message.account, "account_type", (ar) => {
+					// For Check, route to outward clearing even if default account is inward
+					const account = r.message.is_check && r.message.clearing_account_outward
+						? r.message.clearing_account_outward
+						: r.message.account;
+					row.data("resolved_account", account);
+					if (r.message.is_check) {
+						row.data("needs_ref", true);
+						update_ref_required(row, true);
+						return;
+					}
+					frappe.db.get_value("Account", account, "account_type", (ar) => {
 						const bank = !!ar && ar.account_type === "Bank";
 						row.data("needs_ref", bank);
 						update_ref_required(row, bank);

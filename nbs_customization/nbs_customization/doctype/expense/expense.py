@@ -4,7 +4,9 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, today
+
+from nbs_customization.controllers.check_clearing import get_check_mop, validate_destination_account
 
 
 class Expense(Document):
@@ -16,7 +18,7 @@ class Expense(Document):
 		self._validate_category_required()
 		self._validate_accompanying()
 		self._validate_invoice_link()
-		self._validate_bank_reference()
+		self._validate_check_or_bank_reference()
 
 	def on_submit(self):
 		if self.payment_type == "Direct Payment":
@@ -25,11 +27,24 @@ class Expense(Document):
 			self._create_payment_entry()
 
 	def on_cancel(self):
+		self._cancel_clearing_journal_entry()
 		self._cancel_or_delete_lcv()
 		if self.payment_type == "Direct Payment":
 			self._reverse_journal_entry()
 		else:
 			self._reverse_payment_entry()
+
+	def _cancel_clearing_journal_entry(self):
+		# If a check was cleared, the clearing JE must be cancelled before the underlying doc
+		if not self.get("clearing_journal_entry"):
+			return
+		# Break circular link first
+		frappe.db.set_value("Expense", self.name, "clearing_journal_entry", None, update_modified=False)
+		je_name = self.clearing_journal_entry
+		if je_name and frappe.db.exists("Journal Entry", je_name):
+			je = frappe.get_doc("Journal Entry", je_name)
+			if je.docstatus == 1:
+				je.cancel()
 
 	# ------------------------------------------------------------------ #
 	# Validation helpers                                                   #
@@ -272,21 +287,40 @@ class Expense(Document):
 		if not self.amount:
 			self.amount = pi.outstanding_amount
 
+	def _validate_check_or_bank_reference(self):
+		"""
+		Reference No/Date mandatory for Bank *or* Check mode.
+		For Check also routes paid_from to the outward clearing account and
+		defaults clearing_destination_account. clearance_date is NOT required
+		here — only at clearing (dialog).
+		"""
+		mop = get_check_mop(self.mode_of_payment) if self.mode_of_payment else {}
+		needs_check = bool(mop.get("is_check"))
+		if needs_check:
+			self.is_check = 1
+			expected = mop.get("clearing_account_outward")
+			if expected and self.paid_from != expected:
+				self.paid_from = expected
+			if not self.clearing_destination_account and mop.get("default_clearing_destination"):
+				self.clearing_destination_account = mop.get("default_clearing_destination")
+
+		needs_bank = False
+		if self.paid_from:
+			account_type = frappe.get_cached_value("Account", self.paid_from, "account_type")
+			# clearing accounts have no account_type, so Bank check only matters for non-check
+			if account_type == "Bank":
+				needs_bank = True
+
+		needs_ref = needs_bank or needs_check
+		if needs_ref and (not self.reference_no or not self.reference_date):
+			if needs_check:
+				frappe.throw(_("Cheque/Reference No and Reference Date are mandatory for Check payments."))
+			else:
+				frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
+
 	def _validate_bank_reference(self):
-		"""
-		Mirror Payment Entry's validate_transaction_reference: when the paying
-		account is a Bank account (bank transfer or cheque), the Cheque/Reference
-		No and Cheque/Reference Date are mandatory.
-		"""
-		if not self.paid_from:
-			return
-
-		account_type = frappe.get_cached_value("Account", self.paid_from, "account_type")
-		if account_type != "Bank":
-			return
-
-		if not self.reference_no or not self.reference_date:
-			frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
+		# Back-compat alias
+		return self._validate_check_or_bank_reference()
 
 	# ------------------------------------------------------------------ #
 	# Flow A — Direct Payment via Journal Entry                           #
@@ -389,6 +423,9 @@ class Expense(Document):
 		pe.target_exchange_rate = 1
 		pe.mode_of_payment = self.mode_of_payment
 		pe.reference_no = self.reference_no
+		# For Check, require explicit reference_date (no silent fallback)
+		if self.is_check and not self.reference_date:
+			frappe.throw(_("Reference Date is mandatory for Check payments."))
 		pe.reference_date = self.reference_date or self.expense_date
 		pe.remarks = (
 			f"Payment via Expense {self.name} — {self.expense_description} "
@@ -555,6 +592,7 @@ def get_payment_method_account(mode_of_payment, company):
 	"""
 	Resolves the default Cash/Bank account for a Mode of Payment and Company,
 	plus that account's currency. Mirrors Payment Entry's paid_from auto-fill.
+	Also returns check-mode metadata for client-side required toggling.
 	"""
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
 		get_bank_cash_account,
@@ -562,7 +600,14 @@ def get_payment_method_account(mode_of_payment, company):
 
 	account = get_bank_cash_account(mode_of_payment, company)["account"]
 	account_currency = frappe.db.get_value("Account", account, "account_currency")
-	return {"account": account, "account_currency": account_currency}
+	mop = get_check_mop(mode_of_payment)
+	return {
+		"account": account,
+		"account_currency": account_currency,
+		"is_check": bool(mop.get("is_check")),
+		"clearing_account_outward": mop.get("clearing_account_outward"),
+		"default_clearing_destination": mop.get("default_clearing_destination"),
+	}
 
 
 @frappe.whitelist()
@@ -941,3 +986,175 @@ def make_landed_cost_voucher(expense_name):
 	frappe.db.set_value("Expense", expense_name, "landed_cost_voucher", lcv.name)
 
 	return lcv.name
+
+
+# ------------------------------------------------------------------ #
+# Check clearing — Expense mirrors Payment Entry                       #
+# ------------------------------------------------------------------ #
+
+
+def _is_bank_account(account):
+	return frappe.get_cached_value("Account", account, "account_type") == "Bank"
+
+
+def create_expense_check_clearing_je(expense, destination_account, clearing_date):
+	"""Create clearing JE for a Direct-Pay check Expense: Dr clearing / Cr Bank."""
+	from nbs_customization.controllers.check_clearing import validate_single_currency
+
+	# Use expense's currencies
+	company_currency = frappe.get_cached_value("Company", expense.company, "default_currency")
+	if expense.paid_from_account_currency != company_currency:
+		frappe.throw(
+			_(
+				"Cheque clearing is only supported in company currency ({0}) for now. Expense {1} is in a foreign currency."
+			).format(company_currency, expense.name)
+		)
+	validate_destination_account(destination_account, expense.company)
+	mop = get_check_mop(expense.mode_of_payment)
+	clearing_account = expense.paid_from or mop.get("clearing_account_outward")
+	if not clearing_account:
+		frappe.throw(_("No clearing account configured for cheque Expense {0}.").format(expense.name))
+	amount = expense.amount
+	is_bank_entry = bool(expense.reference_no and expense.reference_date)
+	je = frappe.get_doc(
+		doctype="Journal Entry",
+		voucher_type="Bank Entry" if is_bank_entry else "Journal Entry",
+		company=expense.company,
+		posting_date=clearing_date,
+		user_remark=_("Cheque clearing against {0}").format(expense.name),
+	)
+	if is_bank_entry:
+		je.cheque_no = expense.reference_no
+		je.cheque_date = expense.reference_date
+	# Pay: Dr clearing / Cr destination
+	je.append(
+		"accounts",
+		{
+			"account": clearing_account,
+			"debit_in_account_currency": amount,
+			"reference_type": "Expense",
+			"reference_name": expense.name,
+			"cost_center": expense.cost_center,
+		},
+	)
+	je.append(
+		"accounts",
+		{
+			"account": destination_account,
+			"credit_in_account_currency": amount,
+			"reference_type": "Expense",
+			"reference_name": expense.name,
+			"cost_center": expense.cost_center,
+		},
+	)
+	je.insert(ignore_permissions=True)
+	je.submit()
+	return je.name
+
+
+def stamp_expense_check_cleared(expense, je_name, clearing_date, source, destination_account):
+	"""Conditional stamp of Expense check flags. Returns rowcount."""
+	clearance_date = clearing_date if _is_bank_account(destination_account) else None
+	frappe.db.sql(
+		"""
+		update `tabExpense`
+		set is_check = %s,
+			check_cleared = 1,
+			check_clearing_date = %s,
+			check_cleared_source = %s,
+			clearing_destination_account = %s,
+			clearing_journal_entry = %s,
+			clearance_date = %s
+		where name = %s and docstatus = 1 and ifnull(check_cleared, 0) = 0
+		""",
+		(
+			expense.is_check or 1,
+			clearing_date,
+			source,
+			destination_account,
+			je_name,
+			clearance_date,
+			expense.name,
+		),
+	)
+	cursor = getattr(frappe.db, "_cursor", None)
+	return (cursor.rowcount if cursor else 0) or 0
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_expense_check_cleared(name, destination_account=None, clearing_date=None):
+	exp = frappe.get_doc("Expense", name)
+	if exp.docstatus != 1:
+		frappe.throw(_("Only submitted Expenses can be marked cleared."))
+	if not exp.is_check:
+		mop = get_check_mop(exp.mode_of_payment)
+		if not mop.get("is_check"):
+			frappe.throw(_("{0} is not a cheque Expense.").format(exp.name))
+	if exp.check_cleared or exp.check_returned:
+		frappe.throw(_("{0} is already cleared or returned.").format(exp.name))
+	mop = get_check_mop(exp.mode_of_payment)
+	chosen = (
+		destination_account or exp.clearing_destination_account or mop.get("default_clearing_destination")
+	)
+	if not chosen:
+		chosen = frappe.get_cached_value("Company", exp.company, "default_bank_account")
+	clear_date = clearing_date or today()
+	# PE path — delegate to PE clearing and mirror
+	if exp.payment_entry:
+		result = frappe.call(
+			"nbs_customization.controllers.payment_entry.mark_check_cleared",
+			name=exp.payment_entry,
+			destination_account=chosen,
+			clearing_date=clear_date,
+		)
+		je_name = result["journal_entry"]
+		rows = stamp_expense_check_cleared(exp, je_name, clear_date, "Button", chosen)
+		if rows != 1:
+			frappe.get_doc("Journal Entry", je_name).cancel()
+			frappe.throw(_("{0} was already cleared.").format(exp.name))
+		return {"journal_entry": je_name, "cleared": True}
+	# Direct JE path
+	je_name = create_expense_check_clearing_je(exp, chosen, clear_date)
+	rows = stamp_expense_check_cleared(exp, je_name, clear_date, "Button", chosen)
+	if rows != 1:
+		frappe.get_doc("Journal Entry", je_name).cancel()
+		frappe.throw(_("{0} was already cleared.").format(exp.name))
+	return {"journal_entry": je_name, "cleared": True}
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_expense_check_returned(name):
+	exp = frappe.get_doc("Expense", name)
+	if exp.docstatus != 1:
+		frappe.throw(_("Only submitted Expenses can be marked returned."))
+	if exp.check_returned:
+		frappe.throw(_("{0} is already marked returned.").format(exp.name))
+	if exp.clearing_journal_entry:
+		frappe.db.set_value("Expense", exp.name, "clearing_journal_entry", None, update_modified=False)
+		je_name = exp.clearing_journal_entry
+		if je_name and frappe.db.exists("Journal Entry", je_name):
+			je = frappe.get_doc("Journal Entry", je_name)
+			if je.docstatus == 1:
+				je.cancel()
+	# PE path: return underlying PE (which cancels its clearing JE + itself)
+	if exp.payment_entry:
+		frappe.call(
+			"nbs_customization.controllers.payment_entry.mark_check_returned",
+			name=exp.payment_entry,
+		)
+	# Option A: cancel the Expense itself (like PE)
+	exp.cancel()
+	frappe.db.set_value(
+		"Expense",
+		exp.name,
+		{
+			"check_returned": 1,
+			"check_return_date": today(),
+			"check_cleared": 0,
+			"check_clearing_date": None,
+			"check_cleared_source": None,
+			"clearing_destination_account": None,
+			"clearance_date": None,
+		},
+	)
+	return {"returned": True}

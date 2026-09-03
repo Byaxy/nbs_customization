@@ -60,10 +60,18 @@ frappe.ui.form.on("Expense", {
 		toggle_lcv_button(frm);
 		resolve_paid_to(frm);
 		toggle_reference_required(frm);
+		add_check_clearing_buttons(frm);
 	},
 
 	on_submit(frm) {
 		frappe.set_route("List", "Expense");
+	},
+
+	validate(frm) {
+		if (frm.doc.is_check && (!frm.doc.reference_no || !frm.doc.reference_date)) {
+			frappe.msgprint(__("Cheque/Reference No and Reference Date are mandatory for Check payments."));
+			frappe.validated = false;
+		}
 	},
 
 	// ---------------------------------------------------------------- //
@@ -105,6 +113,8 @@ frappe.ui.form.on("Expense", {
 		if (!frm.doc.mode_of_payment) {
 			frm.set_value("paid_from", null);
 			frm.set_value("paid_from_account_currency", null);
+			frm.doc.is_check = 0;
+			toggle_reference_required(frm);
 			return;
 		}
 		frappe.call({
@@ -120,6 +130,18 @@ frappe.ui.form.on("Expense", {
 						"paid_from_account_currency",
 						r.message.account_currency,
 					);
+					if (r.message.is_check) {
+						frm.doc.is_check = 1;
+						if (r.message.clearing_account_outward) {
+							frm.set_value("paid_from", r.message.clearing_account_outward);
+						}
+						if (r.message.default_clearing_destination && !frm.doc.clearing_destination_account) {
+							frm.set_value("clearing_destination_account", r.message.default_clearing_destination);
+						}
+					} else {
+						frm.doc.is_check = 0;
+					}
+					toggle_reference_required(frm);
 				}
 			},
 		});
@@ -128,6 +150,7 @@ frappe.ui.form.on("Expense", {
 	paid_from(frm) {
 		if (!frm.doc.paid_from) {
 			frm.set_value("paid_from_account_currency", null);
+			toggle_reference_required(frm);
 			return;
 		}
 		frappe.db.get_value(
@@ -137,8 +160,8 @@ frappe.ui.form.on("Expense", {
 			(r) => {
 				if (r) {
 					frm.set_value("paid_from_account_currency", r.account_currency);
-					set_reference_required(frm, r.account_type === "Bank");
 				}
+				toggle_reference_required(frm);
 			},
 		);
 	},
@@ -380,6 +403,29 @@ function set_reference_required(frm, required) {
 }
 
 function toggle_reference_required(frm) {
+	// Check is_check first (clearing account has no account_type)
+	if (frm.doc.is_check) {
+		set_reference_required(frm, true);
+		return;
+	}
+	if (frm.doc.mode_of_payment) {
+		frappe.db.get_value("Mode of Payment", frm.doc.mode_of_payment, "is_check", (mr) => {
+			if (mr && mr.is_check) {
+				frm.doc.is_check = 1;
+				set_reference_required(frm, true);
+				return;
+			}
+			// fallback to Bank check
+			if (!frm.doc.paid_from) {
+				set_reference_required(frm, false);
+				return;
+			}
+			frappe.db.get_value("Account", frm.doc.paid_from, "account_type", (r) => {
+				set_reference_required(frm, !!r && r.account_type === "Bank");
+			});
+		});
+		return;
+	}
 	if (!frm.doc.paid_from) {
 		set_reference_required(frm, false);
 		return;
@@ -387,6 +433,94 @@ function toggle_reference_required(frm) {
 	frappe.db.get_value("Account", frm.doc.paid_from, "account_type", (r) => {
 		set_reference_required(frm, !!r && r.account_type === "Bank");
 	});
+}
+
+function add_check_clearing_buttons(frm) {
+	if (
+		frm.doc.docstatus !== 1 ||
+		!frm.doc.is_check ||
+		frm.doc.check_cleared ||
+		frm.doc.check_returned ||
+		frm.doc.clearing_journal_entry
+	)
+		return;
+	frm.add_custom_button(__("Mark Check Cleared"), () => expense_clearing_dialog(frm), __("Cheque"));
+	frm.add_custom_button(
+		__("Mark Check Returned"),
+		() => {
+			frappe.confirm(
+				__("Mark this cheque as returned/bounced? This reverses any clearing and cancels the Expense, re-opening allocations."),
+				() => {
+					frappe.call({
+						method: "nbs_customization.nbs_customization.doctype.expense.expense.mark_expense_check_returned",
+						args: { name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Marking cheque as returned..."),
+						callback(r) {
+							if (!r.exc) {
+								frappe.msgprint(__("Expense {0} cancelled as returned.", [frm.doc.name]));
+								frm.reload_doc();
+							}
+						},
+					});
+				},
+			);
+		},
+		__("Cheque"),
+	);
+}
+
+function expense_clearing_dialog(frm) {
+	let d = new frappe.ui.Dialog({
+		title: __("Mark Check Cleared"),
+		fields: [
+			{
+				fieldtype: "Link",
+				fieldname: "clearing_destination_account",
+				label: __("Destination Account"),
+				options: "Account",
+				default: frm.doc.clearing_destination_account,
+				reqd: 1,
+				get_query() {
+					return {
+						filters: {
+							company: frm.doc.company,
+							is_group: 0,
+							account_type: ["in", ["Bank", "Cash"]],
+						},
+					};
+				},
+			},
+			{
+				fieldtype: "Date",
+				fieldname: "clearing_date",
+				label: __("Clearing Date"),
+				default: frappe.datetime.get_today(),
+				reqd: 1,
+			},
+		],
+		primary_action_label: __("Clear"),
+		primary_action(values) {
+			frappe.call({
+				method: "nbs_customization.nbs_customization.doctype.expense.expense.mark_expense_check_cleared",
+				args: {
+					name: frm.doc.name,
+					destination_account: values.clearing_destination_account,
+					clearing_date: values.clearing_date,
+				},
+				freeze: true,
+				freeze_message: __("Clearing cheque..."),
+				callback(r) {
+					if (!r.exc) {
+						frappe.msgprint(__("Cheque cleared. Journal Entry {0} created.", [r.message.journal_entry]));
+						d.hide();
+						frm.reload_doc();
+					}
+				},
+			});
+		},
+	});
+	d.show();
 }
 
 function toggle_lcv_button(frm) {
