@@ -14,9 +14,13 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 		return /^\d{4}-\d{2}-\d{2}$/.test(value) && !isNaN(new Date(value).getTime());
 	}
 
-	const url_date = frappe.utils.get_url_arg("report_date");
+	const url_from = frappe.utils.get_url_arg("from_date") || frappe.utils.get_url_arg("report_date");
+	const url_to = frappe.utils.get_url_arg("to_date") || frappe.utils.get_url_arg("report_date");
 	const url_company = frappe.utils.get_url_arg("company");
-	const default_date = is_valid_date(url_date) ? url_date : frappe.datetime.get_today();
+	const url_income_only = frappe.utils.get_url_arg("income_only");
+	const url_expense_only = frappe.utils.get_url_arg("expense_only");
+	const default_from = is_valid_date(url_from) ? url_from : frappe.datetime.get_today();
+	const default_to = is_valid_date(url_to) ? url_to : default_from;
 	const default_company = url_company || frappe.defaults.get_user_default("Company");
 
 	const filter_df = [
@@ -28,10 +32,34 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 			default: default_company,
 		},
 		{
-			fieldname: "report_date",
-			label: __("Date"),
+			fieldname: "from_date",
+			label: __("From Date"),
 			fieldtype: "Date",
-			default: default_date,
+			default: default_from,
+		},
+		{
+			fieldname: "to_date",
+			label: __("To Date"),
+			fieldtype: "Date",
+			default: default_to,
+		},
+		{
+			fieldname: "income_only",
+			label: __("Income Only"),
+			fieldtype: "Check",
+			default: url_income_only === "1" ? 1 : 0,
+		},
+		{
+			fieldname: "expense_only",
+			label: __("Expense Only"),
+			fieldtype: "Check",
+			default: url_expense_only === "1" ? 1 : 0,
+		},
+		{
+			fieldname: "report_date",
+			label: __("Date (Legacy)"),
+			fieldtype: "Date",
+			hidden: 1,
 		},
 	];
 
@@ -59,13 +87,25 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 	});
 
 	controls.company.set_value(filter_df[0].default);
-	controls.report_date.set_value(filter_df[1].default);
+	controls.from_date.set_value(filter_df[1].default);
+	controls.to_date.set_value(filter_df[2].default);
+	controls.income_only.set_value(filter_df[3].default);
+	controls.expense_only.set_value(filter_df[4].default);
+	// Backward compat: legacy report_date URL
+	const legacy = is_valid_date(frappe.utils.get_url_arg("report_date")) ? frappe.utils.get_url_arg("report_date") : null;
+	if (legacy && !url_from && !url_to) {
+		controls.from_date.set_value(legacy);
+		controls.to_date.set_value(legacy);
+	}
 	initializing = false;
 
 	function update_url() {
 		const company = controls.company.get_value();
-		const report_date = controls.report_date.get_value();
-		const qs = frappe.utils.make_query_string({ company, report_date });
+		const from_date = controls.from_date.get_value();
+		const to_date = controls.to_date.get_value();
+		const income_only = controls.income_only.get_value() ? 1 : 0;
+		const expense_only = controls.expense_only.get_value() ? 1 : 0;
+		const qs = frappe.utils.make_query_string({ company, from_date, to_date, income_only, expense_only });
 		window.history.replaceState(null, "", location.pathname + (qs === "?" ? "" : qs));
 	}
 
@@ -74,14 +114,21 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 
 	async function load() {
 		const company = controls.company.get_value();
-		const report_date = controls.report_date.get_value();
-		if (!company || !report_date) {
+		const from_date = controls.from_date.get_value();
+		const to_date = controls.to_date.get_value();
+		const income_only = controls.income_only.get_value() ? 1 : 0;
+		const expense_only = controls.expense_only.get_value() ? 1 : 0;
+		if (!company || !from_date || !to_date) {
+			return;
+		}
+		if (from_date > to_date) {
+			frappe.msgprint(__("From Date cannot be after To Date"));
 			return;
 		}
 
 		const res = await frappe.call({
 			method: "nbs_customization.nbs_customization.page.daily_income_expense.daily_income_expense.get_data",
-			args: { company, report_date },
+			args: { company, from_date, to_date, income_only, expense_only },
 		});
 		if (res.message) {
 			render(res.message);
