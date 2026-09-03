@@ -5,33 +5,48 @@
  "creation": "2026-04-14 11:42:06.434683",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
-  "naming_series",
-  "commission",
-  "commission_recipient",
-  "column_break_fnru",
-  "payout_date",
-  "sales_person",
-  "section_break_lsar",
-  "amount_to_pay",
-  "expense_category",
-  "journal_entry",
-  "column_break_xvlp",
-  "section_break_znoi",
-  "mode_of_payment",
-  "paid_from",
-  "paid_from_account_currency",
-  "column_break_iuur",
-  "paid_to",
-  "paid_to_account_currency",
-  "company_details_section",
-  "company",
-  "column_break_nsaf",
-  "cost_center",
-  "section_break_wtmj",
-  "notes",
-  "amended_from"
- ],
+  "field_order": [
+   "naming_series",
+   "commission",
+   "commission_recipient",
+   "column_break_fnru",
+   "payout_date",
+   "sales_person",
+   "section_break_lsar",
+   "amount_to_pay",
+   "expense_category",
+   "journal_entry",
+   "column_break_xvlp",
+   "section_break_znoi",
+   "mode_of_payment",
+   "paid_from",
+   "paid_from_account_currency",
+   "column_break_iuur",
+   "paid_to",
+   "paid_to_account_currency",
+   "section_break_payment_reference",
+   "reference_no",
+   "column_break_payment_reference",
+   "reference_date",
+   "clearance_date",
+   "section_break_check_status",
+   "is_check",
+   "clearing_destination_account",
+   "clearing_journal_entry",
+   "check_cleared",
+   "check_clearing_date",
+   "check_cleared_source",
+   "column_break_check_status",
+   "check_returned",
+   "check_return_date",
+   "company_details_section",
+   "company",
+   "column_break_nsaf",
+   "cost_center",
+   "section_break_wtmj",
+   "notes",
+   "amended_from"
+  ],
  "fields": [
   {
    "fieldname": "section_break_wtmj",
@@ -184,13 +199,100 @@
    "options": "Account",
    "read_only": 1
   },
-  {
-   "fieldname": "paid_to_account_currency",
-   "fieldtype": "Data",
-   "label": "Account Currency (To)",
-   "read_only": 1
-  }
- ],
+   {
+    "fieldname": "paid_to_account_currency",
+    "fieldtype": "Data",
+    "label": "Account Currency (To)",
+    "read_only": 1
+   },
+   {
+    "fieldname": "section_break_payment_reference",
+    "fieldtype": "Section Break",
+    "label": "Payment Reference"
+   },
+   {
+    "description": "Cheque number or bank transfer reference. Required for Bank/Check payment methods.",
+    "fieldname": "reference_no",
+    "fieldtype": "Data",
+    "label": "Cheque/Reference No"
+   },
+   {
+    "fieldname": "column_break_payment_reference",
+    "fieldtype": "Column Break"
+   },
+   {
+    "fieldname": "reference_date",
+    "fieldtype": "Date",
+    "label": "Cheque/Reference Date"
+   },
+   {
+    "depends_on": "eval:doc.docstatus == 1",
+    "fieldname": "clearance_date",
+    "fieldtype": "Date",
+    "label": "Clearance Date",
+    "read_only": 1
+   },
+   {
+    "fieldname": "section_break_check_status",
+    "fieldtype": "Section Break",
+    "label": "Check Status",
+    "collapsible": 1
+   },
+   {
+    "fieldname": "is_check",
+    "fieldtype": "Check",
+    "label": "Is Check",
+    "read_only": 1
+   },
+   {
+    "fieldname": "clearing_destination_account",
+    "fieldtype": "Link",
+    "label": "Clearing Destination Account",
+    "options": "Account"
+   },
+   {
+    "fieldname": "clearing_journal_entry",
+    "fieldtype": "Link",
+    "label": "Clearing Journal Entry",
+    "options": "Journal Entry",
+    "read_only": 1
+   },
+   {
+    "fieldname": "check_cleared",
+    "fieldtype": "Check",
+    "label": "Check Cleared",
+    "read_only": 1
+   },
+   {
+    "fieldname": "check_clearing_date",
+    "fieldtype": "Date",
+    "label": "Check Clearing Date",
+    "read_only": 1
+   },
+   {
+    "fieldname": "check_cleared_source",
+    "fieldtype": "Select",
+    "label": "Check Cleared Source",
+    "options": "Button\nBank Statement",
+    "read_only": 1
+   },
+   {
+    "fieldname": "column_break_check_status",
+    "fieldtype": "Column Break"
+   },
+   {
+    "fieldname": "check_returned",
+    "fieldtype": "Check",
+    "label": "Check Returned",
+    "read_only": 1
+   },
+   {
+    "fieldname": "check_return_date",
+    "fieldtype": "Date",
+    "label": "Check Return Date",
+    "read_only": 1
+   }
+  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,

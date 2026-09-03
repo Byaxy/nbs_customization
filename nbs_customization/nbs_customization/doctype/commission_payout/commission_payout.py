@@ -4,7 +4,9 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, today
+
+from nbs_customization.controllers.check_clearing import get_check_mop, validate_destination_account
 
 
 class CommissionPayout(Document):
@@ -23,12 +25,51 @@ class CommissionPayout(Document):
 		self.validate_amount()
 		self.validate_paid_from()
 		self.validate_expense_category_not_accompanying()
+		self._validate_check_or_bank_reference()
 
 	def on_submit(self):
 		self._update_parent_commission()
 
 	def on_cancel(self):
+		self._cancel_clearing_journal_entry()
 		self._update_parent_commission()
+
+	def _cancel_clearing_journal_entry(self):
+		if not self.get("clearing_journal_entry"):
+			return
+		frappe.db.set_value(
+			"Commission Payout", self.name, "clearing_journal_entry", None, update_modified=False
+		)
+		je_name = self.clearing_journal_entry
+		if je_name and frappe.db.exists("Journal Entry", je_name):
+			je = frappe.get_doc("Journal Entry", je_name)
+			if je.docstatus == 1:
+				je.cancel()
+
+	def _validate_check_or_bank_reference(self):
+		mop = get_check_mop(self.mode_of_payment) if self.mode_of_payment else {}
+		needs_check = bool(mop.get("is_check"))
+		if needs_check:
+			self.is_check = 1
+			expected = mop.get("clearing_account_outward")
+			if expected and self.paid_from != expected:
+				self.paid_from = expected
+			if not self.clearing_destination_account and mop.get("default_clearing_destination"):
+				self.clearing_destination_account = mop.get("default_clearing_destination")
+		needs_bank = False
+		if self.paid_from:
+			account_type = frappe.get_cached_value("Account", self.paid_from, "account_type")
+			if account_type == "Bank":
+				needs_bank = True
+		needs_ref = needs_check or needs_bank
+		if needs_ref and (not self.reference_no or not self.reference_date):
+			if needs_check:
+				frappe.throw(_("Cheque/Reference No and Reference Date are mandatory for Check payments."))
+			else:
+				frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
+
+	def _validate_bank_reference(self):
+		return self._validate_check_or_bank_reference()
 
 	# ------------------------------------------------------------------ #
 	#  Validation helpers                                                  #
@@ -210,7 +251,7 @@ class CommissionPayout(Document):
 	def _create_journal_entry(self):
 		"""
 		Debit: Expense Category's linked account (commission expense going out)
-		Credit: Paying Account (bank/cash going out)
+		Credit: Paying Account (bank/cash or clearing outward for Check)
 		"""
 		expense_account = frappe.db.get_value("Expense Category", self.expense_category, "expense_account")
 		if not expense_account:
@@ -237,6 +278,9 @@ class CommissionPayout(Document):
 		je.voucher_type = "Journal Entry"
 		je.company = self.company
 		je.posting_date = self.payout_date
+		je.mode_of_payment = self.mode_of_payment
+		je.cheque_no = self.reference_no
+		je.cheque_date = self.reference_date
 		je.user_remark = remark
 		# No reference_doctype/reference_name - not allowed for JE rows in v16
 
@@ -281,6 +325,159 @@ class CommissionPayout(Document):
 			if je_doc.docstatus == 1:
 				je_doc.flags.ignore_permissions = True
 				je_doc.cancel()
+
+
+def _is_bank_account(account):
+	return frappe.get_cached_value("Account", account, "account_type") == "Bank"
+
+
+def create_commission_check_clearing_je(payout, destination_account, clearing_date):
+	"""Create clearing JE for a Check Commission Payout: Dr clearing / Cr Bank."""
+	company_currency = frappe.get_cached_value("Company", payout.company, "default_currency")
+	if payout.paid_from_account_currency != company_currency:
+		frappe.throw(
+			_(
+				"Cheque clearing is only supported in company currency ({0}) for now. Commission Payout {1} is in a foreign currency."
+			).format(company_currency, payout.name)
+		)
+	validate_destination_account(destination_account, payout.company)
+	mop = get_check_mop(payout.mode_of_payment)
+	clearing_account = payout.paid_from or mop.get("clearing_account_outward")
+	if not clearing_account:
+		frappe.throw(
+			_("No clearing account configured for cheque Commission Payout {0}.").format(payout.name)
+		)
+	amount = payout.amount_to_pay
+	is_bank_entry = bool(payout.reference_no and payout.reference_date)
+	je = frappe.get_doc(
+		doctype="Journal Entry",
+		voucher_type="Bank Entry" if is_bank_entry else "Journal Entry",
+		company=payout.company,
+		posting_date=clearing_date,
+		user_remark=_("Cheque clearing against {0}").format(payout.name),
+	)
+	if is_bank_entry:
+		je.cheque_no = payout.reference_no
+		je.cheque_date = payout.reference_date
+	je.append(
+		"accounts",
+		{
+			"account": clearing_account,
+			"debit_in_account_currency": amount,
+			"reference_type": "Commission Payout",
+			"reference_name": payout.name,
+			"cost_center": payout.cost_center,
+		},
+	)
+	je.append(
+		"accounts",
+		{
+			"account": destination_account,
+			"credit_in_account_currency": amount,
+			"reference_type": "Commission Payout",
+			"reference_name": payout.name,
+			"cost_center": payout.cost_center,
+		},
+	)
+	je.insert(ignore_permissions=True)
+	je.submit()
+	return je.name
+
+
+def stamp_commission_check_cleared(payout, je_name, clearing_date, source, destination_account):
+	"""Conditional stamp of Commission Payout check flags. Returns rowcount."""
+	clearance_date = clearing_date if _is_bank_account(destination_account) else None
+	frappe.db.sql(
+		"""
+		update `tabCommission Payout`
+		set is_check = %s,
+			check_cleared = 1,
+			check_clearing_date = %s,
+			check_cleared_source = %s,
+			clearing_destination_account = %s,
+			clearing_journal_entry = %s,
+			clearance_date = %s
+		where name = %s and docstatus = 1 and ifnull(check_cleared, 0) = 0
+		""",
+		(
+			payout.is_check or 1,
+			clearing_date,
+			source,
+			destination_account,
+			je_name,
+			clearance_date,
+			payout.name,
+		),
+	)
+	cursor = getattr(frappe.db, "_cursor", None)
+	return (cursor.rowcount if cursor else 0) or 0
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_commission_check_cleared(name, destination_account=None, clearing_date=None, source="Button"):
+	payout = frappe.get_doc("Commission Payout", name)
+	if payout.docstatus != 1:
+		frappe.throw(_("Only submitted Commission Payouts can be marked cleared."))
+	if not payout.is_check:
+		mop = get_check_mop(payout.mode_of_payment)
+		if not mop.get("is_check"):
+			frappe.throw(_("{0} is not a cheque Commission Payout.").format(payout.name))
+	if payout.check_cleared or payout.check_returned:
+		frappe.throw(_("{0} is already cleared or returned.").format(payout.name))
+	mop = get_check_mop(payout.mode_of_payment)
+	chosen = (
+		destination_account or payout.clearing_destination_account or mop.get("default_clearing_destination")
+	)
+	if not chosen:
+		chosen = frappe.get_cached_value("Company", payout.company, "default_bank_account")
+	clear_date = clearing_date or today()
+	je_name = create_commission_check_clearing_je(payout, chosen, clear_date)
+	rows = stamp_commission_check_cleared(payout, je_name, clear_date, source, chosen)
+	if rows != 1:
+		frappe.get_doc("Journal Entry", je_name).cancel()
+		frappe.throw(_("{0} was already cleared.").format(payout.name))
+	return {"journal_entry": je_name, "cleared": True}
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_commission_check_returned(name):
+	payout = frappe.get_doc("Commission Payout", name)
+	if payout.docstatus != 1:
+		frappe.throw(_("Only submitted Commission Payouts can be marked returned."))
+	if payout.check_returned:
+		frappe.throw(_("{0} is already marked returned.").format(payout.name))
+	if payout.clearing_journal_entry:
+		frappe.db.set_value("Commission Payout", name, "clearing_journal_entry", None, update_modified=False)
+		je_name = payout.clearing_journal_entry
+		if je_name and frappe.db.exists("Journal Entry", je_name):
+			je = frappe.get_doc("Journal Entry", je_name)
+			if je.docstatus == 1:
+				je.cancel()
+	payout.cancel()
+	frappe.db.set_value(
+		"Commission Payout",
+		name,
+		{
+			"check_returned": 1,
+			"check_return_date": today(),
+			"check_cleared": 0,
+			"check_clearing_date": None,
+			"check_cleared_source": None,
+			"clearing_destination_account": None,
+			"clearance_date": None,
+		},
+	)
+	return {"returned": True}
+
+
+@frappe.whitelist()
+def get_payment_method_account(mode_of_payment, company):
+	"""Resolves clearing-aware account for Commission Payout (mirror Expense)."""
+	from nbs_customization.nbs_customization.doctype.expense.expense import (
+		get_payment_method_account as _get_pma,
+	)
+
+	return _get_pma(mode_of_payment, company)
 
 
 @frappe.whitelist()
