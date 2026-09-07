@@ -385,20 +385,22 @@ def _ensure_check_clearing_setup():
 	mop.save()
 
 
+FIXED_TIER_PRICE_LISTS = [
+	("Selling - Basic", "GHS"),
+	("Selling - 15%", "GHS"),
+	("Selling - 30%", "GHS"),
+	("Selling - 45%", "GHS"),
+	("Selling - Commission", "GHS"),
+	("Selling - Commission (Tax)", "GHS"),
+]
+
+
 def _ensure_tier_price_lists():
 	"""
-	Idempotent: create tier Price Lists. Fixed 30% tier is Selling - 30% (Standard Selling is separate, driven by Standard Selling Source Tier).
-	Price List — Target Margin uses Standard Selling by default (user creates Selling - 20% etc when needed).
+	Idempotent: ensure 6 fixed tier Price Lists. Standard Selling is ERPNext standard — not created here.
+	Optional target Price Lists (e.g. Selling - 20%) are user-created when needed.
 	"""
-	candidates = [
-		("Selling - Basic", "GHS"),
-		("Selling - 15%", "GHS"),
-		("Selling - 30%", "GHS"),
-		("Selling - 45%", "GHS"),
-		("Selling - Commission", "GHS"),
-		("Selling - Commission (Tax)", "GHS"),
-		("Standard Selling", "GHS"),
-	]
+	candidates = FIXED_TIER_PRICE_LISTS
 	# Use default company currency if present; fallback to GHS
 	default_company = frappe.db.get_single_value("Global Defaults", "default_company")
 	company_ccy = (

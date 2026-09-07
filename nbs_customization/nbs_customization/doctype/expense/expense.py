@@ -1027,13 +1027,14 @@ def create_expense_check_clearing_je(expense, destination_account, clearing_date
 		je.cheque_no = expense.reference_no
 		je.cheque_date = expense.reference_date
 	# Pay: Dr clearing / Cr destination
+	# reference_type "" (not "Expense") — only allowed values per journal_entry_account.json:184
 	je.append(
 		"accounts",
 		{
 			"account": clearing_account,
 			"debit_in_account_currency": amount,
-			"reference_type": "Expense",
-			"reference_name": expense.name,
+			"reference_type": "",
+			"reference_name": "",
 			"cost_center": expense.cost_center,
 		},
 	)
@@ -1042,8 +1043,8 @@ def create_expense_check_clearing_je(expense, destination_account, clearing_date
 		{
 			"account": destination_account,
 			"credit_in_account_currency": amount,
-			"reference_type": "Expense",
-			"reference_name": expense.name,
+			"reference_type": "",
+			"reference_name": "",
 			"cost_center": expense.cost_center,
 		},
 	)

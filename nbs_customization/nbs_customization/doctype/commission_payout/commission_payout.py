@@ -364,8 +364,8 @@ def create_commission_check_clearing_je(payout, destination_account, clearing_da
 		{
 			"account": clearing_account,
 			"debit_in_account_currency": amount,
-			"reference_type": "Commission Payout",
-			"reference_name": payout.name,
+			"reference_type": "",
+			"reference_name": "",
 			"cost_center": payout.cost_center,
 		},
 	)
@@ -374,8 +374,8 @@ def create_commission_check_clearing_je(payout, destination_account, clearing_da
 		{
 			"account": destination_account,
 			"credit_in_account_currency": amount,
-			"reference_type": "Commission Payout",
-			"reference_name": payout.name,
+			"reference_type": "",
+			"reference_name": "",
 			"cost_center": payout.cost_center,
 		},
 	)

@@ -80,7 +80,7 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 			},
 			parent: $wrap,
 			render_input: true,
-			only_input: true,
+			only_input: df.fieldtype !== "Check",
 		});
 		control.refresh();
 		controls[df.fieldname] = control;
