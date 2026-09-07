@@ -6,58 +6,60 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
-  "field_order": [
-   "naming_series",
-   "expense_description",
-   "amount",
-   "payee",
-   "column_break_edym",
-   "expense_date",
-   "payment_type",
-   "expense_category",
-   "purchase_invoice",
-   "mode_of_payment",
-   "section_break_znoi",
-   "paid_from",
-   "paid_from_account_currency",
-   "column_break_iuur",
-   "paid_to",
-   "paid_to_account_currency",
-   "section_break_payment_reference",
-   "reference_no",
-   "column_break_payment_reference",
-   "reference_date",
-   "clearance_date",
-   "section_break_check_status",
-   "is_check",
-   "clearing_destination_account",
-   "clearing_journal_entry",
-   "check_cleared",
-   "check_clearing_date",
-   "check_cleared_source",
-   "column_break_check_status",
-   "check_returned",
-   "check_return_date",
-   "section_break_xgyb",
-   "company",
-   "column_break_pkqg",
-   "cost_center",
-   "section_break_fnba",
-    "is_accompanying",
-    "expense_scope",
-    "linked_purchase",
-    "linked_purchase_order",
-    "linked_shipment",
-   "column_break_ikgm",
-   "landed_cost_voucher",
-   "section_break_hcwr",
-   "journal_entry",
-   "payment_entry",
-   "column_break_xidx",
-   "section_break_kkex",
-   "notes",
-   "amended_from"
-  ],
+ "field_order": [
+  "naming_series",
+  "expense_description",
+  "amount",
+  "payee",
+  "column_break_edym",
+  "expense_date",
+  "payment_type",
+  "expense_category",
+  "purchase_invoice",
+  "mode_of_payment",
+  "section_break_znoi",
+  "paid_from",
+  "paid_from_account_currency",
+  "column_break_iuur",
+  "paid_to",
+  "paid_to_account_currency",
+  "section_break_payment_reference",
+  "reference_no",
+  "column_break_payment_reference",
+  "reference_date",
+  "clearance_date",
+  "section_break_check_status",
+  "is_check",
+  "clearing_destination_account",
+  "clearing_journal_entry",
+  "check_cleared",
+  "check_clearing_date",
+  "check_cleared_source",
+  "column_break_check_status",
+  "check_returned",
+  "check_return_date",
+  "section_break_xgyb",
+  "company",
+  "column_break_pkqg",
+  "cost_center",
+  "section_break_fnba",
+  "is_accompanying",
+  "expense_scope",
+  "linked_purchase",
+  "linked_purchase_order",
+  "linked_shipment",
+  "column_break_ikgm",
+  "landed_cost_voucher",
+  "section_break_waku",
+  "purchase_orders",
+  "section_break_hcwr",
+  "journal_entry",
+  "payment_entry",
+  "column_break_xidx",
+  "section_break_kkex",
+  "notes",
+  "amended_from"
+ ],
  "fields": [
   {
    "default": "NBSEXP-.YYYY./.MM./.####",
@@ -169,75 +171,78 @@
    "fieldtype": "Date",
    "label": "Cheque/Reference Date"
   },
-   {
-    "depends_on": "eval:doc.docstatus == 1",
-    "fieldname": "clearance_date",
-    "fieldtype": "Date",
-    "label": "Clearance Date",
-    "read_only": 1
-   },
-   {
-    "fieldname": "section_break_check_status",
-    "fieldtype": "Section Break",
-    "label": "Check Status",
-    "collapsible": 1
-   },
-   {
-    "fieldname": "is_check",
-    "fieldtype": "Check",
-    "label": "Is Check",
-    "read_only": 1
-   },
-   {
-    "fieldname": "clearing_destination_account",
-    "fieldtype": "Link",
-    "label": "Clearing Destination Account",
-    "options": "Account"
-   },
-   {
-    "fieldname": "clearing_journal_entry",
-    "fieldtype": "Link",
-    "label": "Clearing Journal Entry",
-    "options": "Journal Entry",
-    "read_only": 1
-   },
-   {
-    "fieldname": "check_cleared",
-    "fieldtype": "Check",
-    "label": "Check Cleared",
-    "read_only": 1
-   },
-   {
-    "fieldname": "check_clearing_date",
-    "fieldtype": "Date",
-    "label": "Check Clearing Date",
-    "read_only": 1
-   },
-   {
-    "fieldname": "check_cleared_source",
-    "fieldtype": "Select",
-    "label": "Check Cleared Source",
-    "options": "Button\nBank Statement",
-    "read_only": 1
-   },
-   {
-    "fieldname": "column_break_check_status",
-    "fieldtype": "Column Break"
-   },
-   {
-    "fieldname": "check_returned",
-    "fieldtype": "Check",
-    "label": "Check Returned",
-    "read_only": 1
-   },
-   {
-    "fieldname": "check_return_date",
-    "fieldtype": "Date",
-    "label": "Check Return Date",
-    "read_only": 1
-   },
-   {
-    "fieldname": "mode_of_payment",
+  {
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "clearance_date",
+   "fieldtype": "Date",
+   "label": "Clearance Date",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_check_status",
+   "fieldtype": "Section Break",
+   "label": "Check Status"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_check",
+   "fieldtype": "Check",
+   "label": "Is Check",
+   "read_only": 1
+  },
+  {
+   "fieldname": "clearing_destination_account",
+   "fieldtype": "Link",
+   "label": "Clearing Destination Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "clearing_journal_entry",
+   "fieldtype": "Link",
+   "label": "Clearing Journal Entry",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "check_cleared",
+   "fieldtype": "Check",
+   "label": "Check Cleared",
+   "read_only": 1
+  },
+  {
+   "fieldname": "check_clearing_date",
+   "fieldtype": "Date",
+   "label": "Check Clearing Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "check_cleared_source",
+   "fieldtype": "Select",
+   "label": "Check Cleared Source",
+   "options": "Button\nBank Statement",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_check_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_returned",
+   "fieldtype": "Check",
+   "label": "Check Returned",
+   "read_only": 1
+  },
+  {
+   "fieldname": "check_return_date",
+   "fieldtype": "Date",
+   "label": "Check Return Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mode_of_payment",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Payment Method",
@@ -354,36 +359,49 @@
    "read_only": 1
   },
    {
-    "default": "Single Purchase Order",
+    "default": "Purchase Order",
     "depends_on": "eval:doc.is_accompanying == 1",
     "fieldname": "expense_scope",
     "fieldtype": "Select",
     "label": "Expense Scope",
-    "options": "Single Purchase Order\nInbound Shipment"
+    "options": "Purchase Order\nInbound Shipment"
    },
    {
-    "depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Single Purchase Order'",
+    "depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Purchase Order'",
     "fieldname": "linked_purchase_order",
     "fieldtype": "Link",
-    "label": "Linked Purchase Order",
-    "mandatory_depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Single Purchase Order'",
-    "options": "Purchase Order"
+    "hidden": 1,
+    "label": "Linked Purchase Order (Legacy)",
+    "options": "Purchase Order",
+    "read_only": 1
    },
    {
-    "depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Inbound Shipment'",
+    "depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Purchase Order'",
+    "fieldname": "purchase_orders",
+    "fieldtype": "Table",
+    "label": "Purchase Orders",
+    "options": "Expense Purchase Order"
+   },
+  {
+   "depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Inbound Shipment'",
    "fieldname": "linked_shipment",
    "fieldtype": "Link",
    "label": "Linked Inbound Shipment",
    "mandatory_depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Inbound Shipment'",
    "options": "Inbound Shipment"
-  }
+  },
+   {
+    "depends_on": "eval:doc.is_accompanying == 1 && doc.expense_scope == 'Purchase Order'",
+    "fieldname": "section_break_waku",
+    "fieldtype": "Section Break"
+   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-05 17:31:53.939099",
- "modified_by": "Administrator",
+ "modified": "2026-09-07 23:12:32.201074",
+ "modified_by": "charlesbyaxy@gmail.com",
  "module": "NBS Customization",
  "name": "Expense",
  "naming_rule": "By \"Naming Series\" field",

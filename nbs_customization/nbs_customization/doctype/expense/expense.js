@@ -46,6 +46,12 @@ frappe.ui.form.on("Expense", {
 				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
 			},
 		}));
+		frm.set_query("purchase_order", "purchase_orders", () => ({
+			query: "nbs_customization.nbs_customization.doctype.expense.expense.get_purchase_orders_search",
+			filters: {
+				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
+			},
+		}));
 		frm.set_query("linked_shipment", () => ({
 			query: "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.get_shipments_search",
 			filters: {
@@ -82,6 +88,7 @@ frappe.ui.form.on("Expense", {
 		frm.set_value("cost_center", null);
 		frm.set_value("purchase_invoice", null);
 		frm.set_value("linked_purchase_order", null);
+		frm.clear_table("purchase_orders");
 		frm.set_value("linked_shipment", null);
 		frm.set_value("mode_of_payment", null);
 		frm.set_value("paid_from", null);
@@ -92,6 +99,7 @@ frappe.ui.form.on("Expense", {
 			"cost_center",
 			"purchase_invoice",
 			"linked_purchase_order",
+			"purchase_orders",
 			"linked_shipment",
 			"mode_of_payment",
 			"paid_from",
@@ -172,6 +180,7 @@ frappe.ui.form.on("Expense", {
 			frm.set_value("expense_scope", null);
 			frm.set_value("linked_purchase", null);
 			frm.set_value("linked_purchase_order", null);
+			frm.clear_table("purchase_orders");
 			frm.set_value("linked_shipment", null);
 			frm.set_value("landed_cost_voucher", null);
 		}
@@ -180,12 +189,18 @@ frappe.ui.form.on("Expense", {
 
 	expense_scope(frm) {
 		toggle_accompanying_fields(frm);
-		// Clear the unused link when switching scope
-		if (frm.doc.expense_scope === "Single Purchase Order") {
+		// Clear the unused link when switching scope — normalize legacy alias
+		const normalized = frm.doc.expense_scope === "Single Purchase Order" ? "Purchase Order" : frm.doc.expense_scope;
+		if (normalized !== frm.doc.expense_scope) {
+			frm.set_value("expense_scope", normalized);
+			return;
+		}
+		if (normalized === "Purchase Order") {
 			frm.set_value("linked_shipment", null);
-		} else if (frm.doc.expense_scope === "Inbound Shipment") {
+		} else if (normalized === "Inbound Shipment") {
 			frm.set_value("linked_purchase", null);
 			frm.set_value("linked_purchase_order", null);
+			frm.clear_table("purchase_orders");
 		}
 	},
 
@@ -255,6 +270,29 @@ frappe.ui.form.on("Expense", {
 	},
 });
 
+frappe.ui.form.on("Expense Purchase Order", {
+	purchase_order(frm, cdt, cdn) {
+		const row = frappe.get_doc(cdt, cdn);
+		if (!row.purchase_order) return;
+		if (!frm.doc.company) return;
+		// Duplicate check
+		for (const r of frm.doc.purchase_orders || []) {
+			if (r.name === cdn) continue;
+			if (r.purchase_order === row.purchase_order) {
+				frappe.msgprint(__("Purchase Order {0} already added.", [row.purchase_order]));
+				frappe.model.set_value(cdt, cdn, "purchase_order", "");
+				return;
+			}
+		}
+		frappe.db.get_value("Purchase Order", row.purchase_order, "company", (r) => {
+			if (r && r.company !== frm.doc.company) {
+				frappe.msgprint(__("The selected Purchase Order belongs to a different company."));
+				frappe.model.set_value(cdt, cdn, "purchase_order", "");
+			}
+		});
+	},
+});
+
 // ------------------------------------------------------------------ //
 // Field visibility helpers                                             //
 // ------------------------------------------------------------------ //
@@ -268,22 +306,28 @@ function toggle_payment_fields(frm) {
 
 function toggle_accompanying_fields(frm) {
 	const show = frm.doc.is_accompanying ? 1 : 0;
-	const scope = frm.doc.expense_scope || "Single Purchase Order";
-	const is_single = scope === "Single Purchase Order";
+	const raw = frm.doc.expense_scope || "Purchase Order";
+	const scope = raw === "Single Purchase Order" ? "Purchase Order" : raw;
+	// auto-migrate legacy value in-place
+	if (raw !== scope) frm.set_value("expense_scope", scope);
+	const is_single = scope === "Purchase Order";
 	const is_shipment = scope === "Inbound Shipment";
 
 	// Scope selector only when accompanying
 	frm.set_df_property("expense_scope", "hidden", show ? 0 : 1);
 
-	// Single PO fields
-	frm.set_df_property("linked_purchase_order", "hidden", show && is_single ? 0 : 1);
-	frm.set_df_property("linked_purchase_order", "reqd", show && is_single ? 1 : 0);
+	// Single PO fields — now multi-PO table, legacy field stays hidden
+	frm.set_df_property("purchase_orders", "hidden", show && is_single ? 0 : 1);
+	frm.set_df_property("purchase_orders", "reqd", show && is_single ? 1 : 0);
+	// legacy field hidden always (server still syncs it)
+	frm.set_df_property("linked_purchase_order", "hidden", 1);
+	frm.set_df_property("linked_purchase_order", "reqd", 0);
 
 	// Shipment fields
 	frm.set_df_property("linked_shipment", "hidden", show && is_shipment ? 0 : 1);
 	frm.set_df_property("linked_shipment", "reqd", show && is_shipment ? 1 : 0);
 
-	frm.refresh_fields(["expense_scope", "linked_purchase_order", "linked_shipment"]);
+	frm.refresh_fields(["expense_scope", "purchase_orders", "linked_purchase_order", "linked_shipment"]);
 
 	// Clear the info panel if not shipment scope
 	if (!show || !is_shipment) {
@@ -528,31 +572,38 @@ function toggle_lcv_button(frm) {
 	frm.remove_custom_button(__("View Landed Cost Voucher"), __("View"));
 	frm.remove_custom_button(__("View Inbound Shipment"), __("View"));
 	frm.remove_custom_button(__("View Purchase Order"), __("View"));
+	frm.remove_custom_button(__("View Purchase Orders"), __("View"));
 	frm.remove_custom_button(__("View Payment Entry"), __("View"));
 
 	const submitted = frm.doc.docstatus === 1;
 	const is_acc = frm.doc.is_accompanying;
 	const lcv_not_made = !frm.doc.landed_cost_voucher;
-	const scope = frm.doc.expense_scope || "Single Purchase Order";
-	const has_po = scope === "Single Purchase Order" && !!frm.doc.linked_purchase_order;
+	const raw_scope = frm.doc.expense_scope || "Purchase Order";
+	const scope = raw_scope === "Single Purchase Order" ? "Purchase Order" : raw_scope;
+	const po_names = (frm.doc.purchase_orders || [])
+		.map((r) => r.purchase_order)
+		.filter(Boolean);
+	const legacy_po = frm.doc.linked_purchase_order;
+	const has_po = scope === "Purchase Order" && (po_names.length > 0 || !!legacy_po);
 	const has_ship = scope === "Inbound Shipment" && !!frm.doc.linked_shipment;
 
 	// "Make LCV" button — available when no LCV yet
 	if (submitted && is_acc && lcv_not_made && (has_po || has_ship)) {
+		const effective_pos = po_names.length ? po_names : legacy_po ? [legacy_po] : [];
 		const scope_label = has_ship
 			? `Inbound Shipment <b>${frm.doc.linked_shipment}</b>`
-			: `Purchase Order <b>${frm.doc.linked_purchase_order}</b>`;
+			: `Purchase Order${effective_pos.length > 1 ? "s" : ""} <b>${effective_pos.join(", ")}</b>`;
 
 		frm.add_custom_button(
 			__("Landed Cost Voucher"),
 			function () {
-				// Pre-flight receiving check before confirm
+				// Pre-flight receiving check — warning not block for PO scope
 				const check_method = has_ship
 					? "check_shipment_fully_received"
-					: "check_purchase_order_fully_received";
+					: "check_purchase_orders_fully_received";
 				const check_args = has_ship
 					? { shipment_name: frm.doc.linked_shipment }
-					: { po_name: frm.doc.linked_purchase_order };
+					: { po_names: effective_pos };
 				frappe.call({
 					method: `nbs_customization.nbs_customization.doctype.expense.expense.${check_method}`,
 					args: check_args,
@@ -562,12 +613,23 @@ function toggle_lcv_button(frm) {
 						if (!r.message) return;
 
 						if (!r.message.ready) {
-							// Show the detailed breakdown — don't proceed
+							// Show warning but allow proceed on confirm
 							frappe.msgprint({
-								title: __("Not Fully Received"),
+								title: has_ship ? __("Not Fully Received") : __("Partially Received — Proceed?"),
 								message: r.message.message,
 								indicator: "orange",
 							});
+							if (has_ship) {
+								// Shipment still blocks — do not proceed
+								return;
+							}
+							// PO scope: ask to proceed with already-received PRs
+							frappe.confirm(
+								__(
+									`Some Purchase Orders are partially received (see warning above).<br>Create LCV for <b>${frm.doc.name}</b> with already-received PRs only?<br>Scope: ${scope_label}`,
+								),
+								() => confirm_and_create_lcv(frm, scope_label),
+							);
 							return;
 						}
 						// All items received — proceed to confirm
@@ -601,8 +663,19 @@ function toggle_lcv_button(frm) {
 		);
 	}
 
-	// View Purchase Order
-	if (frm.doc.linked_purchase_order) {
+	// View Purchase Order(s)
+	const view_pos = (frm.doc.purchase_orders || []).map((r) => r.purchase_order).filter(Boolean);
+	if (view_pos.length) {
+		for (const po of view_pos) {
+			frm.add_custom_button(
+				__(`View PO: ${po}`),
+				() => {
+					frappe.set_route("Form", "Purchase Order", po);
+				},
+				__("View"),
+			);
+		}
+	} else if (frm.doc.linked_purchase_order) {
 		frm.add_custom_button(
 			__("View Purchase Order"),
 			() => {

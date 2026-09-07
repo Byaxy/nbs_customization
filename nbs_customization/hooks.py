@@ -304,6 +304,7 @@ fixtures = [
 					"Purchase Receipt-custom_inbound_shipment",
 					"Landed Cost Voucher-custom_linked_shipment",
 					"Landed Cost Voucher-custom_linked_purchase_order",
+					"Landed Cost Voucher-custom_linked_purchase_orders",
 					"Sales Invoice-custom_is_commission_applied",
 					"Stock Reconciliation Item-custom_description",
 					"Purchase Receipt-custom_purchase_order",

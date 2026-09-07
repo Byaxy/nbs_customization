@@ -204,7 +204,7 @@ function add_expense_row(wrapper, categories, company) {
 			<!-- Scope — hidden until accompanying checked -->
 			<td class="td-scope">
 				<select class="form-control form-control-sm exp-scope" disabled style="display:none;">
-					<option value="Single Purchase Order">${__("Single Purchase Order")}</option>
+					<option value="Purchase Order">${__("Purchase Order")}</option>
 					<option value="Inbound Shipment">${__("Inbound Shipment")}</option>
 				</select>
 			</td>
@@ -297,12 +297,44 @@ function add_expense_row(wrapper, categories, company) {
 	set_control_enabled(shipment_control, false);
 	set_control_visible(shipment_control, false);
 
+	// Bulk multi-PO support: keep array of po controls per row
+	const po_controls = [po_control];
+	row.data("po_controls", po_controls);
+
 	row.data("controls", {
 		category: category_control,
 		mode_of_payment: mode_of_payment_control,
 		invoice: invoice_control,
 		po: po_control,
 		shipment: shipment_control,
+	});
+
+	// Add extra PO button for multi-PO expenses (shown only for PO scope)
+	const add_po_btn = $(
+		`<button class="btn btn-xs btn-light add-po-btn mt-1" style="display:none; font-size:11px;"><i class="fa fa-plus"></i> PO</button>`,
+	);
+	row.find(".td-linked-doc").append(add_po_btn);
+	add_po_btn.on("click", function () {
+		const idx = po_controls.length;
+		const extra_wrap = $(`<div class="exp-po-extra-${idx} mt-1"></div>`);
+		row.find(".td-linked-doc").append(extra_wrap);
+		const extra_ctrl = make_link_control(extra_wrap, {
+			fieldtype: "Link",
+			options: "Purchase Order",
+			placeholder: __("Search Purchase Order"),
+			get_query() {
+				return {
+					query: "nbs_customization.nbs_customization.doctype.expense.expense.get_purchase_orders_search",
+					filters: { company: company },
+				};
+			},
+		});
+		po_controls.push(extra_ctrl);
+		// toggle add button hidden when shipment scope
+		if ((row.find(".exp-scope").val() !== "Purchase Order" && row.find(".exp-scope").val() !== "Single Purchase Order") || !row.find(".exp-accompanying").is(":checked")) {
+			extra_wrap.hide();
+			set_control_enabled(extra_ctrl, false);
+		}
 	});
 
 	// ---------------------------------------------------------------- //
@@ -368,10 +400,14 @@ function add_expense_row(wrapper, categories, company) {
 			// Trigger scope change to show correct linked doc selector
 			$scope.trigger("change");
 		} else {
-			$scope.hide().prop("disabled", true).val("Single Purchase Order");
-			po_control.set_value("");
-			set_control_enabled(po_control, false);
-			set_control_visible(po_control, false);
+			$scope.hide().prop("disabled", true).val("Purchase Order");
+			const pcs = row.data("po_controls") || [po_control];
+			pcs.forEach((c) => {
+				c.set_value("");
+				set_control_enabled(c, false);
+				set_control_visible(c, false);
+			});
+			row.find(".add-po-btn").hide();
 			shipment_control.set_value("");
 			set_control_enabled(shipment_control, false);
 			set_control_visible(shipment_control, false);
@@ -385,10 +421,14 @@ function add_expense_row(wrapper, categories, company) {
 	row.find(".exp-scope").on("change", function () {
 		const scope = $(this).val();
 		const is_shipment = scope === "Inbound Shipment";
+		const pcs = row.data("po_controls") || [po_control];
 
-		set_control_visible(po_control, !is_shipment);
-		set_control_enabled(po_control, !is_shipment);
-		if (is_shipment) po_control.set_value("");
+		pcs.forEach((c) => {
+			set_control_visible(c, !is_shipment);
+			set_control_enabled(c, !is_shipment);
+			if (is_shipment) c.set_value("");
+		});
+		row.find(".add-po-btn").toggle(!is_shipment && row.find(".exp-accompanying").is(":checked"));
 
 		set_control_visible(shipment_control, is_shipment);
 		set_control_enabled(shipment_control, is_shipment);
@@ -527,9 +567,15 @@ function submit_bulk_expenses(dialog, listview, company) {
 		const payment_type = row.find(".exp-payment-type").val();
 		const purchase_invoice = controls.invoice?.get_value() || null;
 		const is_accompanying = row.find(".exp-accompanying").is(":checked");
-		const scope = row.find(".exp-scope").val() || "Single Purchase Order";
-		const linked_purchase_order =
-			scope === "Single Purchase Order" ? controls.po?.get_value() || null : null;
+		let scope = row.find(".exp-scope").val() || "Purchase Order";
+		// normalize legacy
+		if (scope === "Single Purchase Order") scope = "Purchase Order";
+		const po_controls_arr = row.data("po_controls") || (controls.po ? [controls.po] : []);
+		const po_names = scope === "Purchase Order"
+			? po_controls_arr.map((c) => c.get_value()).filter(Boolean)
+			: [];
+		const linked_purchase_order = po_names.length ? po_names[0] : null;
+		const purchase_orders = po_names.map((name) => ({ purchase_order: name }));
 		const linked_shipment =
 			scope === "Inbound Shipment" ? controls.shipment?.get_value() || null : null;
 
@@ -546,7 +592,7 @@ function submit_bulk_expenses(dialog, listview, company) {
 		const missing_invoice = payment_type === "Against Purchase Invoice" && !purchase_invoice;
 
 		const missing_linked =
-			is_accompanying && scope === "Single Purchase Order" && !linked_purchase_order;
+			is_accompanying && scope === "Purchase Order" && po_names.length === 0;
 
 		const missing_shipment =
 			is_accompanying && scope === "Inbound Shipment" && !linked_shipment;
@@ -584,6 +630,7 @@ function submit_bulk_expenses(dialog, listview, company) {
 			is_accompanying: is_accompanying ? 1 : 0,
 			expense_scope: is_accompanying ? scope : null,
 			linked_purchase_order,
+			purchase_orders,
 			linked_shipment,
 			company,
 		});

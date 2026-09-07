@@ -5,3 +5,5 @@
 [post_model_sync]
 # Patches added in this section will be executed after doctypes are migrated
 nbs_customization.patches.v1.backfill_company_fields
+nbs_customization.patches.v1.migrate_expense_to_multi_po
+nbs_customization.patches.v1.migrate_expense_scope_rename

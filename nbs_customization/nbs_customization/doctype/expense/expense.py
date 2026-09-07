@@ -8,6 +8,19 @@ from frappe.utils import flt, today
 
 from nbs_customization.controllers.check_clearing import get_check_mop, validate_destination_account
 
+# Scope constants — renamed "Single Purchase Order" -> "Purchase Order" (multi-PO)
+SCOPE_PO = "Purchase Order"
+SCOPE_SHIPMENT = "Inbound Shipment"
+SCOPE_LEGACY_PR = "Single Purchase Receipt"
+SCOPE_PO_LEGACY = "Single Purchase Order"  # alias for back-compat reads
+
+
+def _normalize_scope(scope: str | None) -> str | None:
+	"""Normalize legacy 'Single Purchase Order' to new 'Purchase Order'."""
+	if scope == SCOPE_PO_LEGACY:
+		return SCOPE_PO
+	return scope
+
 
 class Expense(Document):
 	def validate(self):
@@ -111,6 +124,7 @@ class Expense(Document):
 			self.linked_shipment = None
 			self.linked_purchase = None
 			self.linked_purchase_order = None
+			self.set("purchase_orders", [])
 			self.landed_cost_voucher = None
 
 			is_acc_cat = frappe.db.get_value(
@@ -128,7 +142,10 @@ class Expense(Document):
 			return
 
 		# --- is_accompanying = True ---
-		scope = self.expense_scope or "Single Purchase Order"
+		# Normalize legacy value persisted before rename
+		if self.expense_scope == SCOPE_PO_LEGACY:
+			self.expense_scope = SCOPE_PO
+		scope = _normalize_scope(self.expense_scope) or SCOPE_PO
 
 		# Validate category is accompanying
 		is_acc_cat = frappe.db.get_value("Expense Category", self.expense_category, "is_accompanying_expense")
@@ -145,38 +162,52 @@ class Expense(Document):
 		if self.payment_type == "Against Purchase Invoice" and self.purchase_invoice:
 			self._validate_pi_category_account_match()
 
-		if scope == "Single Purchase Order":
+		if scope == SCOPE_PO:
 			self.linked_purchase = None
 			self.linked_shipment = None
-			if not self.linked_purchase_order:
-				frappe.throw(_("Linked Purchase Order is required for accompanying expenses."))
-			po = frappe.db.get_value(
-				"Purchase Order",
-				self.linked_purchase_order,
-				["company", "docstatus", "status"],
-				as_dict=True,
-			)
-			if not po:
-				frappe.throw(_(f"Purchase Order <b>{self.linked_purchase_order}</b> not found."))
-			if po.docstatus != 1:
-				frappe.throw(
-					_(
-						f"Purchase Order <b>{self.linked_purchase_order}</b> must be submitted "
-						f"before linking it to an expense."
-					)
+			# --- Multi-PO support: read from purchase_orders child table, fallback to legacy field ---
+			po_names = [r.purchase_order for r in (self.purchase_orders or []) if r.purchase_order]
+			if not po_names and self.linked_purchase_order:
+				# Back-compat: legacy single field still populated
+				po_names = [self.linked_purchase_order]
+				# Also populate child table in-memory so UI stays in sync (will be saved)
+				if not self.get("purchase_orders"):
+					self.append("purchase_orders", {"purchase_order": self.linked_purchase_order})
+			if not po_names:
+				frappe.throw(_("At least one Purchase Order is required for accompanying expenses."))
+			if len(po_names) != len(set(po_names)):
+				frappe.throw(_("Duplicate Purchase Order found. Each Purchase Order can only be added once."))
+			for po_name in po_names:
+				po = frappe.db.get_value(
+					"Purchase Order",
+					po_name,
+					["company", "docstatus", "status"],
+					as_dict=True,
 				)
-			if po.company != self.company:
-				frappe.throw(
-					_(
-						f"Purchase Order <b>{self.linked_purchase_order}</b> belongs to "
-						f"company <b>{po.company}</b>, not <b>{self.company}</b>."
+				if not po:
+					frappe.throw(_(f"Purchase Order <b>{po_name}</b> not found."))
+				if po.docstatus != 1:
+					frappe.throw(
+						_(
+							f"Purchase Order <b>{po_name}</b> must be submitted "
+							f"before linking it to an expense."
+						)
 					)
-				)
+				if po.company != self.company:
+					frappe.throw(
+						_(
+							f"Purchase Order <b>{po_name}</b> belongs to "
+							f"company <b>{po.company}</b>, not <b>{self.company}</b>."
+						)
+					)
+			# Keep legacy field synced to first PO for reports/print formats
+			self.linked_purchase_order = po_names[0]
 
-		elif scope == "Single Purchase Receipt":
+		elif scope == SCOPE_LEGACY_PR:
 			# Legacy scope kept so cancels/amends of pre-migration documents still validate.
 			self.linked_shipment = None
 			self.linked_purchase_order = None
+			self.set("purchase_orders", [])
 			if not self.linked_purchase:
 				frappe.throw(_("Linked Purchase Receipt is required for accompanying expenses."))
 			# Validate PR belongs to same company
@@ -189,9 +220,10 @@ class Expense(Document):
 					)
 				)
 
-		elif scope == "Inbound Shipment":
+		elif scope == SCOPE_SHIPMENT:
 			self.linked_purchase = None
 			self.linked_purchase_order = None
+			self.set("purchase_orders", [])
 			if not self.linked_shipment:
 				frappe.throw(
 					_("Linked Inbound Shipment is required when Expense Scope is 'Inbound Shipment'.")
@@ -813,6 +845,77 @@ def get_prs_from_po(po_name):
 	)
 
 
+def get_prs_from_pos(po_names):
+	"""
+	Returns all submitted, non-return Purchase Receipts that reference any of the given
+	Purchase Orders, deduped. Union across multiple POs handles shared PRs (one PR with items from multiple POs).
+	"""
+	if not po_names:
+		return []
+	# Ensure list
+	po_names = list(po_names)
+	return frappe.db.sql(
+		"""
+		SELECT DISTINCT
+			pr.name AS receipt_document,
+			pr.supplier,
+			pr.grand_total
+		FROM `tabPurchase Receipt` pr
+		WHERE pr.docstatus = 1
+			AND pr.is_return = 0
+			AND EXISTS (
+				SELECT 1 FROM `tabPurchase Receipt Item` pri
+				WHERE pri.parent = pr.name
+				AND pri.purchase_order IN %(pos)s
+			)
+		ORDER BY pr.posting_date ASC, pr.name ASC
+		""",
+		{"pos": tuple(po_names)},
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def check_purchase_orders_fully_received(po_names):
+	"""
+	Checks whether every item on each of the given Purchase Orders has been fully received.
+	Warning helper — does NOT block LCV creation; JS shows orange warning and confirms.
+
+	Accepts JSON string or list. Returns {ready, unreceived_items, message}.
+	"""
+	# Normalize JSON string from JS
+	try:
+		po_names = frappe.parse_json(po_names) if isinstance(po_names, str) else po_names
+	except Exception:
+		pass
+	if not po_names:
+		return {"ready": True, "unreceived_items": [], "message": None}
+	if isinstance(po_names, str):
+		po_names = [po_names]
+	# dedup preserve order
+	seen = set()
+	ordered = []
+	for p in po_names:
+		if p and p not in seen:
+			seen.add(p)
+			ordered.append(p)
+	po_names = ordered
+
+	all_unreceived = []
+	messages = []
+	for po_name in po_names:
+		res = check_purchase_order_fully_received(po_name)
+		if not res.get("ready"):
+			all_unreceived.extend(res.get("unreceived_items", []))
+			if res.get("message"):
+				messages.append(res["message"])
+
+	if all_unreceived:
+		combined = "<br>".join(messages)
+		return {"ready": False, "unreceived_items": all_unreceived, "message": combined}
+	return {"ready": True, "unreceived_items": [], "message": None}
+
+
 def get_pi_category_account_mismatch(expense):
 	"""
 	Returns a user-facing error message if the expense's category account does not match
@@ -886,34 +989,42 @@ def make_landed_cost_voucher(expense_name):
 	if mismatch:
 		frappe.throw(mismatch)
 
-	scope = expense.expense_scope or "Single Purchase Order"
+	scope = _normalize_scope(expense.expense_scope) or SCOPE_PO
+	# Persist normalized scope for future reads (migrate legacy on first LCV attempt)
+	if expense.expense_scope == SCOPE_PO_LEGACY:
+		frappe.db.set_value("Expense", expense.name, "expense_scope", SCOPE_PO, update_modified=False)
 
-	# --- Fully-received guards (before building the LCV) ---
-	if scope == "Inbound Shipment" and expense.linked_shipment:
+	# --- Fully-received guards ---
+	# Inbound Shipment still blocks (shipment-level check remains strict)
+	if scope == SCOPE_SHIPMENT and expense.linked_shipment:
 		receipt_check = check_shipment_fully_received(expense.linked_shipment)
 		if not receipt_check["ready"]:
 			frappe.throw(_(receipt_check["message"]))
 
-	if scope == "Single Purchase Order" and expense.linked_purchase_order:
-		receipt_check = check_purchase_order_fully_received(expense.linked_purchase_order)
-		if not receipt_check["ready"]:
-			frappe.throw(_(receipt_check["message"]))
+	# For PO scope we intentionally do NOT block on partial receipt.
+	# JS pre-flight shows warning + confirm; server just needs at least one PR.
+	# No throw for check_purchase_orders_fully_received here.
 
 	expense_account = frappe.db.get_value("Expense Category", expense.expense_category, "expense_account")
 	if not expense_account:
 		frappe.throw(_(f"No GL account configured for Expense Category: <b>{expense.expense_category}</b>."))
 
 	# --- Collect purchase receipts for LCV ---
-	if scope == "Single Purchase Order":
-		if not expense.linked_purchase_order:
+	if scope == SCOPE_PO:
+		# Resolve multi-PO list from child table, fallback to legacy field
+		po_names = [r.purchase_order for r in (expense.purchase_orders or []) if r.purchase_order]
+		if not po_names and expense.linked_purchase_order:
+			po_names = [expense.linked_purchase_order]
+		if not po_names:
 			frappe.throw(_("No linked Purchase Order found on this expense."))
-		pr_rows = get_prs_from_po(expense.linked_purchase_order)
+		pr_rows = get_prs_from_pos(po_names)
 		if not pr_rows:
+			joined = ", ".join(f"<b>{p}</b>" for p in po_names)
 			frappe.throw(
-				_(f"Purchase Order <b>{expense.linked_purchase_order}</b> has no linked Purchase Receipts.")
+				_(f"Purchase Orders {joined} have no submitted Purchase Receipts yet. Receive at least one PO first.")
 			)
 
-	elif scope == "Single Purchase Receipt":
+	elif scope == SCOPE_LEGACY_PR:
 		if not expense.linked_purchase:
 			frappe.throw(_("No linked Purchase Receipt found on this expense."))
 		pr_doc = frappe.db.get_value(
@@ -932,7 +1043,7 @@ def make_landed_cost_voucher(expense_name):
 			}
 		]
 
-	elif scope == "Inbound Shipment":
+	elif scope == SCOPE_SHIPMENT:
 		if not expense.linked_shipment:
 			frappe.throw(_("No Inbound Shipment linked to this expense."))
 		pr_rows = frappe.db.get_all(
@@ -952,7 +1063,7 @@ def make_landed_cost_voucher(expense_name):
 	lcv = frappe.new_doc("Landed Cost Voucher")
 	lcv.company = expense.company
 
-	if scope in ("Inbound Shipment", "Single Purchase Order"):
+	if scope in (SCOPE_SHIPMENT, SCOPE_PO):
 		# Lock to manual so ERPNext never auto-overrides our weight distribution
 		lcv.distribute_charges_based_on = "Distribute Manually"
 
@@ -976,11 +1087,18 @@ def make_landed_cost_voucher(expense_name):
 		},
 	)
 
-	if scope == "Inbound Shipment" and expense.linked_shipment:
+	if scope == SCOPE_SHIPMENT and expense.linked_shipment:
 		lcv.custom_linked_shipment = expense.linked_shipment
 
-	if scope == "Single Purchase Order" and expense.linked_purchase_order:
-		lcv.custom_linked_purchase_order = expense.linked_purchase_order
+	if scope == SCOPE_PO:
+		po_names_for_lcv = [r.purchase_order for r in (expense.purchase_orders or []) if r.purchase_order]
+		if not po_names_for_lcv and expense.linked_purchase_order:
+			po_names_for_lcv = [expense.linked_purchase_order]
+		if po_names_for_lcv:
+			lcv.custom_linked_purchase_order = po_names_for_lcv[0]
+			# New comma-separated trace field for multi-PO
+			if hasattr(lcv, "custom_linked_purchase_orders"):
+				lcv.custom_linked_purchase_orders = ", ".join(po_names_for_lcv)
 
 	lcv.insert(ignore_permissions=True)
 	frappe.db.set_value("Expense", expense_name, "landed_cost_voucher", lcv.name)
