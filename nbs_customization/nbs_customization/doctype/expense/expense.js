@@ -74,9 +74,15 @@ frappe.ui.form.on("Expense", {
 	},
 
 	validate(frm) {
-		if (frm.doc.is_check && (!frm.doc.reference_no || !frm.doc.reference_date)) {
-			frappe.msgprint(__("Cheque/Reference No and Reference Date are mandatory for Check payments."));
-			frappe.validated = false;
+		if (frm.doc.is_check) {
+			if (!frm.doc.reference_no || !frm.doc.reference_date) {
+				frappe.msgprint(__("Cheque/Reference No and Reference Date are mandatory for Check payments."));
+				frappe.validated = false;
+			}
+			if (!frm.doc.check_bank) {
+				frappe.msgprint(__("Check Bank is mandatory for Check payments."));
+				frappe.validated = false;
+			}
 		}
 	},
 
@@ -444,6 +450,8 @@ function clear_shipment_info_panel(frm) {
 function set_reference_required(frm, required) {
 	frm.set_df_property("reference_no", "reqd", required);
 	frm.set_df_property("reference_date", "reqd", required);
+	frm.set_df_property("check_bank", "reqd", required);
+	frm.toggle_display("check_bank", required);
 }
 
 function toggle_reference_required(frm) {

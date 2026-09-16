@@ -61,6 +61,13 @@ def get_columns():
 			"width": 130,
 		},
 		{
+			"fieldname": "check_bank",
+			"label": _("Check Bank"),
+			"fieldtype": "Link",
+			"options": "Bank",
+			"width": 120,
+		},
+		{
 			"fieldname": "linked_invoice",
 			"label": _("Linked Invoice / Expense"),
 			"fieldtype": "Data",
@@ -271,7 +278,7 @@ def get_income(company, start_date, end_date=None):
 	return frappe.db.sql(
 		"""
 		SELECT pe.name AS voucher_no, 'Payment Entry' AS voucher_type, pe.posting_date,
-			pe.party_name AS party, pe.mode_of_payment, pe.base_paid_amount AS amount,
+			pe.party_name AS party, pe.mode_of_payment, pe.check_bank, pe.base_paid_amount AS amount,
 			GROUP_CONCAT(per.reference_name SEPARATOR ', ') AS linked_invoice
 		FROM `tabPayment Entry` pe
 		LEFT JOIN `tabPayment Entry Reference` per
@@ -294,7 +301,7 @@ def get_expenses(company, start_date, end_date=None):
 	rows = frappe.db.sql(
 		"""
 		SELECT pe.name AS voucher_no, 'Payment Entry' AS voucher_type, pe.posting_date,
-			pe.party_name AS party, pe.mode_of_payment, pe.base_paid_amount AS amount,
+			pe.party_name AS party, pe.mode_of_payment, pe.check_bank, pe.base_paid_amount AS amount,
 			GROUP_CONCAT(per.reference_name SEPARATOR ', ') AS linked_invoice
 		FROM `tabPayment Entry` pe
 		LEFT JOIN `tabPayment Entry Reference` per
@@ -313,7 +320,7 @@ def get_expenses(company, start_date, end_date=None):
 	je_rows = frappe.db.sql(
 		"""
 		SELECT je.name AS voucher_no, 'Journal Entry' AS voucher_type, je.posting_date,
-			e.payee AS party, je.mode_of_payment, e.amount AS amount, e.name AS linked_invoice
+			e.payee AS party, e.mode_of_payment, e.check_bank, e.amount AS amount, e.name AS linked_invoice
 		FROM `tabJournal Entry` je
 		INNER JOIN `tabExpense` e ON e.journal_entry = je.name
 		WHERE je.docstatus = 1
@@ -328,7 +335,7 @@ def get_expenses(company, start_date, end_date=None):
 	commission_rows = frappe.db.sql(
 		"""
 		SELECT je.name AS voucher_no, 'Journal Entry' AS voucher_type, je.posting_date,
-			cp.sales_person AS party, cp.mode_of_payment, cp.amount_to_pay AS amount,
+			cp.sales_person AS party, cp.mode_of_payment, cp.check_bank, cp.amount_to_pay AS amount,
 			cp.name AS linked_invoice, 'Commission Payout' AS type
 		FROM `tabJournal Entry` je
 		INNER JOIN `tabCommission Payout` cp ON cp.journal_entry = je.name
@@ -386,6 +393,7 @@ def _pnl_detail_row(row):
 		"type": row.get("type") or row.voucher_type,
 		"party": row.get("party") or "",
 		"mode_of_payment": row.get("mode_of_payment") or "",
+		"check_bank": row.get("check_bank") or "",
 		"linked_invoice": row.get("linked_invoice") or "",
 		"posting_date": row.posting_date,
 		"day_movement": flt(row["amount"]),

@@ -85,15 +85,16 @@ class Receipt(Document):
 				if paid_to:
 					row.receiving_account = paid_to
 
-				# ---- reference_no / reference_date from PE -------------------------
+				# ---- reference_no / reference_date / check_bank from PE ----------
 			if row.payment_entry:
-				ref_no, ref_date = frappe.db.get_value(
+				ref_no, ref_date, check_bank = frappe.db.get_value(
 					"Payment Entry",
 					row.payment_entry,
-					["reference_no", "reference_date"],
+					["reference_no", "reference_date", "check_bank"],
 				)
 				row.reference_no = ref_no or ""
 				row.reference_date = ref_date or None
+				row.check_bank = check_bank or None
 
 	def _compute_totals(self):
 		self.total_amount_due = sum(flt(row.amount_due) for row in self.receipt_payments)
@@ -133,30 +134,31 @@ class Receipt(Document):
 		"""
 		Rebuild receipt_payment_methods from receipt_payments.
 
-		Grouping key: (payment_method, reference_no or "")
+		Grouping key: (payment_method, reference_no or "", check_bank or "")
 		- Cash / modes with no reference: all rows collapse into one, amounts summed.
-		- Cheque / Bank Transfer / Draft: one row per unique reference_no, so two
-		    different cheques or two different bank transfers stay as separate rows
-		    with their own cheque numbers and dates.
+		- Cheque / Bank Transfer / Draft: one row per unique reference_no+bank, so
+		    different cheques or banks stay separate.
 
-		bank_name is user-editable and is preserved across rebuilds so the user
-		doesn't lose what they typed on re-save.
+		check_bank is authoritative from PE (via Receipt Payment); bank_name is
+		deprecated hidden field preserved until next push.
 		"""
-		# Snapshot user-entered bank names before we clear the table.
-		# Key matches the new row key so restoration is exact.
-		existing_bank_names = {
-			(row.payment_method, row.reference_no or ""): row.bank_name
-			for row in self.receipt_payment_methods
-			if row.bank_name
-		}
+		# Snapshot check_bank values keyed by grouped key (with back-fill from bank_name)
+		existing_banks = {}
+		for pm in self.receipt_payment_methods:
+			if pm.check_bank:
+				key = (pm.payment_method, pm.reference_no or "", pm.check_bank or "")
+				existing_banks[key] = pm.check_bank
+			elif pm.bank_name and frappe.db.exists("Bank", pm.bank_name):
+				key = (pm.payment_method, pm.reference_no or "", pm.bank_name)
+				existing_banks[key] = pm.bank_name
 
-		# Aggregate by (payment_method, reference_no or "")
+		# Aggregate by (payment_method, reference_no or "", check_bank or "")
 		aggregated = {}
 		for row in self.receipt_payments:
 			if not row.payment_method:
 				continue
 
-			key = (row.payment_method, row.reference_no or "")
+			key = (row.payment_method, row.reference_no or "", row.check_bank or "")
 
 			if key not in aggregated:
 				aggregated[key] = {"amount": 0.0, "reference_date": row.reference_date}
@@ -169,14 +171,16 @@ class Receipt(Document):
 
 		# Rebuild
 		self.receipt_payment_methods = []
-		for (payment_method, reference_no), data in aggregated.items():
+		for (payment_method, reference_no, check_bank), data in aggregated.items():
+			resolved_bank = check_bank or existing_banks.get((payment_method, reference_no, check_bank), "")
 			self.append(
 				"receipt_payment_methods",
 				{
 					"payment_method": payment_method,
+					"check_bank": resolved_bank or None,
+					"bank_name": resolved_bank or "",
 					"reference_no": reference_no or None,
 					"reference_date": data["reference_date"],
-					"bank_name": existing_bank_names.get((payment_method, reference_no), ""),
 					"amount": data["amount"],
 				},
 			)
@@ -317,6 +321,7 @@ def get_payment_entry_details(payment_entry: str) -> dict:
 				"receiving_account": pe.paid_to,
 				"reference_no": pe.reference_no or "",
 				"reference_date": pe.reference_date,
+				"check_bank": pe.get("check_bank") or None,
 			}
 		)
 
@@ -334,6 +339,7 @@ def get_payment_entry_details(payment_entry: str) -> dict:
 				"receiving_account": pe.paid_to,
 				"reference_no": pe.reference_no or "",
 				"reference_date": pe.reference_date,
+				"check_bank": pe.get("check_bank") or None,
 			}
 		)
 

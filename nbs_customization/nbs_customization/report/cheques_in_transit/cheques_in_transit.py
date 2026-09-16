@@ -65,6 +65,13 @@ def get_columns(include_cleared, include_returned):
 			"width": 90,
 		},
 		{
+			"fieldname": "check_bank",
+			"label": _("Check Bank"),
+			"fieldtype": "Link",
+			"options": "Bank",
+			"width": 130,
+		},
+		{
 			"fieldname": "party_type",
 			"label": _("Party Type"),
 			"fieldtype": "Data",
@@ -282,6 +289,7 @@ def build_data(filters):
 			gle.against AS gl_against,
 			COALESCE(pe.reference_no, exp.reference_no, cp.reference_no) AS reference_no,
 			COALESCE(pe.reference_date, exp.reference_date, cp.reference_date) AS reference_date,
+			COALESCE(pe.check_bank, exp.check_bank, cp.check_bank) AS check_bank,
 			COALESCE(pe.party_type, exp_payee.party_type, cp_party.party_type) AS party_type,
 			COALESCE(pe.party, exp.payee, cp.sales_person, gle.party) AS party,
 			COALESCE(pe.payment_type, 'Pay') AS payment_type,
@@ -301,11 +309,11 @@ def build_data(filters):
 		LEFT JOIN `tabPayment Entry` pe ON pe.name = gle.voucher_no AND gle.voucher_type = 'Payment Entry'
 		LEFT JOIN `tabExpense` exp ON exp.journal_entry = gle.voucher_no AND gle.voucher_type = 'Journal Entry'
 		LEFT JOIN (
-			SELECT name, payee, 'Payee' AS party_type, reference_no, reference_date, is_check, check_cleared, check_returned, check_clearing_date, check_return_date, clearance_date, check_cleared_source, clearing_destination_account, clearing_journal_entry, journal_entry
+			SELECT name, payee, 'Payee' AS party_type, reference_no, reference_date, check_bank, is_check, check_cleared, check_returned, check_clearing_date, check_return_date, clearance_date, check_cleared_source, clearing_destination_account, clearing_journal_entry, journal_entry
 			FROM `tabExpense`
 		) exp_payee ON exp_payee.journal_entry = gle.voucher_no
 		LEFT JOIN `tabCommission Payout` cp ON cp.journal_entry = gle.voucher_no AND gle.voucher_type = 'Journal Entry'
-		LEFT JOIN (SELECT name, sales_person, 'Sales Person' AS party_type, reference_no, reference_date, is_check, check_cleared, check_returned, check_clearing_date, check_return_date, clearance_date, check_cleared_source, clearing_destination_account, clearing_journal_entry, journal_entry FROM `tabCommission Payout`) cp_party ON cp_party.journal_entry = gle.voucher_no
+		LEFT JOIN (SELECT name, sales_person, 'Sales Person' AS party_type, reference_no, reference_date, check_bank, is_check, check_cleared, check_returned, check_clearing_date, check_return_date, clearance_date, check_cleared_source, clearing_destination_account, clearing_journal_entry, journal_entry FROM `tabCommission Payout`) cp_party ON cp_party.journal_entry = gle.voucher_no
 		WHERE {conditions}
 		ORDER BY gle.posting_date ASC, gle.voucher_no ASC
 	""".format(conditions=" AND ".join(conditions))
@@ -332,11 +340,15 @@ def build_data(filters):
 						"COALESCE(pe.reference_date, exp.reference_date)",
 					)
 					.replace(
+						"COALESCE(pe.check_bank, exp.check_bank, cp.check_bank)",
+						"COALESCE(pe.check_bank, exp.check_bank)",
+					)
+					.replace(
 						"LEFT JOIN `tabCommission Payout` cp ON cp.journal_entry = gle.voucher_no AND gle.voucher_type = 'Journal Entry'",
 						"",
 					)
 					.replace(
-						"LEFT JOIN (SELECT name, sales_person, 'Sales Person' AS party_type, reference_no, reference_date, is_check, check_cleared, check_returned, check_clearing_date, check_return_date, clearance_date, check_cleared_source, clearing_destination_account, clearing_journal_entry, journal_entry FROM `tabCommission Payout`) cp_party ON cp_party.journal_entry = gle.voucher_no",
+						"LEFT JOIN (SELECT name, sales_person, 'Sales Person' AS party_type, reference_no, reference_date, check_bank, is_check, check_cleared, check_returned, check_clearing_date, check_return_date, clearance_date, check_cleared_source, clearing_destination_account, clearing_journal_entry, journal_entry FROM `tabCommission Payout`) cp_party ON cp_party.journal_entry = gle.voucher_no",
 						"",
 					)
 					.replace(
@@ -453,6 +465,8 @@ def build_data(filters):
 		if filters.get("reference_no"):
 			if (r.get("reference_no") or "").lower().find(filters.reference_no.lower()) == -1:
 				continue
+		if filters.get("check_bank") and r.get("check_bank") != filters.check_bank:
+			continue
 
 		# Amount: GL amount (positive), derive from debit - credit in account currency
 		# For clearing legs, amount is debit if Inward? Actually GL for cheque: Receive Dr Inward, Pay Cr Outward.
@@ -512,6 +526,7 @@ def build_data(filters):
 			"posting_date": r.get("posting_date"),
 			"reference_no": r.get("reference_no"),
 			"reference_date": r.get("reference_date"),
+			"check_bank": r.get("check_bank"),
 			"party_type": r.get("party_type"),
 			"party": r.get("party"),
 			"clearing_account": r.get("clearing_account"),

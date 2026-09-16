@@ -38,6 +38,8 @@ def validate_check_payment_entry(pe, method=None):
 		pe.clearing_destination_account = mop.get("default_clearing_destination")
 	if not pe.reference_no or not pe.reference_date:
 		frappe.throw(_("Cheque/Reference No and Reference Date are mandatory for Check payments."))
+	if not pe.check_bank:
+		frappe.throw(_("Check Bank is mandatory for Check payments."))
 
 
 @frappe.whitelist(methods=["POST"])

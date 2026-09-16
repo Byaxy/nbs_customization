@@ -7,3 +7,4 @@
 nbs_customization.patches.v1.backfill_company_fields
 nbs_customization.patches.v1.migrate_expense_to_multi_po
 nbs_customization.patches.v1.migrate_expense_scope_rename
+nbs_customization.patches.v1.backfill_check_bank

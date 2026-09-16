@@ -7,9 +7,9 @@ of rows with no reference_no/bank_name cheque_count → number of rows that have
 bank_name Both values drive the Cash/Cheque/Total summary table below.
 ──────────────────────────────────────────────────────────────────────────── #} {%- set pm_ns =
 namespace(cash_total=0.0, cheque_count=0) -%} {%- for pm in doc.receipt_payment_methods -%} {%- if
-pm.reference_no or pm.bank_name -%} {%- set pm_ns.cheque_count = pm_ns.cheque_count + 1 -%} {%-
-else -%} {%- set pm_ns.cash_total = pm_ns.cash_total + (pm.amount or 0) -%} {%- endif -%} {%-
-endfor -%}
+pm.reference_no or pm.check_bank or pm.bank_name -%} {%- set pm_ns.cheque_count =
+pm_ns.cheque_count + 1 -%} {%- else -%} {%- set pm_ns.cash_total = pm_ns.cash_total + (pm.amount or
+0) -%} {%- endif -%} {%- endfor -%}
 
 <style>
 	body {
@@ -215,7 +215,7 @@ watermark_src %}
 	rowspan/colspan so both rows render under one #819ac2 block. Data rows: • cheque_count == 0 →
 	one row: cash total, empty cheque cells, grand total • cheque_count >= 1 → one row per cheque;
 	cash and grand-total cells use rowspan so they span all cheque rows. loop.first targets the
-	first cheque row only because the for-loop filters on (reference_no or bank_name). #}
+	first cheque row only because the for-loop filters on (reference_no or check_bank or bank_name). #}
 	<table
 		style="
 			width: 100%;
@@ -350,7 +350,7 @@ watermark_src %}
 				</td>
 			</tr>
 			{%- else -%} {# One or more cheque rows — cash and total cells span all cheque rows #}
-			{%- for pm in doc.receipt_payment_methods if pm.reference_no or pm.bank_name -%}
+			{%- for pm in doc.receipt_payment_methods if pm.reference_no or pm.check_bank or pm.bank_name -%}
 			<tr style="color: #000; border: 1px solid #000">
 				{%- if loop.first -%}
 				<td
@@ -367,7 +367,7 @@ watermark_src %}
 				</td>
 				{%- endif -%}
 				<td style="padding: 4px 6px !important; border: 1px solid #000">
-					{{ pm.bank_name or "" }}
+					{{ pm.check_bank or pm.bank_name or "" }}
 				</td>
 				<td
 					style="text-align: center; padding: 4px 6px !important; border: 1px solid #000"

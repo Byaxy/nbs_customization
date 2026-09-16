@@ -61,6 +61,12 @@ frappe.query_reports["Cheques in Transit"] = {
 			fieldtype: "Data",
 		},
 		{
+			fieldname: "check_bank",
+			label: __("Check Bank"),
+			fieldtype: "Link",
+			options: "Bank",
+		},
+		{
 			fieldname: "include_cleared",
 			label: __("Include Cleared"),
 			fieldtype: "Check",

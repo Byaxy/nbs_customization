@@ -5,7 +5,7 @@
  "creation": "2026-04-14 11:42:06.434683",
  "doctype": "DocType",
  "engine": "InnoDB",
-  "field_order": [
+   "field_order": [
    "naming_series",
    "commission",
    "commission_recipient",
@@ -28,6 +28,7 @@
    "reference_no",
    "column_break_payment_reference",
    "reference_date",
+   "check_bank",
    "clearance_date",
    "section_break_check_status",
    "is_check",
@@ -220,13 +221,21 @@
     "fieldname": "column_break_payment_reference",
     "fieldtype": "Column Break"
    },
-   {
-    "fieldname": "reference_date",
-    "fieldtype": "Date",
-    "label": "Cheque/Reference Date"
-   },
-   {
-    "depends_on": "eval:doc.docstatus == 1",
+    {
+     "fieldname": "reference_date",
+     "fieldtype": "Date",
+     "label": "Cheque/Reference Date"
+    },
+    {
+     "depends_on": "eval:doc.is_check==1",
+     "fieldname": "check_bank",
+     "fieldtype": "Link",
+     "label": "Check Bank",
+     "mandatory_depends_on": "eval:doc.is_check==1",
+     "options": "Bank"
+    },
+    {
+     "depends_on": "eval:doc.docstatus == 1",
     "fieldname": "clearance_date",
     "fieldtype": "Date",
     "label": "Clearance Date",

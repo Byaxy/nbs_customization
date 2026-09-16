@@ -67,6 +67,8 @@ class CommissionPayout(Document):
 				frappe.throw(_("Cheque/Reference No and Reference Date are mandatory for Check payments."))
 			else:
 				frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
+		if needs_check and not self.check_bank:
+			frappe.throw(_("Check Bank is mandatory for Check payments."))
 
 	def _validate_bank_reference(self):
 		return self._validate_check_or_bank_reference()

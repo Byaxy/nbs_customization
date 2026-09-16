@@ -325,6 +325,7 @@ fixtures = [
 					"Payment Entry-clearing_journal_entry",
 					"Payment Entry-check_returned",
 					"Payment Entry-check_return_date",
+					"Payment Entry-check_bank",
 				],
 			]
 		],

@@ -6,24 +6,25 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": [
-  "payment_entry",
-  "sales_invoice",
-  "column_break_gnjq",
-  "invoice_date",
-  "section_break_ifip",
-  "amount_due",
-  "column_break_dqbf",
-  "amount_received",
-  "column_break_mird",
-  "balance_due",
-  "section_break_gxuq",
-  "payment_method",
-  "reference_no",
-  "column_break_rkov",
-  "receiving_account",
-  "reference_date"
- ],
+  "field_order": [
+   "payment_entry",
+   "sales_invoice",
+   "column_break_gnjq",
+   "invoice_date",
+   "section_break_ifip",
+   "amount_due",
+   "column_break_dqbf",
+   "amount_received",
+   "column_break_mird",
+   "balance_due",
+   "section_break_gxuq",
+   "payment_method",
+   "reference_no",
+   "column_break_rkov",
+   "receiving_account",
+   "reference_date",
+   "check_bank"
+  ],
  "fields": [
   {
    "fieldname": "payment_entry",
@@ -113,12 +114,19 @@
    "label": "Reference No",
    "read_only": 1
   },
-  {
-   "fieldname": "reference_date",
-   "fieldtype": "Date",
-   "label": "Reference Date",
-   "read_only": 1
-  }
+   {
+    "fieldname": "reference_date",
+    "fieldtype": "Date",
+    "label": "Reference Date",
+    "read_only": 1
+   },
+   {
+    "fieldname": "check_bank",
+    "fieldtype": "Link",
+    "label": "Check Bank",
+    "options": "Bank",
+    "read_only": 1
+   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,

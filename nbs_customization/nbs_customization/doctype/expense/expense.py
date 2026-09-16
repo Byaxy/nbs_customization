@@ -349,6 +349,8 @@ class Expense(Document):
 				frappe.throw(_("Cheque/Reference No and Reference Date are mandatory for Check payments."))
 			else:
 				frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
+		if needs_check and not self.check_bank:
+			frappe.throw(_("Check Bank is mandatory for Check payments."))
 
 	def _validate_bank_reference(self):
 		# Back-compat alias
