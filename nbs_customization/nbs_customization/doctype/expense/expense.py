@@ -6,7 +6,11 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, today
 
-from nbs_customization.controllers.check_clearing import get_check_mop, validate_destination_account
+from nbs_customization.controllers.check_clearing import (
+	get_check_mop,
+	resolve_expected_paid_from,
+	validate_destination_account,
+)
 
 # Scope constants — renamed "Single Purchase Order" -> "Purchase Order" (multi-PO)
 SCOPE_PO = "Purchase Order"
@@ -32,6 +36,8 @@ class Expense(Document):
 		self._validate_accompanying()
 		self._validate_invoice_link()
 		self._validate_check_or_bank_reference()
+		self._validate_paid_from_matches_mop()
+		self._validate_paid_from_usable()
 
 	def on_submit(self):
 		if self.payment_type == "Direct Payment":
@@ -71,8 +77,9 @@ class Expense(Document):
 
 	def _resolve_payment_account(self):
 		"""
-		Resolve the paying account from the Payment Method, mirroring Payment Entry.
-		A manual override of paid_from is respected.
+		Default paid_from from the Payment Method when empty (API/import convenience).
+		The field is read-only in the form; any drift is rejected by
+		_validate_paid_from_matches_mop.
 		"""
 		if not self.mode_of_payment:
 			return
@@ -83,6 +90,46 @@ class Expense(Document):
 			)
 
 			self.paid_from = get_bank_cash_account(self.mode_of_payment, self.company)["account"]
+
+	def _validate_paid_from_matches_mop(self):
+		"""Reject drift between paid_from and the MoP-linked (or check clearing) account."""
+		if not self.mode_of_payment or not self.paid_from:
+			return
+		expected = resolve_expected_paid_from(self.mode_of_payment, self.company)
+		if not expected:
+			frappe.throw(
+				_("Mode of Payment <b>{0}</b> has no paying account configured for company <b>{1}</b>.").format(
+					self.mode_of_payment, self.company
+				)
+			)
+		if self.paid_from != expected:
+			frappe.throw(
+				_(
+					"Account Paid From <b>{0}</b> does not match Payment Method "
+					"<b>{1}</b> (expected <b>{2}</b>). It is set automatically."
+				).format(self.paid_from, self.mode_of_payment, expected)
+			)
+
+	def _validate_paid_from_usable(self):
+		"""paid_from must be a postable, enabled account."""
+		if not self.paid_from:
+			return
+		account = frappe.db.get_value(
+			"Account",
+			self.paid_from,
+			["is_group", "disabled"],
+			as_dict=True,
+		)
+		if not account:
+			frappe.throw(_("Account Paid From <b>{0}</b> not found.").format(self.paid_from))
+		if account.is_group:
+			frappe.throw(
+				_("Account Paid From <b>{0}</b> is a group account and cannot be used.").format(
+					self.paid_from
+				)
+			)
+		if account.disabled:
+			frappe.throw(_("Account Paid From <b>{0}</b> is disabled.").format(self.paid_from))
 
 	def _resolve_paid_to(self):
 		"""

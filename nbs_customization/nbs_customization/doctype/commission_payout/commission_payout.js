@@ -87,6 +87,8 @@ frappe.ui.form.on("Commission Payout", {
 			);
 		}
 		toggle_reference_required(frm);
+		lock_paid_from(frm);
+		update_paid_from_balance(frm);
 		add_check_clearing_buttons(frm);
 	},
 
@@ -176,6 +178,7 @@ frappe.ui.form.on("Commission Payout", {
 						frm.doc.is_check = 0;
 					}
 					toggle_reference_required(frm);
+					update_paid_from_balance(frm);
 				}
 			},
 		});
@@ -184,6 +187,7 @@ frappe.ui.form.on("Commission Payout", {
 	paid_from(frm) {
 		if (!frm.doc.paid_from) {
 			frm.set_value("paid_from_account_currency", null);
+			frm.set_df_property("paid_from", "description", "");
 			toggle_reference_required(frm);
 			return;
 		}
@@ -194,8 +198,13 @@ frappe.ui.form.on("Commission Payout", {
 			(r) => {
 				if (r) frm.set_value("paid_from_account_currency", r.account_currency);
 				toggle_reference_required(frm);
+				update_paid_from_balance(frm);
 			},
 		);
+	},
+
+	payout_date(frm) {
+		update_paid_from_balance(frm);
 	},
 
 	expense_category(frm) {
@@ -223,7 +232,7 @@ frappe.ui.form.on("Commission Payout", {
 				title: __("Amount Exceeds Remaining Due"),
 				message: __(
 					"Amount To Pay ({0}) exceeds the Remaining Due ({1}) for this recipient.",
-					[format_currency(amount), format_currency(remaining)],
+					[format_payout_currency(amount), format_payout_currency(remaining)],
 				),
 				indicator: "red",
 			});
@@ -349,9 +358,9 @@ function _render_recipient_info_panel(frm, data) {
 
 			<!-- Cards -->
 			<div style="display:flex; gap:20px;">
-				${card(__("Allocated"), badge(format_currency(data.allocated_amount), "#111827"))}
-				${card(__("Paid So Far"), badge(format_currency(data.paid_amount), get_paid_color(data.paid_amount, data.allocated_amount)))}
-				${card(__("Remaining Due"), badge(format_currency(data.remaining_due), get_remaining_color(data.remaining_due, data.allocated_amount)))}
+				${card(__("Allocated"), badge(format_payout_currency(data.allocated_amount), "#111827"))}
+				${card(__("Paid So Far"), badge(format_payout_currency(data.paid_amount), get_paid_color(data.paid_amount, data.allocated_amount)))}
+				${card(__("Remaining Due"), badge(format_payout_currency(data.remaining_due), get_remaining_color(data.remaining_due, data.allocated_amount)))}
 				${card(__("Status"), badge(data.payment_status, color))}
 			</div>
 		</div>
@@ -378,14 +387,14 @@ function _validate_amount_live(frm) {
 
 	if (frm.doc.commission_recipient && amount > remaining + 0.01) {
 		frm.set_df_property("amount_to_pay", "description",
-			`<b style="color:var(--red-600);">${__("Warning: Exceeds remaining due of {0}", [format_currency(remaining)])}</b>`
+			`<b style="color:var(--red-600);">${__("Warning: Exceeds remaining due of {0}", [format_payout_currency(remaining)])}</b>`
 		);
 	} else {
 		frm.set_df_property("amount_to_pay", "description", "");
 	}
 }
 
-function format_currency(value) {
+function format_payout_currency(value) {
 	return frappe.format(value || 0, { fieldtype: "Currency" });
 }
 
@@ -424,6 +433,41 @@ function set_reference_required(frm, required) {
 	frm.set_df_property("reference_date", "reqd", required);
 	frm.set_df_property("check_bank", "reqd", required);
 	frm.toggle_display("check_bank", required);
+}
+
+// paid_from is driven solely by Mode of Payment — never user-editable.
+function lock_paid_from(frm) {
+	frm.set_df_property("paid_from", "read_only", 1);
+}
+
+// Live balance under paid_from; green when positive, red when negative.
+function update_paid_from_balance(frm) {
+	if (!frm.doc.paid_from) {
+		frm.set_df_property("paid_from", "description", "");
+		return;
+	}
+	const account = frm.doc.paid_from;
+	const as_of = frm.doc.payout_date || frappe.datetime.get_today();
+	frappe.call({
+		method: "nbs_customization.controllers.check_clearing.get_account_balance",
+		args: {
+			account: account,
+			company: frm.doc.company,
+			date: as_of,
+		},
+		callback(r) {
+			// ignore stale responses after the user switched account
+			if (!r.message || frm.doc.paid_from !== account) return;
+			const balance = flt(r.message.balance);
+			const color = balance > 0 ? "#10b981" : balance < 0 ? "#ef4444" : "#6b7280";
+			const formatted = format_currency(balance, r.message.account_currency);
+			frm.set_df_property(
+				"paid_from",
+				"description",
+				`<span style="color:${color};font-weight:600;">${__("Balance")} (${as_of}): ${formatted}</span>`,
+			);
+		},
+	});
 }
 
 function toggle_reference_required(frm) {

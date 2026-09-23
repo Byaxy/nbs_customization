@@ -61,11 +61,13 @@ frappe.ui.form.on("Expense", {
 	},
 
 	refresh(frm) {
+		lock_paid_from(frm);
 		toggle_accompanying_fields(frm);
 		toggle_payment_fields(frm);
 		toggle_lcv_button(frm);
 		resolve_paid_to(frm);
 		toggle_reference_required(frm);
+		update_paid_from_balance(frm);
 		add_check_clearing_buttons(frm);
 	},
 
@@ -156,6 +158,7 @@ frappe.ui.form.on("Expense", {
 						frm.doc.is_check = 0;
 					}
 					toggle_reference_required(frm);
+					update_paid_from_balance(frm);
 				}
 			},
 		});
@@ -164,6 +167,7 @@ frappe.ui.form.on("Expense", {
 	paid_from(frm) {
 		if (!frm.doc.paid_from) {
 			frm.set_value("paid_from_account_currency", null);
+			frm.set_df_property("paid_from", "description", "");
 			toggle_reference_required(frm);
 			return;
 		}
@@ -176,8 +180,13 @@ frappe.ui.form.on("Expense", {
 					frm.set_value("paid_from_account_currency", r.account_currency);
 				}
 				toggle_reference_required(frm);
+				update_paid_from_balance(frm);
 			},
 		);
+	},
+
+	expense_date(frm) {
+		update_paid_from_balance(frm);
 	},
 
 	is_accompanying(frm) {
@@ -452,6 +461,41 @@ function set_reference_required(frm, required) {
 	frm.set_df_property("reference_date", "reqd", required);
 	frm.set_df_property("check_bank", "reqd", required);
 	frm.toggle_display("check_bank", required);
+}
+
+// paid_from is driven solely by Mode of Payment — never user-editable.
+function lock_paid_from(frm) {
+	frm.set_df_property("paid_from", "read_only", 1);
+}
+
+// Live balance under paid_from; green when positive, red when negative.
+function update_paid_from_balance(frm) {
+	if (!frm.doc.paid_from) {
+		frm.set_df_property("paid_from", "description", "");
+		return;
+	}
+	const account = frm.doc.paid_from;
+	const as_of = frm.doc.expense_date || frappe.datetime.get_today();
+	frappe.call({
+		method: "nbs_customization.controllers.check_clearing.get_account_balance",
+		args: {
+			account: account,
+			company: frm.doc.company,
+			date: as_of,
+		},
+		callback(r) {
+			// ignore stale responses after the user switched account
+			if (!r.message || frm.doc.paid_from !== account) return;
+			const balance = flt(r.message.balance);
+			const color = balance > 0 ? "#10b981" : balance < 0 ? "#ef4444" : "#6b7280";
+			const formatted = format_currency(balance, r.message.account_currency);
+			frm.set_df_property(
+				"paid_from",
+				"description",
+				`<span style="color:${color};font-weight:600;">${__("Balance")} (${as_of}): ${formatted}</span>`,
+			);
+		},
+	});
 }
 
 function toggle_reference_required(frm) {
