@@ -4,7 +4,7 @@
 One-off backfill for the PO-based accompanying expense change.
 
 Every Expense still carrying the legacy scope value 'Single Purchase Receipt'
-is migrated to the new 'Single Purchase Order' scope, backfilling
+is migrated to the new 'Purchase Order' scope, backfilling
 linked_purchase_order from the linked Purchase Receipt's Purchase Order(s).
 
 Rules:
@@ -68,7 +68,7 @@ def run(dry_run=True, commit=True):
 		frappe.db.set_value(
 			"Expense",
 			expense.name,
-			{"expense_scope": "Single Purchase Order", "linked_purchase_order": po},
+			{"expense_scope": "Purchase Order", "linked_purchase_order": po},
 		)
 
 	if not dry_run and commit:

@@ -3,7 +3,7 @@
 
 import frappe
 from frappe import _
-from frappe.utils import flt, formatdate
+from frappe.utils import flt, formatdate, getdate
 
 
 def execute(filters=None):
@@ -61,6 +61,13 @@ def get_columns():
 			"width": 130,
 		},
 		{
+			"fieldname": "check_bank",
+			"label": _("Check Bank"),
+			"fieldtype": "Link",
+			"options": "Bank",
+			"width": 120,
+		},
+		{
 			"fieldname": "linked_invoice",
 			"label": _("Linked Invoice / Expense"),
 			"fieldtype": "Data",
@@ -103,22 +110,52 @@ def get_columns():
 	]
 
 
-def build_data(filters):
-	company = filters.get("company")
-	report_date = filters.get("report_date")
-	if not company or not report_date:
-		frappe.throw(_("Company and Date are required."))
+def _resolve_dates(filters):
+	# Backward compat: report_date -> from_date = to_date = report_date
+	start = filters.get("from_date") or filters.get("start_date") or filters.get("report_date")
+	end = filters.get("to_date") or filters.get("end_date") or filters.get("report_date")
+	return start, end
 
-	date_label = formatdate(report_date)
+
+def validate_filters(filters):
+	company = filters.get("company")
+	start, end = _resolve_dates(filters)
+	if not company or not start or not end:
+		frappe.throw(_("Company, From Date and To Date are required."))
+	if getdate(start) > getdate(end):
+		frappe.throw(_("From Date cannot be after To Date."))
+	filters.from_date = start
+	filters.to_date = end
+	filters.start_date = start
+	filters.end_date = end
+
+
+def build_data(filters):
+	validate_filters(filters)
+	company = filters.get("company")
+	start_date = filters.get("from_date")
+	end_date = filters.get("to_date")
+
+	if getdate(start_date) == getdate(end_date):
+		date_label = formatdate(start_date)
+	else:
+		date_label = f"{formatdate(start_date)} to {formatdate(end_date)}"
 	company_currency = frappe.get_cached_value("Company", company, "default_currency")
+
+	income_only = bool(filters.get("income_only"))
+	expense_only = bool(filters.get("expense_only"))
+	# Both checked -> show both (locked decision)
+	if income_only and expense_only:
+		income_only = False
+		expense_only = False
 
 	data = []
 
 	# ------------------------------------------------------------------ #
-	# Cash & Bank — brought forward / day movement / carried forward      #
+	# Cash & Bank — always shown, capped at to_date (decision 1)         #
 	# ------------------------------------------------------------------ #
 	data.append(_section_row(_(f"CASH & BANK — {date_label}")))
-	balance_rows, total = get_cash_bank_balances(company, report_date)
+	balance_rows, total = get_cash_bank_balances(company, start_date, end_date)
 	for row in balance_rows:
 		data.append(_balance_row(row))
 	data.append(_balance_total_row(total, company_currency))
@@ -126,22 +163,38 @@ def build_data(filters):
 	# ------------------------------------------------------------------ #
 	# Income (cash received)                                              #
 	# ------------------------------------------------------------------ #
-	data.append(_section_row(_(f"INCOME — {date_label}")))
-	income_detail = get_income(company, report_date)
-	for row in income_detail:
-		data.append(_pnl_detail_row(row))
-	total_income = sum(flt(row["amount"]) for row in income_detail)
-	data.append(_pnl_total_row("Total Income", total_income, company_currency))
+	show_income = not expense_only
+	show_expense = not income_only
+	# Both checked handled above (both False -> both True)
+
+	if show_income:
+		data.append(_section_row(_(f"INCOME — {date_label}")))
+		income_detail = get_income(company, start_date, end_date)
+		for row in income_detail:
+			data.append(_pnl_detail_row(row))
+		total_income = sum(flt(row["amount"]) for row in income_detail)
+		data.append(_pnl_total_row("Total Income", total_income, company_currency))
+	else:
+		income_detail = []
+		total_income = 0
+		data.append(_section_row(_(f"INCOME — {date_label} (hidden)")))
+		data.append(_pnl_total_row("Total Income", 0, company_currency))
 
 	# ------------------------------------------------------------------ #
 	# Expenses (cash paid)                                                #
 	# ------------------------------------------------------------------ #
-	data.append(_section_row(_(f"EXPENSES — {date_label}")))
-	expense_detail = get_expenses(company, report_date)
-	for row in expense_detail:
-		data.append(_pnl_detail_row(row))
-	total_expense = sum(flt(row["amount"]) for row in expense_detail)
-	data.append(_pnl_total_row("Total Expenses", total_expense, company_currency))
+	if show_expense:
+		data.append(_section_row(_(f"EXPENSES — {date_label}")))
+		expense_detail = get_expenses(company, start_date, end_date)
+		for row in expense_detail:
+			data.append(_pnl_detail_row(row))
+		total_expense = sum(flt(row["amount"]) for row in expense_detail)
+		data.append(_pnl_total_row("Total Expenses", total_expense, company_currency))
+	else:
+		expense_detail = []
+		total_expense = 0
+		data.append(_section_row(_(f"EXPENSES — {date_label} (hidden)")))
+		data.append(_pnl_total_row("Total Expenses", 0, company_currency))
 
 	# ------------------------------------------------------------------ #
 	# Net income / loss                                                   #
@@ -171,31 +224,34 @@ CASH_BANK_CONDITION = """
 """
 
 
-def get_cash_bank_balances(company, report_date):
+def get_cash_bank_balances(company, start_date, end_date=None):
+	# Backward compat: single report_date
+	if end_date is None:
+		end_date = start_date
 	rows = frappe.db.sql(
 		f"""
 		SELECT
 			gle.account,
 			acc.account_currency,
-			SUM(CASE WHEN gle.posting_date < %(report_date)s
+			SUM(CASE WHEN gle.posting_date < %(start_date)s
 				THEN gle.debit_in_account_currency - gle.credit_in_account_currency ELSE 0 END) AS brought_forward,
-			SUM(CASE WHEN gle.posting_date = %(report_date)s
+			SUM(CASE WHEN gle.posting_date BETWEEN %(start_date)s AND %(end_date)s
 				THEN gle.debit_in_account_currency - gle.credit_in_account_currency ELSE 0 END) AS day_movement,
-			SUM(CASE WHEN gle.posting_date < %(report_date)s
+			SUM(CASE WHEN gle.posting_date < %(start_date)s
 				THEN gle.debit - gle.credit ELSE 0 END) AS brought_forward_base,
-			SUM(CASE WHEN gle.posting_date = %(report_date)s
+			SUM(CASE WHEN gle.posting_date BETWEEN %(start_date)s AND %(end_date)s
 				THEN gle.debit - gle.credit ELSE 0 END) AS day_movement_base
 		FROM `tabGL Entry` gle
 		INNER JOIN `tabAccount` acc ON acc.name = gle.account
 		WHERE gle.docstatus = 1
 			AND gle.is_cancelled = 0
 			AND gle.company = %(company)s
-			AND gle.posting_date <= %(report_date)s
+			AND gle.posting_date <= %(end_date)s
 			AND {CASH_BANK_CONDITION}
 		GROUP BY gle.account, acc.account_currency
 		ORDER BY acc.account_currency, gle.account
 		""",
-		{"company": company, "report_date": report_date},
+		{"company": company, "start_date": start_date, "end_date": end_date},
 		as_dict=True,
 	)
 
@@ -216,75 +272,79 @@ def get_cash_bank_balances(company, report_date):
 	return rows, total
 
 
-def get_income(company, report_date):
+def get_income(company, start_date, end_date=None):
+	if end_date is None:
+		end_date = start_date
 	return frappe.db.sql(
 		"""
 		SELECT pe.name AS voucher_no, 'Payment Entry' AS voucher_type, pe.posting_date,
-			pe.party_name AS party, pe.mode_of_payment, pe.base_paid_amount AS amount,
+			pe.party_name AS party, pe.mode_of_payment, pe.check_bank, pe.base_paid_amount AS amount,
 			GROUP_CONCAT(per.reference_name SEPARATOR ', ') AS linked_invoice
 		FROM `tabPayment Entry` pe
 		LEFT JOIN `tabPayment Entry Reference` per
 			ON per.parent = pe.name AND per.reference_doctype = 'Sales Invoice'
 		WHERE pe.docstatus = 1
 			AND pe.company = %(company)s
-			AND pe.posting_date = %(report_date)s
+			AND pe.posting_date BETWEEN %(start_date)s AND %(end_date)s
 			AND pe.payment_type = 'Receive'
 		GROUP BY pe.name
 		ORDER BY pe.posting_date, pe.name
 		""",
-		{"company": company, "report_date": report_date},
+		{"company": company, "start_date": start_date, "end_date": end_date},
 		as_dict=True,
 	)
 
 
-def get_expenses(company, report_date):
+def get_expenses(company, start_date, end_date=None):
+	if end_date is None:
+		end_date = start_date
 	rows = frappe.db.sql(
 		"""
 		SELECT pe.name AS voucher_no, 'Payment Entry' AS voucher_type, pe.posting_date,
-			pe.party_name AS party, pe.mode_of_payment, pe.base_paid_amount AS amount,
+			pe.party_name AS party, pe.mode_of_payment, pe.check_bank, pe.base_paid_amount AS amount,
 			GROUP_CONCAT(per.reference_name SEPARATOR ', ') AS linked_invoice
 		FROM `tabPayment Entry` pe
 		LEFT JOIN `tabPayment Entry Reference` per
 			ON per.parent = pe.name AND per.reference_doctype = 'Purchase Invoice'
 		WHERE pe.docstatus = 1
 			AND pe.company = %(company)s
-			AND pe.posting_date = %(report_date)s
+			AND pe.posting_date BETWEEN %(start_date)s AND %(end_date)s
 			AND pe.payment_type = 'Pay'
 		GROUP BY pe.name
 		ORDER BY pe.posting_date, pe.name
 		""",
-		{"company": company, "report_date": report_date},
+		{"company": company, "start_date": start_date, "end_date": end_date},
 		as_dict=True,
 	)
 
 	je_rows = frappe.db.sql(
 		"""
 		SELECT je.name AS voucher_no, 'Journal Entry' AS voucher_type, je.posting_date,
-			e.payee AS party, je.mode_of_payment, e.amount AS amount, e.name AS linked_invoice
+			e.payee AS party, e.mode_of_payment, e.check_bank, e.amount AS amount, e.name AS linked_invoice
 		FROM `tabJournal Entry` je
 		INNER JOIN `tabExpense` e ON e.journal_entry = je.name
 		WHERE je.docstatus = 1
 			AND je.company = %(company)s
-			AND je.posting_date = %(report_date)s
+			AND je.posting_date BETWEEN %(start_date)s AND %(end_date)s
 		ORDER BY je.posting_date, je.name
 		""",
-		{"company": company, "report_date": report_date},
+		{"company": company, "start_date": start_date, "end_date": end_date},
 		as_dict=True,
 	)
 
 	commission_rows = frappe.db.sql(
 		"""
 		SELECT je.name AS voucher_no, 'Journal Entry' AS voucher_type, je.posting_date,
-			cp.sales_person AS party, cp.mode_of_payment, cp.amount_to_pay AS amount,
+			cp.sales_person AS party, cp.mode_of_payment, cp.check_bank, cp.amount_to_pay AS amount,
 			cp.name AS linked_invoice, 'Commission Payout' AS type
 		FROM `tabJournal Entry` je
 		INNER JOIN `tabCommission Payout` cp ON cp.journal_entry = je.name
 		WHERE je.docstatus = 1
 			AND je.company = %(company)s
-			AND je.posting_date = %(report_date)s
+			AND je.posting_date BETWEEN %(start_date)s AND %(end_date)s
 		ORDER BY je.posting_date, je.name
 		""",
-		{"company": company, "report_date": report_date},
+		{"company": company, "start_date": start_date, "end_date": end_date},
 		as_dict=True,
 	)
 
@@ -333,6 +393,7 @@ def _pnl_detail_row(row):
 		"type": row.get("type") or row.voucher_type,
 		"party": row.get("party") or "",
 		"mode_of_payment": row.get("mode_of_payment") or "",
+		"check_bank": row.get("check_bank") or "",
 		"linked_invoice": row.get("linked_invoice") or "",
 		"posting_date": row.posting_date,
 		"day_movement": flt(row["amount"]),

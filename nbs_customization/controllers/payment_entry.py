@@ -36,6 +36,10 @@ def validate_check_payment_entry(pe, method=None):
 		pe.set(bank_side, expected)
 	if not pe.clearing_destination_account and mop.get("default_clearing_destination"):
 		pe.clearing_destination_account = mop.get("default_clearing_destination")
+	if not pe.reference_no or not pe.reference_date:
+		frappe.throw(_("Cheque/Reference No and Reference Date are mandatory for Check payments."))
+	if not pe.check_bank:
+		frappe.throw(_("Check Bank is mandatory for Check payments."))
 
 
 @frappe.whitelist(methods=["POST"])
@@ -85,9 +89,7 @@ def mark_check_returned(name: str):
 		# Break the circular PE <-> JE link first, otherwise Frappe blocks the
 		# clearing Journal Entry from being cancelled (the submitted Payment
 		# Entry points back at it via `clearing_journal_entry`).
-		frappe.db.set_value(
-			"Payment Entry", pe.name, "clearing_journal_entry", None, update_modified=False
-		)
+		frappe.db.set_value("Payment Entry", pe.name, "clearing_journal_entry", None, update_modified=False)
 		clearing_je = frappe.get_doc("Journal Entry", pe.clearing_journal_entry)
 		if clearing_je.docstatus == 1:
 			clearing_je.cancel()

@@ -6,13 +6,14 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": [
-  "payment_method",
-  "bank_name",
-  "reference_no",
-  "reference_date",
-  "amount"
- ],
+  "field_order": [
+   "payment_method",
+   "check_bank",
+   "bank_name",
+   "reference_no",
+   "reference_date",
+   "amount"
+  ],
  "fields": [
   {
    "fieldname": "payment_method",
@@ -22,12 +23,19 @@
    "options": "Mode of Payment",
    "reqd": 1
   },
-  {
-   "fieldname": "bank_name",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Bank Name"
-  },
+   {
+    "fieldname": "check_bank",
+    "fieldtype": "Link",
+    "in_list_view": 1,
+    "label": "Check Bank",
+    "options": "Bank"
+   },
+   {
+    "fieldname": "bank_name",
+    "fieldtype": "Data",
+    "hidden": 1,
+    "label": "Bank Name"
+   },
   {
    "fieldname": "amount",
    "fieldtype": "Currency",

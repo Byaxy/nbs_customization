@@ -1,0 +1,465 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-08-29 13:20:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "amended_from",
+  "naming_series",
+  "title",
+  "column_break_id",
+  "posting_date",
+  "company",
+  "fx_section",
+  "cost_currency",
+  "company_currency",
+  "column_break_fx",
+  "exchange_rate",
+  "exchange_rate_date",
+  "shared_costs_section",
+  "total_bank_charges",
+  "convert_total_bank_charges",
+  "total_freight",
+  "convert_total_freight",
+  "total_clearing_fees",
+  "convert_total_clearing_fees",
+  "total_fixed_cost",
+  "convert_total_fixed_cost",
+  "column_break_shared",
+  "total_transport_in",
+  "convert_total_transport_in",
+  "total_transport_out",
+  "convert_total_transport_out",
+  "total_overhead",
+  "convert_total_overhead",
+  "pricing_defaults_section",
+  "commission_pct",
+  "wht_pct",
+  "standard_selling_source_tier",
+  "column_break_pricing_defaults",
+  "price_list_target",
+  "price_list_target_commission",
+  "price_list_target_commission_tax",
+  "items_section",
+  "items",
+  "price_lists_section",
+  "price_list_basic",
+  "price_list_15",
+  "price_list_30",
+  "price_list_45",
+  "column_break_pl",
+  "price_list_commission",
+  "price_list_commission_tax",
+  "totals_section",
+  "total_base",
+  "total_true_cost",
+  "column_break_totals",
+  "total_final",
+  "section_break_zxcg",
+  "pricing_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "NBSQT-.YYYY.-.####\nPBSQT-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Title"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_id",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Item Pricing Quotation Batch",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "fx_section",
+   "fieldtype": "Section Break",
+   "label": "Import Cost Conversion"
+  },
+  {
+   "fieldname": "company_currency",
+   "fieldtype": "Link",
+   "label": "Company Currency",
+   "options": "Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_fx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "exchange_rate",
+   "fieldtype": "Float",
+   "label": "Exchange Rate (Cost \u2192 Company)",
+   "precision": "6",
+   "depends_on": "eval:doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "description": "Cost \u2192 Company, auto-fetched."
+  },
+  {
+   "default": "Today",
+   "fieldname": "exchange_rate_date",
+   "fieldtype": "Date",
+   "label": "Exchange Rate Date",
+   "depends_on": ""
+  },
+  {
+   "fieldname": "shared_costs_section",
+   "fieldtype": "Section Break",
+   "label": "Shared Costs (totals in Quote Currency \u2014 allocated by value weight; Fixed Cost is per unit)"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_bank_charges",
+   "fieldtype": "Currency",
+   "label": "Total Bank Charges"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_freight",
+   "fieldtype": "Currency",
+   "label": "Total Freight"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_clearing_fees",
+   "fieldtype": "Currency",
+   "label": "Total Clearing Fees"
+  },
+  {
+   "fieldname": "column_break_shared",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_transport_in",
+   "fieldtype": "Currency",
+   "label": "Total Transport In"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_transport_out",
+   "fieldtype": "Currency",
+   "label": "Total Transport Out"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_overhead",
+   "fieldtype": "Currency",
+   "label": "Total Overhead"
+  },
+  {
+   "default": "0",
+   "description": "Per-unit fixed cost \u2014 row Fixed = header \u00d7 qty. Other shared costs are quotation totals allocated by value weight.",
+   "fieldname": "total_fixed_cost",
+   "fieldtype": "Currency",
+   "label": "Fixed Cost (per unit)"
+  },
+  {
+   "fieldname": "pricing_defaults_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing Defaults"
+  },
+  {
+   "description": "Optional variable Target Commission % (blank = no Target Commission tier); 0% not allowed; if set requires Price List \u2014 Target Commission",
+   "fieldname": "commission_pct",
+   "fieldtype": "Percent",
+   "label": "Target Commission (%)"
+  },
+  {
+   "description": "Optional variable WHT % (blank = no Target Commission (Tax) tier); if set requires Price List \u2014 Target Commission (Tax)",
+   "fieldname": "wht_pct",
+   "fieldtype": "Percent",
+   "label": "Target WHT (%)"
+  },
+  {
+   "default": "30%",
+   "description": "Which tier drives Standard Selling \u2014 30% default (fixed Selling - 30% separate), choose Target to drive Standard Selling from custom Target margin. Use Target Commission / Target Commission (Tax) for variable c%/w%",
+   "fieldname": "standard_selling_source_tier",
+   "fieldtype": "Select",
+   "label": "Standard Selling Source Tier",
+   "options": "Basic\n15%\n30%\n45%\nTarget\nCommission (10%)\nCommission (Tax) (10%+3%)\nTarget Commission\nTarget Commission (Tax)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_pricing_defaults",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "price_lists_section",
+   "fieldtype": "Section Break",
+   "label": "Price Lists (fixed \u2014 read only, 30% separate from Standard Selling)"
+  },
+  {
+   "default": "Selling - Basic",
+   "fieldname": "price_list_basic",
+   "fieldtype": "Link",
+   "label": "Price List - Basic",
+   "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "default": "Selling - 15%",
+   "fieldname": "price_list_15",
+   "fieldtype": "Link",
+   "label": "Price List - 15%",
+   "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "default": "Selling - 30%",
+   "description": "Fixed 30% tier \u2014 always Selling - 30% (Standard Selling separate)",
+   "fieldname": "price_list_30",
+   "fieldtype": "Link",
+   "label": "Price List - 30%",
+   "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "description": "Optional \u2014 Price List where per-row Target Margin % rates are written. Cannot be one of 6 fixed lists. Required if any row has Target Margin %.",
+   "fieldname": "price_list_target",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Margin",
+   "options": "Price List"
+  },
+  {
+   "description": "Required when Target Commission % is set. Cannot be one of 6 fixed lists.",
+   "fieldname": "price_list_target_commission",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Commission",
+   "mandatory_depends_on": "eval:doc.commission_pct",
+   "options": "Price List"
+  },
+  {
+   "description": "Required when Target WHT % is set. Cannot be one of 6 fixed lists.",
+   "fieldname": "price_list_target_commission_tax",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Commission (Tax)",
+   "mandatory_depends_on": "eval:doc.wht_pct",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "column_break_pl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Selling - 45%",
+   "fieldname": "price_list_45",
+   "fieldtype": "Link",
+   "label": "Price List - 45%",
+   "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "default": "Selling - Commission",
+   "description": "Fixed 10% tier \u2014 always 10% regardless of header Target Commission %. Variable Target Commission uses Price List \u2014 Target Commission above",
+   "fieldname": "price_list_commission",
+   "fieldtype": "Link",
+   "label": "Price List - Commission (10% fixed)",
+   "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "default": "Selling - Commission (Tax)",
+   "description": "Fixed 10%+3% tier \u2014 always 10%+3% regardless of header %. Variable Target Commission (Tax) uses Price List \u2014 Target Commission (Tax) above",
+   "fieldname": "price_list_commission_tax",
+   "fieldtype": "Link",
+   "label": "Price List - Commission (Tax) (10%+3% fixed)",
+   "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "fieldname": "items_section",
+   "fieldtype": "Section Break",
+   "label": "Products Details"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Products",
+   "options": "Item Pricing Quotation Batch Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "totals_section",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_base",
+   "fieldtype": "Currency",
+   "label": "Total Base",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_true_cost",
+   "fieldtype": "Currency",
+   "label": "Total True Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_final",
+   "fieldtype": "Currency",
+   "label": "Total Final (all items)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cost_currency",
+   "fieldtype": "Link",
+   "label": "Cost Currency (Import)",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "convert_total_bank_charges",
+   "fieldtype": "Check",
+   "label": "Convert Bank Charges?",
+   "depends_on": "eval:doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "default": "0"
+  },
+  {
+   "fieldname": "convert_total_freight",
+   "fieldtype": "Check",
+   "label": "Convert Freight?",
+   "depends_on": "eval:doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "default": "0"
+  },
+  {
+   "fieldname": "convert_total_clearing_fees",
+   "fieldtype": "Check",
+   "label": "Convert Clearing Fees?",
+   "depends_on": "eval:doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "default": "0"
+  },
+  {
+   "fieldname": "convert_total_fixed_cost",
+   "fieldtype": "Check",
+   "label": "Convert Fixed Cost?",
+   "depends_on": "eval:doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "default": "0"
+  },
+  {
+   "fieldname": "convert_total_transport_in",
+   "fieldtype": "Check",
+   "label": "Convert Transport In?",
+   "depends_on": "eval:doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "default": "0"
+  },
+  {
+   "fieldname": "convert_total_transport_out",
+   "fieldtype": "Check",
+   "label": "Convert Transport Out?",
+   "depends_on": "eval:doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "default": "0"
+  },
+  {
+   "fieldname": "convert_total_overhead",
+   "fieldtype": "Check",
+   "label": "Convert Overhead?",
+   "depends_on": "eval:doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "default": "0"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-04 13:28:28.429379",
+ "modified_by": "charlesbyaxy@gmail.com",
+ "module": "NBS Customization",
+ "name": "Item Pricing Quotation Batch",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Purchase Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Stock Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

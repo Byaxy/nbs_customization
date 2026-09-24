@@ -4,7 +4,26 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, today
+
+from nbs_customization.controllers.check_clearing import (
+	get_check_mop,
+	resolve_expected_paid_from,
+	validate_destination_account,
+)
+
+# Scope constants — renamed "Single Purchase Order" -> "Purchase Order" (multi-PO)
+SCOPE_PO = "Purchase Order"
+SCOPE_SHIPMENT = "Inbound Shipment"
+SCOPE_LEGACY_PR = "Single Purchase Receipt"
+SCOPE_PO_LEGACY = "Single Purchase Order"  # alias for back-compat reads
+
+
+def _normalize_scope(scope: str | None) -> str | None:
+	"""Normalize legacy 'Single Purchase Order' to new 'Purchase Order'."""
+	if scope == SCOPE_PO_LEGACY:
+		return SCOPE_PO
+	return scope
 
 
 class Expense(Document):
@@ -16,7 +35,9 @@ class Expense(Document):
 		self._validate_category_required()
 		self._validate_accompanying()
 		self._validate_invoice_link()
-		self._validate_bank_reference()
+		self._validate_check_or_bank_reference()
+		self._validate_paid_from_matches_mop()
+		self._validate_paid_from_usable()
 
 	def on_submit(self):
 		if self.payment_type == "Direct Payment":
@@ -25,11 +46,24 @@ class Expense(Document):
 			self._create_payment_entry()
 
 	def on_cancel(self):
+		self._cancel_clearing_journal_entry()
 		self._cancel_or_delete_lcv()
 		if self.payment_type == "Direct Payment":
 			self._reverse_journal_entry()
 		else:
 			self._reverse_payment_entry()
+
+	def _cancel_clearing_journal_entry(self):
+		# If a check was cleared, the clearing JE must be cancelled before the underlying doc
+		if not self.get("clearing_journal_entry"):
+			return
+		# Break circular link first
+		frappe.db.set_value("Expense", self.name, "clearing_journal_entry", None, update_modified=False)
+		je_name = self.clearing_journal_entry
+		if je_name and frappe.db.exists("Journal Entry", je_name):
+			je = frappe.get_doc("Journal Entry", je_name)
+			if je.docstatus == 1:
+				je.cancel()
 
 	# ------------------------------------------------------------------ #
 	# Validation helpers                                                   #
@@ -43,8 +77,9 @@ class Expense(Document):
 
 	def _resolve_payment_account(self):
 		"""
-		Resolve the paying account from the Payment Method, mirroring Payment Entry.
-		A manual override of paid_from is respected.
+		Default paid_from from the Payment Method when empty (API/import convenience).
+		The field is read-only in the form; any drift is rejected by
+		_validate_paid_from_matches_mop.
 		"""
 		if not self.mode_of_payment:
 			return
@@ -55,6 +90,46 @@ class Expense(Document):
 			)
 
 			self.paid_from = get_bank_cash_account(self.mode_of_payment, self.company)["account"]
+
+	def _validate_paid_from_matches_mop(self):
+		"""Reject drift between paid_from and the MoP-linked (or check clearing) account."""
+		if not self.mode_of_payment or not self.paid_from:
+			return
+		expected = resolve_expected_paid_from(self.mode_of_payment, self.company)
+		if not expected:
+			frappe.throw(
+				_("Mode of Payment <b>{0}</b> has no paying account configured for company <b>{1}</b>.").format(
+					self.mode_of_payment, self.company
+				)
+			)
+		if self.paid_from != expected:
+			frappe.throw(
+				_(
+					"Account Paid From <b>{0}</b> does not match Payment Method "
+					"<b>{1}</b> (expected <b>{2}</b>). It is set automatically."
+				).format(self.paid_from, self.mode_of_payment, expected)
+			)
+
+	def _validate_paid_from_usable(self):
+		"""paid_from must be a postable, enabled account."""
+		if not self.paid_from:
+			return
+		account = frappe.db.get_value(
+			"Account",
+			self.paid_from,
+			["is_group", "disabled"],
+			as_dict=True,
+		)
+		if not account:
+			frappe.throw(_("Account Paid From <b>{0}</b> not found.").format(self.paid_from))
+		if account.is_group:
+			frappe.throw(
+				_("Account Paid From <b>{0}</b> is a group account and cannot be used.").format(
+					self.paid_from
+				)
+			)
+		if account.disabled:
+			frappe.throw(_("Account Paid From <b>{0}</b> is disabled.").format(self.paid_from))
 
 	def _resolve_paid_to(self):
 		"""
@@ -96,6 +171,7 @@ class Expense(Document):
 			self.linked_shipment = None
 			self.linked_purchase = None
 			self.linked_purchase_order = None
+			self.set("purchase_orders", [])
 			self.landed_cost_voucher = None
 
 			is_acc_cat = frappe.db.get_value(
@@ -113,7 +189,10 @@ class Expense(Document):
 			return
 
 		# --- is_accompanying = True ---
-		scope = self.expense_scope or "Single Purchase Order"
+		# Normalize legacy value persisted before rename
+		if self.expense_scope == SCOPE_PO_LEGACY:
+			self.expense_scope = SCOPE_PO
+		scope = _normalize_scope(self.expense_scope) or SCOPE_PO
 
 		# Validate category is accompanying
 		is_acc_cat = frappe.db.get_value("Expense Category", self.expense_category, "is_accompanying_expense")
@@ -130,38 +209,52 @@ class Expense(Document):
 		if self.payment_type == "Against Purchase Invoice" and self.purchase_invoice:
 			self._validate_pi_category_account_match()
 
-		if scope == "Single Purchase Order":
+		if scope == SCOPE_PO:
 			self.linked_purchase = None
 			self.linked_shipment = None
-			if not self.linked_purchase_order:
-				frappe.throw(_("Linked Purchase Order is required for accompanying expenses."))
-			po = frappe.db.get_value(
-				"Purchase Order",
-				self.linked_purchase_order,
-				["company", "docstatus", "status"],
-				as_dict=True,
-			)
-			if not po:
-				frappe.throw(_(f"Purchase Order <b>{self.linked_purchase_order}</b> not found."))
-			if po.docstatus != 1:
-				frappe.throw(
-					_(
-						f"Purchase Order <b>{self.linked_purchase_order}</b> must be submitted "
-						f"before linking it to an expense."
-					)
+			# --- Multi-PO support: read from purchase_orders child table, fallback to legacy field ---
+			po_names = [r.purchase_order for r in (self.purchase_orders or []) if r.purchase_order]
+			if not po_names and self.linked_purchase_order:
+				# Back-compat: legacy single field still populated
+				po_names = [self.linked_purchase_order]
+				# Also populate child table in-memory so UI stays in sync (will be saved)
+				if not self.get("purchase_orders"):
+					self.append("purchase_orders", {"purchase_order": self.linked_purchase_order})
+			if not po_names:
+				frappe.throw(_("At least one Purchase Order is required for accompanying expenses."))
+			if len(po_names) != len(set(po_names)):
+				frappe.throw(_("Duplicate Purchase Order found. Each Purchase Order can only be added once."))
+			for po_name in po_names:
+				po = frappe.db.get_value(
+					"Purchase Order",
+					po_name,
+					["company", "docstatus", "status"],
+					as_dict=True,
 				)
-			if po.company != self.company:
-				frappe.throw(
-					_(
-						f"Purchase Order <b>{self.linked_purchase_order}</b> belongs to "
-						f"company <b>{po.company}</b>, not <b>{self.company}</b>."
+				if not po:
+					frappe.throw(_(f"Purchase Order <b>{po_name}</b> not found."))
+				if po.docstatus != 1:
+					frappe.throw(
+						_(
+							f"Purchase Order <b>{po_name}</b> must be submitted "
+							f"before linking it to an expense."
+						)
 					)
-				)
+				if po.company != self.company:
+					frappe.throw(
+						_(
+							f"Purchase Order <b>{po_name}</b> belongs to "
+							f"company <b>{po.company}</b>, not <b>{self.company}</b>."
+						)
+					)
+			# Keep legacy field synced to first PO for reports/print formats
+			self.linked_purchase_order = po_names[0]
 
-		elif scope == "Single Purchase Receipt":
+		elif scope == SCOPE_LEGACY_PR:
 			# Legacy scope kept so cancels/amends of pre-migration documents still validate.
 			self.linked_shipment = None
 			self.linked_purchase_order = None
+			self.set("purchase_orders", [])
 			if not self.linked_purchase:
 				frappe.throw(_("Linked Purchase Receipt is required for accompanying expenses."))
 			# Validate PR belongs to same company
@@ -174,9 +267,10 @@ class Expense(Document):
 					)
 				)
 
-		elif scope == "Inbound Shipment":
+		elif scope == SCOPE_SHIPMENT:
 			self.linked_purchase = None
 			self.linked_purchase_order = None
+			self.set("purchase_orders", [])
 			if not self.linked_shipment:
 				frappe.throw(
 					_("Linked Inbound Shipment is required when Expense Scope is 'Inbound Shipment'.")
@@ -272,21 +366,42 @@ class Expense(Document):
 		if not self.amount:
 			self.amount = pi.outstanding_amount
 
+	def _validate_check_or_bank_reference(self):
+		"""
+		Reference No/Date mandatory for Bank *or* Check mode.
+		For Check also routes paid_from to the outward clearing account and
+		defaults clearing_destination_account. clearance_date is NOT required
+		here — only at clearing (dialog).
+		"""
+		mop = get_check_mop(self.mode_of_payment) if self.mode_of_payment else {}
+		needs_check = bool(mop.get("is_check"))
+		if needs_check:
+			self.is_check = 1
+			expected = mop.get("clearing_account_outward")
+			if expected and self.paid_from != expected:
+				self.paid_from = expected
+			if not self.clearing_destination_account and mop.get("default_clearing_destination"):
+				self.clearing_destination_account = mop.get("default_clearing_destination")
+
+		needs_bank = False
+		if self.paid_from:
+			account_type = frappe.get_cached_value("Account", self.paid_from, "account_type")
+			# clearing accounts have no account_type, so Bank check only matters for non-check
+			if account_type == "Bank":
+				needs_bank = True
+
+		needs_ref = needs_bank or needs_check
+		if needs_ref and (not self.reference_no or not self.reference_date):
+			if needs_check:
+				frappe.throw(_("Cheque/Reference No and Reference Date are mandatory for Check payments."))
+			else:
+				frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
+		if needs_check and not self.check_bank:
+			frappe.throw(_("Check Bank is mandatory for Check payments."))
+
 	def _validate_bank_reference(self):
-		"""
-		Mirror Payment Entry's validate_transaction_reference: when the paying
-		account is a Bank account (bank transfer or cheque), the Cheque/Reference
-		No and Cheque/Reference Date are mandatory.
-		"""
-		if not self.paid_from:
-			return
-
-		account_type = frappe.get_cached_value("Account", self.paid_from, "account_type")
-		if account_type != "Bank":
-			return
-
-		if not self.reference_no or not self.reference_date:
-			frappe.throw(_("Reference No and Reference Date is mandatory for Bank transaction"))
+		# Back-compat alias
+		return self._validate_check_or_bank_reference()
 
 	# ------------------------------------------------------------------ #
 	# Flow A — Direct Payment via Journal Entry                           #
@@ -389,6 +504,9 @@ class Expense(Document):
 		pe.target_exchange_rate = 1
 		pe.mode_of_payment = self.mode_of_payment
 		pe.reference_no = self.reference_no
+		# For Check, require explicit reference_date (no silent fallback)
+		if self.is_check and not self.reference_date:
+			frappe.throw(_("Reference Date is mandatory for Check payments."))
 		pe.reference_date = self.reference_date or self.expense_date
 		pe.remarks = (
 			f"Payment via Expense {self.name} — {self.expense_description} "
@@ -555,6 +673,7 @@ def get_payment_method_account(mode_of_payment, company):
 	"""
 	Resolves the default Cash/Bank account for a Mode of Payment and Company,
 	plus that account's currency. Mirrors Payment Entry's paid_from auto-fill.
+	Also returns check-mode metadata for client-side required toggling.
 	"""
 	from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
 		get_bank_cash_account,
@@ -562,7 +681,14 @@ def get_payment_method_account(mode_of_payment, company):
 
 	account = get_bank_cash_account(mode_of_payment, company)["account"]
 	account_currency = frappe.db.get_value("Account", account, "account_currency")
-	return {"account": account, "account_currency": account_currency}
+	mop = get_check_mop(mode_of_payment)
+	return {
+		"account": account,
+		"account_currency": account_currency,
+		"is_check": bool(mop.get("is_check")),
+		"clearing_account_outward": mop.get("clearing_account_outward"),
+		"default_clearing_destination": mop.get("default_clearing_destination"),
+	}
 
 
 @frappe.whitelist()
@@ -768,6 +894,77 @@ def get_prs_from_po(po_name):
 	)
 
 
+def get_prs_from_pos(po_names):
+	"""
+	Returns all submitted, non-return Purchase Receipts that reference any of the given
+	Purchase Orders, deduped. Union across multiple POs handles shared PRs (one PR with items from multiple POs).
+	"""
+	if not po_names:
+		return []
+	# Ensure list
+	po_names = list(po_names)
+	return frappe.db.sql(
+		"""
+		SELECT DISTINCT
+			pr.name AS receipt_document,
+			pr.supplier,
+			pr.grand_total
+		FROM `tabPurchase Receipt` pr
+		WHERE pr.docstatus = 1
+			AND pr.is_return = 0
+			AND EXISTS (
+				SELECT 1 FROM `tabPurchase Receipt Item` pri
+				WHERE pri.parent = pr.name
+				AND pri.purchase_order IN %(pos)s
+			)
+		ORDER BY pr.posting_date ASC, pr.name ASC
+		""",
+		{"pos": tuple(po_names)},
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def check_purchase_orders_fully_received(po_names):
+	"""
+	Checks whether every item on each of the given Purchase Orders has been fully received.
+	Warning helper — does NOT block LCV creation; JS shows orange warning and confirms.
+
+	Accepts JSON string or list. Returns {ready, unreceived_items, message}.
+	"""
+	# Normalize JSON string from JS
+	try:
+		po_names = frappe.parse_json(po_names) if isinstance(po_names, str) else po_names
+	except Exception:
+		pass
+	if not po_names:
+		return {"ready": True, "unreceived_items": [], "message": None}
+	if isinstance(po_names, str):
+		po_names = [po_names]
+	# dedup preserve order
+	seen = set()
+	ordered = []
+	for p in po_names:
+		if p and p not in seen:
+			seen.add(p)
+			ordered.append(p)
+	po_names = ordered
+
+	all_unreceived = []
+	messages = []
+	for po_name in po_names:
+		res = check_purchase_order_fully_received(po_name)
+		if not res.get("ready"):
+			all_unreceived.extend(res.get("unreceived_items", []))
+			if res.get("message"):
+				messages.append(res["message"])
+
+	if all_unreceived:
+		combined = "<br>".join(messages)
+		return {"ready": False, "unreceived_items": all_unreceived, "message": combined}
+	return {"ready": True, "unreceived_items": [], "message": None}
+
+
 def get_pi_category_account_mismatch(expense):
 	"""
 	Returns a user-facing error message if the expense's category account does not match
@@ -841,34 +1038,42 @@ def make_landed_cost_voucher(expense_name):
 	if mismatch:
 		frappe.throw(mismatch)
 
-	scope = expense.expense_scope or "Single Purchase Order"
+	scope = _normalize_scope(expense.expense_scope) or SCOPE_PO
+	# Persist normalized scope for future reads (migrate legacy on first LCV attempt)
+	if expense.expense_scope == SCOPE_PO_LEGACY:
+		frappe.db.set_value("Expense", expense.name, "expense_scope", SCOPE_PO, update_modified=False)
 
-	# --- Fully-received guards (before building the LCV) ---
-	if scope == "Inbound Shipment" and expense.linked_shipment:
+	# --- Fully-received guards ---
+	# Inbound Shipment still blocks (shipment-level check remains strict)
+	if scope == SCOPE_SHIPMENT and expense.linked_shipment:
 		receipt_check = check_shipment_fully_received(expense.linked_shipment)
 		if not receipt_check["ready"]:
 			frappe.throw(_(receipt_check["message"]))
 
-	if scope == "Single Purchase Order" and expense.linked_purchase_order:
-		receipt_check = check_purchase_order_fully_received(expense.linked_purchase_order)
-		if not receipt_check["ready"]:
-			frappe.throw(_(receipt_check["message"]))
+	# For PO scope we intentionally do NOT block on partial receipt.
+	# JS pre-flight shows warning + confirm; server just needs at least one PR.
+	# No throw for check_purchase_orders_fully_received here.
 
 	expense_account = frappe.db.get_value("Expense Category", expense.expense_category, "expense_account")
 	if not expense_account:
 		frappe.throw(_(f"No GL account configured for Expense Category: <b>{expense.expense_category}</b>."))
 
 	# --- Collect purchase receipts for LCV ---
-	if scope == "Single Purchase Order":
-		if not expense.linked_purchase_order:
+	if scope == SCOPE_PO:
+		# Resolve multi-PO list from child table, fallback to legacy field
+		po_names = [r.purchase_order for r in (expense.purchase_orders or []) if r.purchase_order]
+		if not po_names and expense.linked_purchase_order:
+			po_names = [expense.linked_purchase_order]
+		if not po_names:
 			frappe.throw(_("No linked Purchase Order found on this expense."))
-		pr_rows = get_prs_from_po(expense.linked_purchase_order)
+		pr_rows = get_prs_from_pos(po_names)
 		if not pr_rows:
+			joined = ", ".join(f"<b>{p}</b>" for p in po_names)
 			frappe.throw(
-				_(f"Purchase Order <b>{expense.linked_purchase_order}</b> has no linked Purchase Receipts.")
+				_(f"Purchase Orders {joined} have no submitted Purchase Receipts yet. Receive at least one PO first.")
 			)
 
-	elif scope == "Single Purchase Receipt":
+	elif scope == SCOPE_LEGACY_PR:
 		if not expense.linked_purchase:
 			frappe.throw(_("No linked Purchase Receipt found on this expense."))
 		pr_doc = frappe.db.get_value(
@@ -887,7 +1092,7 @@ def make_landed_cost_voucher(expense_name):
 			}
 		]
 
-	elif scope == "Inbound Shipment":
+	elif scope == SCOPE_SHIPMENT:
 		if not expense.linked_shipment:
 			frappe.throw(_("No Inbound Shipment linked to this expense."))
 		pr_rows = frappe.db.get_all(
@@ -907,7 +1112,7 @@ def make_landed_cost_voucher(expense_name):
 	lcv = frappe.new_doc("Landed Cost Voucher")
 	lcv.company = expense.company
 
-	if scope in ("Inbound Shipment", "Single Purchase Order"):
+	if scope in (SCOPE_SHIPMENT, SCOPE_PO):
 		# Lock to manual so ERPNext never auto-overrides our weight distribution
 		lcv.distribute_charges_based_on = "Distribute Manually"
 
@@ -931,13 +1136,193 @@ def make_landed_cost_voucher(expense_name):
 		},
 	)
 
-	if scope == "Inbound Shipment" and expense.linked_shipment:
+	if scope == SCOPE_SHIPMENT and expense.linked_shipment:
 		lcv.custom_linked_shipment = expense.linked_shipment
 
-	if scope == "Single Purchase Order" and expense.linked_purchase_order:
-		lcv.custom_linked_purchase_order = expense.linked_purchase_order
+	if scope == SCOPE_PO:
+		po_names_for_lcv = [r.purchase_order for r in (expense.purchase_orders or []) if r.purchase_order]
+		if not po_names_for_lcv and expense.linked_purchase_order:
+			po_names_for_lcv = [expense.linked_purchase_order]
+		if po_names_for_lcv:
+			lcv.custom_linked_purchase_order = po_names_for_lcv[0]
+			# New comma-separated trace field for multi-PO
+			if hasattr(lcv, "custom_linked_purchase_orders"):
+				lcv.custom_linked_purchase_orders = ", ".join(po_names_for_lcv)
 
 	lcv.insert(ignore_permissions=True)
 	frappe.db.set_value("Expense", expense_name, "landed_cost_voucher", lcv.name)
 
 	return lcv.name
+
+
+# ------------------------------------------------------------------ #
+# Check clearing — Expense mirrors Payment Entry                       #
+# ------------------------------------------------------------------ #
+
+
+def _is_bank_account(account):
+	return frappe.get_cached_value("Account", account, "account_type") == "Bank"
+
+
+def create_expense_check_clearing_je(expense, destination_account, clearing_date):
+	"""Create clearing JE for a Direct-Pay check Expense: Dr clearing / Cr Bank."""
+	from nbs_customization.controllers.check_clearing import validate_single_currency
+
+	# Use expense's currencies
+	company_currency = frappe.get_cached_value("Company", expense.company, "default_currency")
+	if expense.paid_from_account_currency != company_currency:
+		frappe.throw(
+			_(
+				"Cheque clearing is only supported in company currency ({0}) for now. Expense {1} is in a foreign currency."
+			).format(company_currency, expense.name)
+		)
+	validate_destination_account(destination_account, expense.company)
+	mop = get_check_mop(expense.mode_of_payment)
+	clearing_account = expense.paid_from or mop.get("clearing_account_outward")
+	if not clearing_account:
+		frappe.throw(_("No clearing account configured for cheque Expense {0}.").format(expense.name))
+	amount = expense.amount
+	is_bank_entry = bool(expense.reference_no and expense.reference_date)
+	je = frappe.get_doc(
+		doctype="Journal Entry",
+		voucher_type="Bank Entry" if is_bank_entry else "Journal Entry",
+		company=expense.company,
+		posting_date=clearing_date,
+		user_remark=_("Cheque clearing against {0}").format(expense.name),
+	)
+	if is_bank_entry:
+		je.cheque_no = expense.reference_no
+		je.cheque_date = expense.reference_date
+	# Pay: Dr clearing / Cr destination
+	# reference_type "" (not "Expense") — only allowed values per journal_entry_account.json:184
+	je.append(
+		"accounts",
+		{
+			"account": clearing_account,
+			"debit_in_account_currency": amount,
+			"reference_type": "",
+			"reference_name": "",
+			"cost_center": expense.cost_center,
+		},
+	)
+	je.append(
+		"accounts",
+		{
+			"account": destination_account,
+			"credit_in_account_currency": amount,
+			"reference_type": "",
+			"reference_name": "",
+			"cost_center": expense.cost_center,
+		},
+	)
+	je.insert(ignore_permissions=True)
+	je.submit()
+	return je.name
+
+
+def stamp_expense_check_cleared(expense, je_name, clearing_date, source, destination_account):
+	"""Conditional stamp of Expense check flags. Returns rowcount."""
+	clearance_date = clearing_date if _is_bank_account(destination_account) else None
+	frappe.db.sql(
+		"""
+		update `tabExpense`
+		set is_check = %s,
+			check_cleared = 1,
+			check_clearing_date = %s,
+			check_cleared_source = %s,
+			clearing_destination_account = %s,
+			clearing_journal_entry = %s,
+			clearance_date = %s
+		where name = %s and docstatus = 1 and ifnull(check_cleared, 0) = 0
+		""",
+		(
+			expense.is_check or 1,
+			clearing_date,
+			source,
+			destination_account,
+			je_name,
+			clearance_date,
+			expense.name,
+		),
+	)
+	cursor = getattr(frappe.db, "_cursor", None)
+	return (cursor.rowcount if cursor else 0) or 0
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_expense_check_cleared(name, destination_account=None, clearing_date=None):
+	exp = frappe.get_doc("Expense", name)
+	if exp.docstatus != 1:
+		frappe.throw(_("Only submitted Expenses can be marked cleared."))
+	if not exp.is_check:
+		mop = get_check_mop(exp.mode_of_payment)
+		if not mop.get("is_check"):
+			frappe.throw(_("{0} is not a cheque Expense.").format(exp.name))
+	if exp.check_cleared or exp.check_returned:
+		frappe.throw(_("{0} is already cleared or returned.").format(exp.name))
+	mop = get_check_mop(exp.mode_of_payment)
+	chosen = (
+		destination_account or exp.clearing_destination_account or mop.get("default_clearing_destination")
+	)
+	if not chosen:
+		chosen = frappe.get_cached_value("Company", exp.company, "default_bank_account")
+	clear_date = clearing_date or today()
+	# PE path — delegate to PE clearing and mirror
+	if exp.payment_entry:
+		result = frappe.call(
+			"nbs_customization.controllers.payment_entry.mark_check_cleared",
+			name=exp.payment_entry,
+			destination_account=chosen,
+			clearing_date=clear_date,
+		)
+		je_name = result["journal_entry"]
+		rows = stamp_expense_check_cleared(exp, je_name, clear_date, "Button", chosen)
+		if rows != 1:
+			frappe.get_doc("Journal Entry", je_name).cancel()
+			frappe.throw(_("{0} was already cleared.").format(exp.name))
+		return {"journal_entry": je_name, "cleared": True}
+	# Direct JE path
+	je_name = create_expense_check_clearing_je(exp, chosen, clear_date)
+	rows = stamp_expense_check_cleared(exp, je_name, clear_date, "Button", chosen)
+	if rows != 1:
+		frappe.get_doc("Journal Entry", je_name).cancel()
+		frappe.throw(_("{0} was already cleared.").format(exp.name))
+	return {"journal_entry": je_name, "cleared": True}
+
+
+@frappe.whitelist(methods=["POST"])
+def mark_expense_check_returned(name):
+	exp = frappe.get_doc("Expense", name)
+	if exp.docstatus != 1:
+		frappe.throw(_("Only submitted Expenses can be marked returned."))
+	if exp.check_returned:
+		frappe.throw(_("{0} is already marked returned.").format(exp.name))
+	if exp.clearing_journal_entry:
+		frappe.db.set_value("Expense", exp.name, "clearing_journal_entry", None, update_modified=False)
+		je_name = exp.clearing_journal_entry
+		if je_name and frappe.db.exists("Journal Entry", je_name):
+			je = frappe.get_doc("Journal Entry", je_name)
+			if je.docstatus == 1:
+				je.cancel()
+	# PE path: return underlying PE (which cancels its clearing JE + itself)
+	if exp.payment_entry:
+		frappe.call(
+			"nbs_customization.controllers.payment_entry.mark_check_returned",
+			name=exp.payment_entry,
+		)
+	# Option A: cancel the Expense itself (like PE)
+	exp.cancel()
+	frappe.db.set_value(
+		"Expense",
+		exp.name,
+		{
+			"check_returned": 1,
+			"check_return_date": today(),
+			"check_cleared": 0,
+			"check_clearing_date": None,
+			"check_cleared_source": None,
+			"clearing_destination_account": None,
+			"clearance_date": None,
+		},
+	)
+	return {"returned": True}

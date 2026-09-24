@@ -14,9 +14,8 @@
   "sales_person",
   "section_break_lsar",
   "amount_to_pay",
-  "expense_category",
-  "journal_entry",
   "column_break_xvlp",
+  "expense_category",
   "section_break_znoi",
   "mode_of_payment",
   "paid_from",
@@ -24,6 +23,23 @@
   "column_break_iuur",
   "paid_to",
   "paid_to_account_currency",
+  "section_break_payment_reference",
+  "reference_no",
+  "journal_entry",
+  "column_break_payment_reference",
+  "reference_date",
+  "check_bank",
+  "clearance_date",
+  "section_break_check_status",
+  "is_check",
+  "clearing_destination_account",
+  "check_cleared_source",
+  "clearing_journal_entry",
+  "column_break_check_status",
+  "check_returned",
+  "check_return_date",
+  "check_cleared",
+  "check_clearing_date",
   "company_details_section",
   "company",
   "column_break_nsaf",
@@ -165,6 +181,7 @@
    "fieldtype": "Link",
    "label": "Account Paid From",
    "options": "Account",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -189,13 +206,111 @@
    "fieldtype": "Data",
    "label": "Account Currency (To)",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_payment_reference",
+   "fieldtype": "Section Break",
+   "label": "Payment Reference"
+  },
+  {
+   "description": "Cheque number or bank transfer reference. Required for Bank/Check payment methods.",
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Cheque/Reference No"
+  },
+  {
+   "fieldname": "column_break_payment_reference",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reference_date",
+   "fieldtype": "Date",
+   "label": "Cheque/Reference Date"
+  },
+  {
+   "depends_on": "eval:doc.is_check==1",
+   "fieldname": "check_bank",
+   "fieldtype": "Link",
+   "label": "Check Bank",
+   "mandatory_depends_on": "eval:doc.is_check==1",
+   "options": "Bank"
+  },
+  {
+   "depends_on": "eval:doc.docstatus == 1",
+   "fieldname": "clearance_date",
+   "fieldtype": "Date",
+   "label": "Clearance Date",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_break_check_status",
+   "fieldtype": "Section Break",
+   "label": "Check Status"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_check",
+   "fieldtype": "Check",
+   "label": "Is Check",
+   "read_only": 1
+  },
+  {
+   "fieldname": "clearing_destination_account",
+   "fieldtype": "Link",
+   "label": "Clearing Destination Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "clearing_journal_entry",
+   "fieldtype": "Link",
+   "label": "Clearing Journal Entry",
+   "options": "Journal Entry",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "check_cleared",
+   "fieldtype": "Check",
+   "label": "Check Cleared",
+   "read_only": 1
+  },
+  {
+   "fieldname": "check_clearing_date",
+   "fieldtype": "Date",
+   "label": "Check Clearing Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "check_cleared_source",
+   "fieldtype": "Select",
+   "label": "Check Cleared Source",
+   "options": "Button\nBank Statement",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_check_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "check_returned",
+   "fieldtype": "Check",
+   "label": "Check Returned",
+   "read_only": 1
+  },
+  {
+   "fieldname": "check_return_date",
+   "fieldtype": "Date",
+   "label": "Check Return Date",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-08-05 17:32:43.009524",
+ "modified": "2026-09-24 01:35:56.750300",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Commission Payout",

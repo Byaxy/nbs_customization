@@ -385,12 +385,57 @@ def _ensure_check_clearing_setup():
 	mop.save()
 
 
+FIXED_TIER_PRICE_LISTS = [
+	("Selling - Basic", "GHS"),
+	("Selling - 15%", "GHS"),
+	("Selling - 30%", "GHS"),
+	("Selling - 45%", "GHS"),
+	("Selling - Commission", "GHS"),
+	("Selling - Commission (Tax)", "GHS"),
+]
+
+
+def _ensure_tier_price_lists():
+	"""
+	Idempotent: ensure 6 fixed tier Price Lists. Standard Selling is ERPNext standard — not created here.
+	Optional target Price Lists (e.g. Selling - 20%) are user-created when needed.
+	"""
+	candidates = FIXED_TIER_PRICE_LISTS
+	# Use default company currency if present; fallback to GHS
+	default_company = frappe.db.get_single_value("Global Defaults", "default_company")
+	company_ccy = (
+		frappe.get_cached_value("Company", default_company, "default_currency") if default_company else None
+	)
+	for name, fallback_ccy in candidates:
+		if frappe.db.exists("Price List", name):
+			continue
+		currency = company_ccy or fallback_ccy
+		# Validate currency exists
+		if not frappe.db.exists("Currency", currency):
+			currency = fallback_ccy
+		try:
+			pl = frappe.get_doc(
+				{
+					"doctype": "Price List",
+					"price_list_name": name,
+					"currency": currency,
+					"selling": 1,
+					"buying": 0,
+					"enabled": 1,
+				}
+			)
+			pl.insert(ignore_permissions=True)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"ensure_tier_price_lists failed for {name}")
+
+
 def after_migrate():
 	"""
 	1. Drop leftover legacy `paying_account` columns.
 	2. Inject NBS selling items into the Selling sidebar.
 	3. Inject NBS expense group into both Accounting and Invoicing sidebars.
 	4. Create cheque clearing accounts + the Check Mode of Payment.
+	5. Ensure pricing tier Price Lists (Standard Selling = 30% reuse).
 	Idempotent — only writes when a change is actually needed.
 	"""
 
@@ -440,6 +485,9 @@ def after_migrate():
 
 	# ── Cheque clearing accounts + Check mode of payment ────────────────────
 	_ensure_check_clearing_setup()
+
+	# ── Pricing tier Price Lists (Standard Selling = 30% reuse) ──────────────
+	_ensure_tier_price_lists()
 
 	# ── Placement Fee Items (PAUSED — revenue share / placement WIP) ─────
 	# Re-enable when the placement module is ready for production.

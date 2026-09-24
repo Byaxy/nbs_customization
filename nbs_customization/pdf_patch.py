@@ -74,5 +74,3 @@ def apply_patches():
 		_pd_pdf.pdf_header_footer_html = _patched_pdf_header_footer_html
 	except ImportError:
 		pass
-
-

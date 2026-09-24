@@ -1,0 +1,280 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:item_code",
+ "creation": "2026-08-29 13:20:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "description",
+  "column_break_item",
+  "qty",
+  "unit_cost",
+  "convert_unit_cost",
+  "base_total",
+  "target_margin_pct",
+  "allocated_section",
+  "allocated_bank_charges",
+  "allocated_freight",
+  "allocated_clearing_fees",
+  "column_break_alloc",
+  "allocated_transport_in",
+  "allocated_transport_out",
+  "allocated_overhead",
+  "allocated_fixed_cost",
+  "true_cost",
+  "true_cost_per_unit",
+  "tier_section",
+  "basic_rate",
+  "target_rate",
+  "rate_15",
+  "rate_30",
+  "rate_45",
+  "column_break_tier",
+  "rate_commission",
+  "rate_commission_tax",
+  "rate_target_commission",
+  "rate_target_commission_tax",
+  "final_rate_per_unit",
+  "final_total",
+  "price_list_target",
+  "price_list_target_commission",
+  "price_list_target_commission_tax"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "PID",
+   "options": "Item",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "columns": 6,
+   "fetch_from": "item_code.description",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_item",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "qty",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Qty",
+   "reqd": 1
+  },
+  {
+   "fieldname": "unit_cost",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Unit Cost (cost/ company per Convert?)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "base_total",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Base Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_margin_pct",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Target Margin (%)",
+   "description": "Optional \u2014 blank uses 30% fallback; if set requires Price List \u2014 Target (header or row)"
+  },
+  {
+   "fieldname": "allocated_section",
+   "fieldtype": "Section Break",
+   "label": "Allocated Shared Costs (value-weight)"
+  },
+  {
+   "fieldname": "allocated_bank_charges",
+   "fieldtype": "Currency",
+   "label": "Bank Charges",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_freight",
+   "fieldtype": "Currency",
+   "label": "Freight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_clearing_fees",
+   "fieldtype": "Currency",
+   "label": "Clearing",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_alloc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "allocated_transport_in",
+   "fieldtype": "Currency",
+   "label": "Transport In",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_transport_out",
+   "fieldtype": "Currency",
+   "label": "Transport Out",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_overhead",
+   "fieldtype": "Currency",
+   "label": "Overhead",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_fixed_cost",
+   "fieldtype": "Currency",
+   "label": "Fixed Cost",
+   "read_only": 1
+  },
+  {
+   "fieldname": "true_cost",
+   "fieldtype": "Currency",
+   "label": "True Cost (line total)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "true_cost_per_unit",
+   "fieldtype": "Currency",
+   "label": "True Cost / Unit",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tier_section",
+   "fieldtype": "Section Break",
+   "label": "Tier Rates (per unit) \u2014 9 tiers: Basic/15/30/45/Target + Commission 10% + Commission Tax 10+3% + Target Commission + Target Commission Tax"
+  },
+  {
+   "fieldname": "basic_rate",
+   "fieldtype": "Currency",
+   "label": "Basic",
+   "read_only": 1
+  },
+  {
+   "fieldname": "target_rate",
+   "fieldtype": "Currency",
+   "label": "Target",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_15",
+   "fieldtype": "Currency",
+   "label": "15%",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_30",
+   "fieldtype": "Currency",
+   "label": "30%",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_45",
+   "fieldtype": "Currency",
+   "label": "45%",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tier",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rate_commission",
+   "fieldtype": "Currency",
+   "label": "Commission (10%)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_commission_tax",
+   "fieldtype": "Currency",
+   "label": "Commission+Tax (10%+3%)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_target_commission",
+   "fieldtype": "Currency",
+   "label": "Target Commission",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_target_commission_tax",
+   "fieldtype": "Currency",
+   "label": "Target Commission (Tax)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_rate_per_unit",
+   "fieldtype": "Currency",
+   "label": "Final / Unit (Target Commission Tax)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "final_total",
+   "fieldtype": "Currency",
+   "label": "Final Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "price_list_target",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target (override)",
+   "options": "Price List",
+   "description": "Optional per-row override; falls back to header Price List \u2014 Target Margin"
+  },
+  {
+   "fieldname": "price_list_target_commission",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Commission (override)",
+   "options": "Price List",
+   "description": "Optional per-row override; falls back to header Price List \u2014 Target Commission"
+  },
+  {
+   "fieldname": "price_list_target_commission_tax",
+   "fieldtype": "Link",
+   "label": "Price List \u2014 Target Commission (Tax) (override)",
+   "options": "Price List",
+   "description": "Optional per-row override; falls back to header Price List \u2014 Target Commission (Tax)"
+  },
+  {
+   "fieldname": "convert_unit_cost",
+   "fieldtype": "Check",
+   "label": "Convert Unit Cost to Company?",
+   "default": "0",
+   "description": "Check if Unit Cost is in Cost Currency (import), will be converted to Company Currency."
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-04 13:28:28.430345",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Item Pricing Quotation Batch Item",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

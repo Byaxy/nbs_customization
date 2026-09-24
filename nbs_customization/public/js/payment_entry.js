@@ -165,9 +165,50 @@ function clearing_dialog(frm) {
 	d.show();
 }
 
+function toggle_check_reference_required(frm) {
+	if (!frm.doc.mode_of_payment) {
+		if (frm.doc.is_check) frm.set_value("is_check", 0);
+		frm.set_df_property("reference_no", "reqd", 0);
+		frm.set_df_property("reference_date", "reqd", 0);
+		frm.set_df_property("check_bank", "reqd", 0);
+		frm.toggle_display("check_bank", false);
+		return;
+	}
+	const requested_mode = frm.doc.mode_of_payment;
+	frappe.db.get_value("Mode of Payment", frm.doc.mode_of_payment, "is_check", (r) => {
+		// guard stale callback if user quickly switched modes
+		if (frm.doc.mode_of_payment !== requested_mode) return;
+		const is_check = !!(r && r.is_check);
+		if (frm.doc.is_check !== is_check) frm.set_value("is_check", is_check ? 1 : 0);
+		frm.set_df_property("reference_no", "reqd", is_check);
+		frm.set_df_property("reference_date", "reqd", is_check);
+		frm.set_df_property("check_bank", "reqd", is_check);
+		frm.toggle_display("check_bank", is_check);
+		if (!is_check) {
+			frm.set_df_property("check_bank", "reqd", 0);
+		}
+	});
+}
+
 frappe.ui.form.on("Payment Entry", {
 	refresh(frm) {
 		maybe_add_receipt_button(frm);
 		add_check_clearing_buttons(frm);
+		toggle_check_reference_required(frm);
+	},
+	mode_of_payment(frm) {
+		toggle_check_reference_required(frm);
+	},
+	validate(frm) {
+		if (frm.doc.is_check) {
+			if (!frm.doc.reference_no || !frm.doc.reference_date) {
+				frappe.msgprint(__("Cheque/Reference No and Reference Date are mandatory for Check payments."));
+				frappe.validated = false;
+			}
+			if (!frm.doc.check_bank) {
+				frappe.msgprint(__("Check Bank is mandatory for Check payments."));
+				frappe.validated = false;
+			}
+		}
 	},
 });

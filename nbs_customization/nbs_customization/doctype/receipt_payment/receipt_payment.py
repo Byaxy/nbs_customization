@@ -6,4 +6,4 @@ from frappe.model.document import Document
 
 
 class ReceiptPayment(Document):
-    _DOCTYPE_NAME = "Receipt Payment"
+	_DOCTYPE_NAME = "Receipt Payment"

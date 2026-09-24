@@ -32,6 +32,36 @@ def get_clearing_account(pe, mop):
 	return pe.paid_from or mop.get("clearing_account_outward")
 
 
+def resolve_expected_paid_from(mode_of_payment: str | None, company: str | None) -> str | None:
+	"""Check-aware account a MoP must pay from: clearing outward for checks, else MoP default."""
+	if not mode_of_payment:
+		return None
+	mop = get_check_mop(mode_of_payment)
+	if mop.get("is_check"):
+		return mop.get("clearing_account_outward")
+	from erpnext.accounts.doctype.sales_invoice.sales_invoice import get_bank_cash_account
+
+	return get_bank_cash_account(mode_of_payment, company)["account"]
+
+
+@frappe.whitelist(methods=["GET", "POST"])
+def get_account_balance(account: str, company: str | None = None, date: str | None = None):
+	"""Signed GL balance for an Account as of date (None = today). Negatives preserved."""
+	from erpnext.accounts.utils import get_balance_on
+
+	if not account or not frappe.db.exists("Account", account):
+		frappe.throw(_("Account {0} not found.").format(account))
+	if not frappe.has_permission("Account", ptype="read", doc=account):
+		frappe.throw(
+			_("Not permitted to view the balance of Account {0}.").format(account),
+			frappe.PermissionError,
+		)
+	return {
+		"balance": get_balance_on(account=account, date=date, company=company),
+		"account_currency": frappe.db.get_value("Account", account, "account_currency"),
+	}
+
+
 def validate_single_currency(pe):
 	"""v1 supports cheque clearing in company currency only."""
 	company_currency = frappe.get_cached_value("Company", pe.company, "default_currency")

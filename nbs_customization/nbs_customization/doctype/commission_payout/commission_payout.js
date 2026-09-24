@@ -86,6 +86,23 @@ frappe.ui.form.on("Commission Payout", {
 				__("Links"),
 			);
 		}
+		toggle_reference_required(frm);
+		lock_paid_from(frm);
+		update_paid_from_balance(frm);
+		add_check_clearing_buttons(frm);
+	},
+
+	validate(frm) {
+		if (frm.doc.is_check) {
+			if (!frm.doc.reference_no || !frm.doc.reference_date) {
+				frappe.msgprint(__("Cheque/Reference No and Reference Date are mandatory for Check payments."));
+				frappe.validated = false;
+			}
+			if (!frm.doc.check_bank) {
+				frappe.msgprint(__("Check Bank is mandatory for Check payments."));
+				frappe.validated = false;
+			}
+		}
 	},
 
 	company(frm) {
@@ -132,10 +149,12 @@ frappe.ui.form.on("Commission Payout", {
 		if (!frm.doc.mode_of_payment) {
 			frm.set_value("paid_from", null);
 			frm.set_value("paid_from_account_currency", null);
+			frm.doc.is_check = 0;
+			toggle_reference_required(frm);
 			return;
 		}
 		frappe.call({
-			method: "nbs_customization.nbs_customization.doctype.expense.expense.get_payment_method_account",
+			method: "nbs_customization.nbs_customization.doctype.commission_payout.commission_payout.get_payment_method_account",
 			args: {
 				mode_of_payment: frm.doc.mode_of_payment,
 				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
@@ -147,6 +166,19 @@ frappe.ui.form.on("Commission Payout", {
 						"paid_from_account_currency",
 						r.message.account_currency,
 					);
+					if (r.message.is_check) {
+						frm.doc.is_check = 1;
+						if (r.message.clearing_account_outward) {
+							frm.set_value("paid_from", r.message.clearing_account_outward);
+						}
+						if (r.message.default_clearing_destination && !frm.doc.clearing_destination_account) {
+							frm.set_value("clearing_destination_account", r.message.default_clearing_destination);
+						}
+					} else {
+						frm.doc.is_check = 0;
+					}
+					toggle_reference_required(frm);
+					update_paid_from_balance(frm);
 				}
 			},
 		});
@@ -155,16 +187,24 @@ frappe.ui.form.on("Commission Payout", {
 	paid_from(frm) {
 		if (!frm.doc.paid_from) {
 			frm.set_value("paid_from_account_currency", null);
+			frm.set_df_property("paid_from", "description", "");
+			toggle_reference_required(frm);
 			return;
 		}
 		frappe.db.get_value(
 			"Account",
 			frm.doc.paid_from,
-			"account_currency",
+			["account_currency", "account_type"],
 			(r) => {
 				if (r) frm.set_value("paid_from_account_currency", r.account_currency);
+				toggle_reference_required(frm);
+				update_paid_from_balance(frm);
 			},
 		);
+	},
+
+	payout_date(frm) {
+		update_paid_from_balance(frm);
 	},
 
 	expense_category(frm) {
@@ -192,7 +232,7 @@ frappe.ui.form.on("Commission Payout", {
 				title: __("Amount Exceeds Remaining Due"),
 				message: __(
 					"Amount To Pay ({0}) exceeds the Remaining Due ({1}) for this recipient.",
-					[format_currency(amount), format_currency(remaining)],
+					[format_payout_currency(amount), format_payout_currency(remaining)],
 				),
 				indicator: "red",
 			});
@@ -318,9 +358,9 @@ function _render_recipient_info_panel(frm, data) {
 
 			<!-- Cards -->
 			<div style="display:flex; gap:20px;">
-				${card(__("Allocated"), badge(format_currency(data.allocated_amount), "#111827"))}
-				${card(__("Paid So Far"), badge(format_currency(data.paid_amount), get_paid_color(data.paid_amount, data.allocated_amount)))}
-				${card(__("Remaining Due"), badge(format_currency(data.remaining_due), get_remaining_color(data.remaining_due, data.allocated_amount)))}
+				${card(__("Allocated"), badge(format_payout_currency(data.allocated_amount), "#111827"))}
+				${card(__("Paid So Far"), badge(format_payout_currency(data.paid_amount), get_paid_color(data.paid_amount, data.allocated_amount)))}
+				${card(__("Remaining Due"), badge(format_payout_currency(data.remaining_due), get_remaining_color(data.remaining_due, data.allocated_amount)))}
 				${card(__("Status"), badge(data.payment_status, color))}
 			</div>
 		</div>
@@ -347,14 +387,14 @@ function _validate_amount_live(frm) {
 
 	if (frm.doc.commission_recipient && amount > remaining + 0.01) {
 		frm.set_df_property("amount_to_pay", "description",
-			`<b style="color:var(--red-600);">${__("Warning: Exceeds remaining due of {0}", [format_currency(remaining)])}</b>`
+			`<b style="color:var(--red-600);">${__("Warning: Exceeds remaining due of {0}", [format_payout_currency(remaining)])}</b>`
 		);
 	} else {
 		frm.set_df_property("amount_to_pay", "description", "");
 	}
 }
 
-function format_currency(value) {
+function format_payout_currency(value) {
 	return frappe.format(value || 0, { fieldtype: "Currency" });
 }
 
@@ -386,6 +426,167 @@ function resolve_paid_to(frm) {
 			}
 		},
 	);
+}
+
+function set_reference_required(frm, required) {
+	frm.set_df_property("reference_no", "reqd", required);
+	frm.set_df_property("reference_date", "reqd", required);
+	frm.set_df_property("check_bank", "reqd", required);
+	frm.toggle_display("check_bank", required);
+}
+
+// paid_from is driven solely by Mode of Payment — never user-editable.
+function lock_paid_from(frm) {
+	frm.set_df_property("paid_from", "read_only", 1);
+}
+
+// Live balance under paid_from; green when positive, red when negative.
+function update_paid_from_balance(frm) {
+	if (!frm.doc.paid_from) {
+		frm.set_df_property("paid_from", "description", "");
+		return;
+	}
+	const account = frm.doc.paid_from;
+	const as_of = frm.doc.payout_date || frappe.datetime.get_today();
+	frappe.call({
+		method: "nbs_customization.controllers.check_clearing.get_account_balance",
+		args: {
+			account: account,
+			company: frm.doc.company,
+			date: as_of,
+		},
+		callback(r) {
+			// ignore stale responses after the user switched account
+			if (!r.message || frm.doc.paid_from !== account) return;
+			const balance = flt(r.message.balance);
+			const color = balance > 0 ? "#10b981" : balance < 0 ? "#ef4444" : "#6b7280";
+			const formatted = format_currency(balance, r.message.account_currency);
+			frm.set_df_property(
+				"paid_from",
+				"description",
+				`<span style="color:${color};font-weight:600;">${__("Balance")} (${as_of}): ${formatted}</span>`,
+			);
+		},
+	});
+}
+
+function toggle_reference_required(frm) {
+	if (frm.doc.is_check) {
+		set_reference_required(frm, true);
+		return;
+	}
+	if (frm.doc.mode_of_payment) {
+		frappe.db.get_value("Mode of Payment", frm.doc.mode_of_payment, "is_check", (mr) => {
+			if (mr && mr.is_check) {
+				frm.doc.is_check = 1;
+				set_reference_required(frm, true);
+				return;
+			}
+			if (!frm.doc.paid_from) {
+				set_reference_required(frm, false);
+				return;
+			}
+			frappe.db.get_value("Account", frm.doc.paid_from, "account_type", (r) => {
+				set_reference_required(frm, !!r && r.account_type === "Bank");
+			});
+		});
+		return;
+	}
+	if (!frm.doc.paid_from) {
+		set_reference_required(frm, false);
+		return;
+	}
+	frappe.db.get_value("Account", frm.doc.paid_from, "account_type", (r) => {
+		set_reference_required(frm, !!r && r.account_type === "Bank");
+	});
+}
+
+function add_check_clearing_buttons(frm) {
+	if (
+		frm.doc.docstatus !== 1 ||
+		!frm.doc.is_check ||
+		frm.doc.check_cleared ||
+		frm.doc.check_returned ||
+		frm.doc.clearing_journal_entry
+	)
+		return;
+	frm.add_custom_button(__("Mark Check Cleared"), () => commission_clearing_dialog(frm), __("Cheque"));
+	frm.add_custom_button(
+		__("Mark Check Returned"),
+		() => {
+			frappe.confirm(
+				__("Mark this cheque as returned/bounced? This reverses any clearing and cancels the Commission Payout."),
+				() => {
+					frappe.call({
+						method: "nbs_customization.nbs_customization.doctype.commission_payout.commission_payout.mark_commission_check_returned",
+						args: { name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Marking cheque as returned..."),
+						callback(r) {
+							if (!r.exc) {
+								frappe.msgprint(__("Commission Payout {0} cancelled as returned.", [frm.doc.name]));
+								frm.reload_doc();
+							}
+						},
+					});
+				},
+			);
+		},
+		__("Cheque"),
+	);
+}
+
+function commission_clearing_dialog(frm) {
+	let d = new frappe.ui.Dialog({
+		title: __("Mark Check Cleared"),
+		fields: [
+			{
+				fieldtype: "Link",
+				fieldname: "clearing_destination_account",
+				label: __("Destination Account"),
+				options: "Account",
+				default: frm.doc.clearing_destination_account,
+				reqd: 1,
+				get_query() {
+					return {
+						filters: {
+							company: frm.doc.company,
+							is_group: 0,
+							account_type: ["in", ["Bank", "Cash"]],
+						},
+					};
+				},
+			},
+			{
+				fieldtype: "Date",
+				fieldname: "clearing_date",
+				label: __("Clearing Date"),
+				default: frappe.datetime.get_today(),
+				reqd: 1,
+			},
+		],
+		primary_action_label: __("Clear"),
+		primary_action(values) {
+			frappe.call({
+				method: "nbs_customization.nbs_customization.doctype.commission_payout.commission_payout.mark_commission_check_cleared",
+				args: {
+					name: frm.doc.name,
+					destination_account: values.clearing_destination_account,
+					clearing_date: values.clearing_date,
+				},
+				freeze: true,
+				freeze_message: __("Clearing cheque..."),
+				callback(r) {
+					if (!r.exc) {
+						frappe.msgprint(__("Cheque cleared. Journal Entry {0} created.", [r.message.journal_entry]));
+						d.hide();
+						frm.reload_doc();
+					}
+				},
+			});
+		},
+	});
+	d.show();
 }
 
 function badge(value, color) {

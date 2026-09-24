@@ -25,13 +25,37 @@ def _ensure_test_setup():
 
 
 def _make_party(doctype, name):
-	if not frappe.db.exists(doctype, name):
-		field = "customer_name" if doctype == "Customer" else "supplier_name"
-		frappe.get_doc({"doctype": doctype, field: name}).insert(ignore_if_duplicate=True)
-	return name
+	if frappe.db.exists(doctype, name):
+		return name
+	# check by *name field
+	existing = frappe.db.get_value(doctype, {"customer_name": name} if doctype == "Customer" else {"supplier_name": name}, "name")
+	if existing:
+		return existing
+	if doctype == "Customer":
+		doc = frappe.get_doc(
+			{
+				"doctype": "Customer",
+				"customer_name": name,
+				"customer_group": frappe.db.get_value("Customer Group", {"is_group": 0}, "name")
+				or "All Customer Groups",
+				"territory": frappe.db.get_value("Territory", {"is_group": 0}, "name") or "All Territories",
+			}
+		)
+	else:
+		doc = frappe.get_doc(
+			{
+				"doctype": "Supplier",
+				"supplier_name": name,
+				"supplier_group": frappe.db.get_value("Supplier Group", {"is_group": 0}, "name")
+				or "All Supplier Groups",
+				"supplier_type": "Company",
+			}
+		)
+	doc.insert(ignore_permissions=True)
+	return doc.name
 
 
-def _make_check_pe(payment_type, amount=1000.0, reference_no=None, party=None):
+def _make_check_pe(payment_type, amount=1000.0, reference_no=None, party=None, check_bank=None):
 	from erpnext.accounts.party import get_party_account
 
 	party_type = "Customer" if payment_type == "Receive" else "Supplier"
@@ -43,6 +67,9 @@ def _make_check_pe(payment_type, amount=1000.0, reference_no=None, party=None):
 	mop = frappe.get_doc("Mode of Payment", "Check")
 	inward = mop.clearing_account_inward
 	outward = mop.clearing_account_outward
+	if not frappe.db.exists("Bank", "ECOBANK"):
+		frappe.get_doc({"doctype": "Bank", "bank_name": "ECOBANK"}).insert(ignore_if_duplicate=True)
+	check_bank = check_bank or "ECOBANK"
 
 	pe = frappe.get_doc(
 		{
@@ -57,8 +84,9 @@ def _make_check_pe(payment_type, amount=1000.0, reference_no=None, party=None):
 			"paid_to": inward if payment_type == "Receive" else party_account,
 			"paid_amount": amount,
 			"received_amount": amount,
-			"reference_no": reference_no,
+			"reference_no": reference_no or f"CHQ-{frappe.generate_hash(length=6)}",
 			"reference_date": today(),
+			"check_bank": check_bank,
 		}
 	)
 	pe.insert()
@@ -289,6 +317,4 @@ class TestCheckClearing(IntegrationTestCase):
 		self.assertEqual(
 			frappe.db.get_value("Account", inward, "parent_account"), "Accounts Receivable - _TC"
 		)
-		self.assertEqual(
-			frappe.db.get_value("Account", outward, "parent_account"), "Accounts Payable - _TC"
-		)
+		self.assertEqual(frappe.db.get_value("Account", outward, "parent_account"), "Accounts Payable - _TC")

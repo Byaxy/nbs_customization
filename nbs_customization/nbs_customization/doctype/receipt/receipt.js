@@ -62,6 +62,7 @@ frappe.ui.form.on("Receipt Payment", {
 							receiving_account: data.receiving_account || "",
 							reference_no: data.reference_no || "",
 							reference_date: data.reference_date || null,
+							check_bank: data.check_bank || null,
 						});
 					} else {
 						const child = frappe.model.add_child(
@@ -80,6 +81,7 @@ frappe.ui.form.on("Receipt Payment", {
 							receiving_account: data.receiving_account || "",
 							reference_no: data.reference_no || "",
 							reference_date: data.reference_date || null,
+							check_bank: data.check_bank || null,
 						});
 					}
 				});
@@ -212,6 +214,7 @@ function _clear_payment_row(row, cdt, cdn) {
 		receiving_account: "",
 		reference_no: "",
 		reference_date: null,
+		check_bank: null,
 	});
 }
 
@@ -337,6 +340,7 @@ function show_add_from_payment_entry_dialog(frm) {
 							receiving_account: data.receiving_account || "",
 							reference_no: data.reference_no || "",
 							reference_date: data.reference_date || null,
+							check_bank: data.check_bank || null,
 						});
 						existing.add(key);
 						added++;

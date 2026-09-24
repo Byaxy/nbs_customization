@@ -46,6 +46,12 @@ frappe.ui.form.on("Expense", {
 				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
 			},
 		}));
+		frm.set_query("purchase_order", "purchase_orders", () => ({
+			query: "nbs_customization.nbs_customization.doctype.expense.expense.get_purchase_orders_search",
+			filters: {
+				company: frm.doc.company || frappe.defaults.get_user_default("Company"),
+			},
+		}));
 		frm.set_query("linked_shipment", () => ({
 			query: "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.get_shipments_search",
 			filters: {
@@ -55,15 +61,31 @@ frappe.ui.form.on("Expense", {
 	},
 
 	refresh(frm) {
+		lock_paid_from(frm);
 		toggle_accompanying_fields(frm);
 		toggle_payment_fields(frm);
 		toggle_lcv_button(frm);
 		resolve_paid_to(frm);
 		toggle_reference_required(frm);
+		update_paid_from_balance(frm);
+		add_check_clearing_buttons(frm);
 	},
 
 	on_submit(frm) {
 		frappe.set_route("List", "Expense");
+	},
+
+	validate(frm) {
+		if (frm.doc.is_check) {
+			if (!frm.doc.reference_no || !frm.doc.reference_date) {
+				frappe.msgprint(__("Cheque/Reference No and Reference Date are mandatory for Check payments."));
+				frappe.validated = false;
+			}
+			if (!frm.doc.check_bank) {
+				frappe.msgprint(__("Check Bank is mandatory for Check payments."));
+				frappe.validated = false;
+			}
+		}
 	},
 
 	// ---------------------------------------------------------------- //
@@ -74,6 +96,7 @@ frappe.ui.form.on("Expense", {
 		frm.set_value("cost_center", null);
 		frm.set_value("purchase_invoice", null);
 		frm.set_value("linked_purchase_order", null);
+		frm.clear_table("purchase_orders");
 		frm.set_value("linked_shipment", null);
 		frm.set_value("mode_of_payment", null);
 		frm.set_value("paid_from", null);
@@ -84,6 +107,7 @@ frappe.ui.form.on("Expense", {
 			"cost_center",
 			"purchase_invoice",
 			"linked_purchase_order",
+			"purchase_orders",
 			"linked_shipment",
 			"mode_of_payment",
 			"paid_from",
@@ -105,6 +129,8 @@ frappe.ui.form.on("Expense", {
 		if (!frm.doc.mode_of_payment) {
 			frm.set_value("paid_from", null);
 			frm.set_value("paid_from_account_currency", null);
+			frm.doc.is_check = 0;
+			toggle_reference_required(frm);
 			return;
 		}
 		frappe.call({
@@ -120,6 +146,19 @@ frappe.ui.form.on("Expense", {
 						"paid_from_account_currency",
 						r.message.account_currency,
 					);
+					if (r.message.is_check) {
+						frm.doc.is_check = 1;
+						if (r.message.clearing_account_outward) {
+							frm.set_value("paid_from", r.message.clearing_account_outward);
+						}
+						if (r.message.default_clearing_destination && !frm.doc.clearing_destination_account) {
+							frm.set_value("clearing_destination_account", r.message.default_clearing_destination);
+						}
+					} else {
+						frm.doc.is_check = 0;
+					}
+					toggle_reference_required(frm);
+					update_paid_from_balance(frm);
 				}
 			},
 		});
@@ -128,6 +167,8 @@ frappe.ui.form.on("Expense", {
 	paid_from(frm) {
 		if (!frm.doc.paid_from) {
 			frm.set_value("paid_from_account_currency", null);
+			frm.set_df_property("paid_from", "description", "");
+			toggle_reference_required(frm);
 			return;
 		}
 		frappe.db.get_value(
@@ -137,10 +178,15 @@ frappe.ui.form.on("Expense", {
 			(r) => {
 				if (r) {
 					frm.set_value("paid_from_account_currency", r.account_currency);
-					set_reference_required(frm, r.account_type === "Bank");
 				}
+				toggle_reference_required(frm);
+				update_paid_from_balance(frm);
 			},
 		);
+	},
+
+	expense_date(frm) {
+		update_paid_from_balance(frm);
 	},
 
 	is_accompanying(frm) {
@@ -149,6 +195,7 @@ frappe.ui.form.on("Expense", {
 			frm.set_value("expense_scope", null);
 			frm.set_value("linked_purchase", null);
 			frm.set_value("linked_purchase_order", null);
+			frm.clear_table("purchase_orders");
 			frm.set_value("linked_shipment", null);
 			frm.set_value("landed_cost_voucher", null);
 		}
@@ -157,12 +204,18 @@ frappe.ui.form.on("Expense", {
 
 	expense_scope(frm) {
 		toggle_accompanying_fields(frm);
-		// Clear the unused link when switching scope
-		if (frm.doc.expense_scope === "Single Purchase Order") {
+		// Clear the unused link when switching scope — normalize legacy alias
+		const normalized = frm.doc.expense_scope === "Single Purchase Order" ? "Purchase Order" : frm.doc.expense_scope;
+		if (normalized !== frm.doc.expense_scope) {
+			frm.set_value("expense_scope", normalized);
+			return;
+		}
+		if (normalized === "Purchase Order") {
 			frm.set_value("linked_shipment", null);
-		} else if (frm.doc.expense_scope === "Inbound Shipment") {
+		} else if (normalized === "Inbound Shipment") {
 			frm.set_value("linked_purchase", null);
 			frm.set_value("linked_purchase_order", null);
+			frm.clear_table("purchase_orders");
 		}
 	},
 
@@ -232,6 +285,29 @@ frappe.ui.form.on("Expense", {
 	},
 });
 
+frappe.ui.form.on("Expense Purchase Order", {
+	purchase_order(frm, cdt, cdn) {
+		const row = frappe.get_doc(cdt, cdn);
+		if (!row.purchase_order) return;
+		if (!frm.doc.company) return;
+		// Duplicate check
+		for (const r of frm.doc.purchase_orders || []) {
+			if (r.name === cdn) continue;
+			if (r.purchase_order === row.purchase_order) {
+				frappe.msgprint(__("Purchase Order {0} already added.", [row.purchase_order]));
+				frappe.model.set_value(cdt, cdn, "purchase_order", "");
+				return;
+			}
+		}
+		frappe.db.get_value("Purchase Order", row.purchase_order, "company", (r) => {
+			if (r && r.company !== frm.doc.company) {
+				frappe.msgprint(__("The selected Purchase Order belongs to a different company."));
+				frappe.model.set_value(cdt, cdn, "purchase_order", "");
+			}
+		});
+	},
+});
+
 // ------------------------------------------------------------------ //
 // Field visibility helpers                                             //
 // ------------------------------------------------------------------ //
@@ -245,22 +321,28 @@ function toggle_payment_fields(frm) {
 
 function toggle_accompanying_fields(frm) {
 	const show = frm.doc.is_accompanying ? 1 : 0;
-	const scope = frm.doc.expense_scope || "Single Purchase Order";
-	const is_single = scope === "Single Purchase Order";
+	const raw = frm.doc.expense_scope || "Purchase Order";
+	const scope = raw === "Single Purchase Order" ? "Purchase Order" : raw;
+	// auto-migrate legacy value in-place
+	if (raw !== scope) frm.set_value("expense_scope", scope);
+	const is_single = scope === "Purchase Order";
 	const is_shipment = scope === "Inbound Shipment";
 
 	// Scope selector only when accompanying
 	frm.set_df_property("expense_scope", "hidden", show ? 0 : 1);
 
-	// Single PO fields
-	frm.set_df_property("linked_purchase_order", "hidden", show && is_single ? 0 : 1);
-	frm.set_df_property("linked_purchase_order", "reqd", show && is_single ? 1 : 0);
+	// Single PO fields — now multi-PO table, legacy field stays hidden
+	frm.set_df_property("purchase_orders", "hidden", show && is_single ? 0 : 1);
+	frm.set_df_property("purchase_orders", "reqd", show && is_single ? 1 : 0);
+	// legacy field hidden always (server still syncs it)
+	frm.set_df_property("linked_purchase_order", "hidden", 1);
+	frm.set_df_property("linked_purchase_order", "reqd", 0);
 
 	// Shipment fields
 	frm.set_df_property("linked_shipment", "hidden", show && is_shipment ? 0 : 1);
 	frm.set_df_property("linked_shipment", "reqd", show && is_shipment ? 1 : 0);
 
-	frm.refresh_fields(["expense_scope", "linked_purchase_order", "linked_shipment"]);
+	frm.refresh_fields(["expense_scope", "purchase_orders", "linked_purchase_order", "linked_shipment"]);
 
 	// Clear the info panel if not shipment scope
 	if (!show || !is_shipment) {
@@ -377,9 +459,69 @@ function clear_shipment_info_panel(frm) {
 function set_reference_required(frm, required) {
 	frm.set_df_property("reference_no", "reqd", required);
 	frm.set_df_property("reference_date", "reqd", required);
+	frm.set_df_property("check_bank", "reqd", required);
+	frm.toggle_display("check_bank", required);
+}
+
+// paid_from is driven solely by Mode of Payment — never user-editable.
+function lock_paid_from(frm) {
+	frm.set_df_property("paid_from", "read_only", 1);
+}
+
+// Live balance under paid_from; green when positive, red when negative.
+function update_paid_from_balance(frm) {
+	if (!frm.doc.paid_from) {
+		frm.set_df_property("paid_from", "description", "");
+		return;
+	}
+	const account = frm.doc.paid_from;
+	const as_of = frm.doc.expense_date || frappe.datetime.get_today();
+	frappe.call({
+		method: "nbs_customization.controllers.check_clearing.get_account_balance",
+		args: {
+			account: account,
+			company: frm.doc.company,
+			date: as_of,
+		},
+		callback(r) {
+			// ignore stale responses after the user switched account
+			if (!r.message || frm.doc.paid_from !== account) return;
+			const balance = flt(r.message.balance);
+			const color = balance > 0 ? "#10b981" : balance < 0 ? "#ef4444" : "#6b7280";
+			const formatted = format_currency(balance, r.message.account_currency);
+			frm.set_df_property(
+				"paid_from",
+				"description",
+				`<span style="color:${color};font-weight:600;">${__("Balance")} (${as_of}): ${formatted}</span>`,
+			);
+		},
+	});
 }
 
 function toggle_reference_required(frm) {
+	// Check is_check first (clearing account has no account_type)
+	if (frm.doc.is_check) {
+		set_reference_required(frm, true);
+		return;
+	}
+	if (frm.doc.mode_of_payment) {
+		frappe.db.get_value("Mode of Payment", frm.doc.mode_of_payment, "is_check", (mr) => {
+			if (mr && mr.is_check) {
+				frm.doc.is_check = 1;
+				set_reference_required(frm, true);
+				return;
+			}
+			// fallback to Bank check
+			if (!frm.doc.paid_from) {
+				set_reference_required(frm, false);
+				return;
+			}
+			frappe.db.get_value("Account", frm.doc.paid_from, "account_type", (r) => {
+				set_reference_required(frm, !!r && r.account_type === "Bank");
+			});
+		});
+		return;
+	}
 	if (!frm.doc.paid_from) {
 		set_reference_required(frm, false);
 		return;
@@ -389,36 +531,131 @@ function toggle_reference_required(frm) {
 	});
 }
 
+function add_check_clearing_buttons(frm) {
+	if (
+		frm.doc.docstatus !== 1 ||
+		!frm.doc.is_check ||
+		frm.doc.check_cleared ||
+		frm.doc.check_returned ||
+		frm.doc.clearing_journal_entry
+	)
+		return;
+	frm.add_custom_button(__("Mark Check Cleared"), () => expense_clearing_dialog(frm), __("Cheque"));
+	frm.add_custom_button(
+		__("Mark Check Returned"),
+		() => {
+			frappe.confirm(
+				__("Mark this cheque as returned/bounced? This reverses any clearing and cancels the Expense, re-opening allocations."),
+				() => {
+					frappe.call({
+						method: "nbs_customization.nbs_customization.doctype.expense.expense.mark_expense_check_returned",
+						args: { name: frm.doc.name },
+						freeze: true,
+						freeze_message: __("Marking cheque as returned..."),
+						callback(r) {
+							if (!r.exc) {
+								frappe.msgprint(__("Expense {0} cancelled as returned.", [frm.doc.name]));
+								frm.reload_doc();
+							}
+						},
+					});
+				},
+			);
+		},
+		__("Cheque"),
+	);
+}
+
+function expense_clearing_dialog(frm) {
+	let d = new frappe.ui.Dialog({
+		title: __("Mark Check Cleared"),
+		fields: [
+			{
+				fieldtype: "Link",
+				fieldname: "clearing_destination_account",
+				label: __("Destination Account"),
+				options: "Account",
+				default: frm.doc.clearing_destination_account,
+				reqd: 1,
+				get_query() {
+					return {
+						filters: {
+							company: frm.doc.company,
+							is_group: 0,
+							account_type: ["in", ["Bank", "Cash"]],
+						},
+					};
+				},
+			},
+			{
+				fieldtype: "Date",
+				fieldname: "clearing_date",
+				label: __("Clearing Date"),
+				default: frappe.datetime.get_today(),
+				reqd: 1,
+			},
+		],
+		primary_action_label: __("Clear"),
+		primary_action(values) {
+			frappe.call({
+				method: "nbs_customization.nbs_customization.doctype.expense.expense.mark_expense_check_cleared",
+				args: {
+					name: frm.doc.name,
+					destination_account: values.clearing_destination_account,
+					clearing_date: values.clearing_date,
+				},
+				freeze: true,
+				freeze_message: __("Clearing cheque..."),
+				callback(r) {
+					if (!r.exc) {
+						frappe.msgprint(__("Cheque cleared. Journal Entry {0} created.", [r.message.journal_entry]));
+						d.hide();
+						frm.reload_doc();
+					}
+				},
+			});
+		},
+	});
+	d.show();
+}
+
 function toggle_lcv_button(frm) {
 	frm.remove_custom_button(__("Make Landed Cost Voucher"), __("Create"));
 	frm.remove_custom_button(__("View Landed Cost Voucher"), __("View"));
 	frm.remove_custom_button(__("View Inbound Shipment"), __("View"));
 	frm.remove_custom_button(__("View Purchase Order"), __("View"));
+	frm.remove_custom_button(__("View Purchase Orders"), __("View"));
 	frm.remove_custom_button(__("View Payment Entry"), __("View"));
 
 	const submitted = frm.doc.docstatus === 1;
 	const is_acc = frm.doc.is_accompanying;
 	const lcv_not_made = !frm.doc.landed_cost_voucher;
-	const scope = frm.doc.expense_scope || "Single Purchase Order";
-	const has_po = scope === "Single Purchase Order" && !!frm.doc.linked_purchase_order;
+	const raw_scope = frm.doc.expense_scope || "Purchase Order";
+	const scope = raw_scope === "Single Purchase Order" ? "Purchase Order" : raw_scope;
+	const po_names = (frm.doc.purchase_orders || [])
+		.map((r) => r.purchase_order)
+		.filter(Boolean);
+	const legacy_po = frm.doc.linked_purchase_order;
+	const has_po = scope === "Purchase Order" && (po_names.length > 0 || !!legacy_po);
 	const has_ship = scope === "Inbound Shipment" && !!frm.doc.linked_shipment;
 
 	// "Make LCV" button — available when no LCV yet
 	if (submitted && is_acc && lcv_not_made && (has_po || has_ship)) {
+		const effective_pos = po_names.length ? po_names : legacy_po ? [legacy_po] : [];
 		const scope_label = has_ship
 			? `Inbound Shipment <b>${frm.doc.linked_shipment}</b>`
-			: `Purchase Order <b>${frm.doc.linked_purchase_order}</b>`;
+			: `Purchase Order${effective_pos.length > 1 ? "s" : ""} <b>${effective_pos.join(", ")}</b>`;
 
 		frm.add_custom_button(
 			__("Landed Cost Voucher"),
 			function () {
-				// Pre-flight receiving check before confirm
+				// Pre-flight receiving check — warning not block for PO scope
 				const check_method = has_ship
 					? "check_shipment_fully_received"
-					: "check_purchase_order_fully_received";
+					: "check_purchase_orders_fully_received";
 				const check_args = has_ship
 					? { shipment_name: frm.doc.linked_shipment }
-					: { po_name: frm.doc.linked_purchase_order };
+					: { po_names: effective_pos };
 				frappe.call({
 					method: `nbs_customization.nbs_customization.doctype.expense.expense.${check_method}`,
 					args: check_args,
@@ -428,12 +665,23 @@ function toggle_lcv_button(frm) {
 						if (!r.message) return;
 
 						if (!r.message.ready) {
-							// Show the detailed breakdown — don't proceed
+							// Show warning but allow proceed on confirm
 							frappe.msgprint({
-								title: __("Not Fully Received"),
+								title: has_ship ? __("Not Fully Received") : __("Partially Received — Proceed?"),
 								message: r.message.message,
 								indicator: "orange",
 							});
+							if (has_ship) {
+								// Shipment still blocks — do not proceed
+								return;
+							}
+							// PO scope: ask to proceed with already-received PRs
+							frappe.confirm(
+								__(
+									`Some Purchase Orders are partially received (see warning above).<br>Create LCV for <b>${frm.doc.name}</b> with already-received PRs only?<br>Scope: ${scope_label}`,
+								),
+								() => confirm_and_create_lcv(frm, scope_label),
+							);
 							return;
 						}
 						// All items received — proceed to confirm
@@ -467,8 +715,19 @@ function toggle_lcv_button(frm) {
 		);
 	}
 
-	// View Purchase Order
-	if (frm.doc.linked_purchase_order) {
+	// View Purchase Order(s)
+	const view_pos = (frm.doc.purchase_orders || []).map((r) => r.purchase_order).filter(Boolean);
+	if (view_pos.length) {
+		for (const po of view_pos) {
+			frm.add_custom_button(
+				__(`View PO: ${po}`),
+				() => {
+					frappe.set_route("Form", "Purchase Order", po);
+				},
+				__("View"),
+			);
+		}
+	} else if (frm.doc.linked_purchase_order) {
 		frm.add_custom_button(
 			__("View Purchase Order"),
 			() => {
