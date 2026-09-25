@@ -28,7 +28,9 @@ def _make_party(doctype, name):
 	if frappe.db.exists(doctype, name):
 		return name
 	# check by *name field
-	existing = frappe.db.get_value(doctype, {"customer_name": name} if doctype == "Customer" else {"supplier_name": name}, "name")
+	existing = frappe.db.get_value(
+		doctype, {"customer_name": name} if doctype == "Customer" else {"supplier_name": name}, "name"
+	)
 	if existing:
 		return existing
 	if doctype == "Customer":

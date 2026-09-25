@@ -18,9 +18,7 @@ class OwnershipTransferRequest(Document):
 	def _validate_contract_eligible(self):
 		contract = frappe.get_doc("Instrument Placement Contract", self.contract)
 		if contract.contract_type != "RLO":
-			frappe.throw(
-				frappe._("Ownership Transfer is only available for RLO contracts.")
-			)
+			frappe.throw(frappe._("Ownership Transfer is only available for RLO contracts."))
 		if not contract.ownership_threshold_met:
 			frappe.throw(
 				frappe._(
@@ -31,8 +29,7 @@ class OwnershipTransferRequest(Document):
 		if (contract.outstanding_on_contract or 0) > 1:
 			frappe.throw(
 				frappe._(
-					"Contract {0} has outstanding balance {1}. "
-					"All payments must be received before transfer."
+					"Contract {0} has outstanding balance {1}. All payments must be received before transfer."
 				).format(
 					frappe.bold(self.contract),
 					frappe.bold(contract.outstanding_on_contract),
@@ -45,9 +42,7 @@ class OwnershipTransferRequest(Document):
 		self.total_collected = contract.cumulative_collected
 		self.outstanding_balance = contract.outstanding_on_contract
 
-		worksheet = frappe.get_doc(
-			"Instrument Pricing Worksheet", contract.pricing_worksheet
-		)
+		worksheet = frappe.get_doc("Instrument Pricing Worksheet", contract.pricing_worksheet)
 		self.analyzer_cost = worksheet.analyzer_landed_cost
 
 		target = contract.total_recovery_target or 0
@@ -82,18 +77,20 @@ def create_ownership_transfer_request(contract_name):
 		"name",
 	)
 
-	otr = frappe.get_doc({
-		"doctype": "Ownership Transfer Request",
-		"contract": contract_name,
-		"contract_type": contract.contract_type,
-		"asset": contract.asset,
-		"customer": contract.customer,
-		"customer_name": contract.customer_name,
-		"analyzer_deployment": deployment,
-		"requested_by": frappe.session.user,
-		"request_date": frappe.utils.today(),
-		"status": "Draft",
-	})
+	otr = frappe.get_doc(
+		{
+			"doctype": "Ownership Transfer Request",
+			"contract": contract_name,
+			"contract_type": contract.contract_type,
+			"asset": contract.asset,
+			"customer": contract.customer,
+			"customer_name": contract.customer_name,
+			"analyzer_deployment": deployment,
+			"requested_by": frappe.session.user,
+			"request_date": frappe.utils.today(),
+			"status": "Draft",
+		}
+	)
 	otr.insert(ignore_permissions=True)
 
 	frappe.msgprint(
@@ -105,21 +102,29 @@ def create_ownership_transfer_request(contract_name):
 	return otr.name
 
 
+def _halt_depreciation(asset_name):
+	# RLO transfer ends the depreciation run — cancel live schedules (audit trail kept).
+	if not asset_name:
+		return
+	for name in frappe.get_all(
+		"Asset Depreciation Schedule",
+		filters={"asset": asset_name, "docstatus": 1},
+		pluck="name",
+	):
+		frappe.get_doc("Asset Depreciation Schedule", name).cancel()
+
+
 @frappe.whitelist()
 def complete_transfer(otr_name):
 	otr = frappe.get_doc("Ownership Transfer Request", otr_name)
 
 	if otr.status != "Approved":
 		frappe.throw(
-			frappe._("Cannot complete transfer — status is '{0}', not 'Approved'.").format(
-				otr.status
-			)
+			frappe._("Cannot complete transfer — status is '{0}', not 'Approved'.").format(otr.status)
 		)
 
 	if not otr.transfer_certificate:
-		frappe.throw(
-			frappe._("Transfer Certificate must be attached before completing the transfer.")
-		)
+		frappe.throw(frappe._("Transfer Certificate must be attached before completing the transfer."))
 
 	if not otr.transfer_date:
 		otr.transfer_date = frappe.utils.today()
@@ -144,13 +149,13 @@ def complete_transfer(otr_name):
 		"Fulfilled",
 	)
 
+	_halt_depreciation(otr.asset)
+
 	otr.status = "Transfer Completed"
 	otr.db_set("status", "Transfer Completed")
 
 	frappe.msgprint(
-		frappe._("Ownership transfer completed for Contract {0}.").format(
-			frappe.bold(otr.contract)
-		)
+		frappe._("Ownership transfer completed for Contract {0}.").format(frappe.bold(otr.contract))
 	)
 
 	return otr.name

@@ -6,7 +6,6 @@ from frappe.utils import flt
 
 
 def validate(doc, method=None):
-
 	if doc.custom_waybill_type != "Loan Conversion Waybill":
 		return
 
@@ -15,7 +14,6 @@ def validate(doc, method=None):
 
 
 def validate_loan_source_warehouse(doc):
-
 	if not doc.custom_source_loan_waybill:
 		frappe.throw("Loan Conversion Waybill must reference a Loan Waybill.")
 
@@ -63,7 +61,6 @@ def validate_loan_source_warehouse(doc):
 
 
 def validate_loan_stock_availability(doc):
-
 	loan = frappe.get_doc("Loan Waybill", doc.custom_source_loan_waybill)
 
 	# Build remaining balance map
@@ -163,7 +160,6 @@ def _set_custom_sales_order(doc):
 
 
 def on_submit(doc, method=None):
-
 	_update_promissory_note_directly(doc)
 
 	if doc.custom_waybill_type != "Loan Conversion Waybill":

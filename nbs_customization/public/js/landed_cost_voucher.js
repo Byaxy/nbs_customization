@@ -42,7 +42,7 @@ function open_distribution_dialog(frm) {
 			title: __("No Shipment Linked"),
 			message: __(
 				"This Landed Cost Voucher has no linked Inbound Shipment. " +
-					"Weight-based distribution requires a shipment.",
+					"Weight-based distribution requires a shipment."
 			),
 			indicator: "red",
 		});
@@ -53,7 +53,7 @@ function open_distribution_dialog(frm) {
 		frappe.msgprint({
 			title: __("No Items"),
 			message: __(
-				"Please click <b>Get Items</b> before running the Distribution Calculator.",
+				"Please click <b>Get Items</b> before running the Distribution Calculator."
 			),
 			indicator: "orange",
 		});
@@ -245,7 +245,7 @@ async function build_weight_preview(dialog, frm, total_charges, weight_map, net_
 						<td class="text-right">
 							${nbs_format_value(
 								enriched.reduce((s, r) => s + flt(r.shipment_net_wt), 0),
-								{ fieldtype: "Float" },
+								{ fieldtype: "Float" }
 							)}
 						</td>
 						<td class="text-right">
@@ -291,7 +291,7 @@ function apply_weight_distribution(frm, dialog) {
 			item.doctype,
 			item.name,
 			"applicable_charges",
-			flt(allocations[i], 2),
+			flt(allocations[i], 2)
 		);
 		applied++;
 	});
@@ -305,10 +305,10 @@ function apply_weight_distribution(frm, dialog) {
 			message: __(
 				`Chargeable weight distribution applied to ${applied} item(s). ` +
 					`Distribution locked to <b>Distribute Manually</b>. ` +
-					`Review each row then submit.`,
+					`Review each row then submit.`
 			),
 			indicator: "green",
 		},
-		8,
+		8
 	);
 }

@@ -31,17 +31,19 @@ class TestReagentSpecification(FrappeTestCase):
 		param = frappe.get_doc(
 			{"doctype": "Test Parameter", "parameter_name": "_TST RSpec Param", "parameter_code": "RSPC"}
 		).insert(ignore_if_duplicate=True)
-		frappe.get_doc({
-			"doctype": "Instrument Specification",
-			"item": analyzer.item_code,
-			"supported_test_methods": [
-				{"test_parameter": param.name, "required_reagent": self.reagent_item.item_code},
-			],
-		}).insert()
+		frappe.get_doc(
+			{
+				"doctype": "Instrument Specification",
+				"item": analyzer.item_code,
+				"supported_test_methods": [
+					{"test_parameter": param.name, "required_reagent": self.reagent_item.item_code},
+				],
+			}
+		).insert()
 
-		customer = frappe.get_doc({
-			"doctype": "Customer", "customer_name": "_TST RSpec Customer", "customer_type": "Company"
-		}).insert(ignore_if_duplicate=True)
+		customer = frappe.get_doc(
+			{"doctype": "Customer", "customer_name": "_TST RSpec Customer", "customer_type": "Company"}
+		).insert(ignore_if_duplicate=True)
 
 		ws = frappe.get_doc(
 			{
@@ -61,8 +63,8 @@ class TestReagentSpecification(FrappeTestCase):
 				],
 			}
 		).insert()
-		ws.status = "Approved"
-		ws.save()
+		# Status is controller-managed (_sync_status forces Draft while docstatus 0).
+		ws.db_set("status", "Approved")
 
 		self.rs.reagent_role = "Non-Test Consumable"
 		self.assertRaises(frappe.ValidationError, self.rs.save)

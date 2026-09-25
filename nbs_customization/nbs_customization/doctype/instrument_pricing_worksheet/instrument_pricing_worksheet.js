@@ -95,7 +95,7 @@ function _warn_existing_lines(frm) {
 	if (lines > 0) {
 		frappe.show_alert({
 			message: __(
-				"Analyzer changed. Please verify that existing costing lines are still valid.",
+				"Analyzer changed. Please verify that existing costing lines are still valid."
 			),
 			indicator: "orange",
 		});
@@ -219,7 +219,12 @@ function _fetch_consumable_details(frm, cdt, cdn) {
 			if (!r.message) return;
 			const spec = r.message;
 			frappe.model.set_value(cdt, cdn, "consumption_qty", spec.default_consumption_qty);
-			frappe.model.set_value(cdt, cdn, "consumption_frequency", spec.default_consumption_frequency);
+			frappe.model.set_value(
+				cdt,
+				cdn,
+				"consumption_frequency",
+				spec.default_consumption_frequency
+			);
 			frappe.model.set_value(cdt, cdn, "cogs_per_unit", spec.default_cogs_per_unit);
 		},
 	});

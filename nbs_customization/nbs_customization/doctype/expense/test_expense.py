@@ -9,8 +9,17 @@ from frappe.utils import getdate, today
 class IntegrationTestExpense(IntegrationTestCase):
 	COMPANY = "_Test Company"
 	BANK = "_Test Bank - _TC"
+	CASH = "Cash - _TC"
 	EQUITY = "Opening Balance Equity - _TC"
 	EXPENSE_ACCOUNT = "Loyalty - _TC"
+
+	def setUp(self):
+		super().setUp()
+		# Prod locks paid_from to the MoP default — ensure live-site config in-test.
+		from nbs_customization.tests.sales_doubles import ensure_mop_default, ensure_test_supplier
+
+		ensure_test_supplier()
+		ensure_mop_default("Wire Transfer", self.COMPANY, self.BANK)
 
 	def _credit_bank(self, amount=10000):
 		je = frappe.new_doc("Journal Entry")
@@ -72,7 +81,8 @@ class IntegrationTestExpense(IntegrationTestCase):
 	def test_cash_does_not_require_reference(self):
 		doc = self._base_expense(
 			payment_type="Direct Payment",
-			paid_from="_Test Cash - _TC",
+			mode_of_payment="Cash",
+			paid_from="Cash - _TC",
 			reference_no=None,
 			reference_date=None,
 		)
@@ -97,12 +107,10 @@ class IntegrationTestExpense(IntegrationTestCase):
 		seeding_je.cancel()
 
 	def test_against_pi_carries_reference_to_pe(self):
-		from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import (
-			make_purchase_invoice,
-		)
+		from nbs_customization.tests.sales_doubles import make_test_purchase_invoice
 
 		seeding_je = self._credit_bank()
-		pi = make_purchase_invoice()
+		pi = make_test_purchase_invoice()
 		try:
 			doc = self._base_expense(
 				payment_type="Against Purchase Invoice",
@@ -145,7 +153,7 @@ class IntegrationTestExpense(IntegrationTestCase):
 			doc.insert(ignore_permissions=True)
 		return name
 
-	def _make_po(self, qty=10):
+	def _make_po(self, qty=10, item_code="_Test Item"):
 		po = frappe.new_doc("Purchase Order")
 		po.company = self.COMPANY
 		po.supplier = "_Test Supplier"
@@ -154,7 +162,7 @@ class IntegrationTestExpense(IntegrationTestCase):
 		po.append(
 			"items",
 			{
-				"item_code": "_Test Item",
+				"item_code": item_code,
 				"schedule_date": today(),
 				"qty": qty,
 				"rate": 100,
@@ -303,7 +311,7 @@ class IntegrationTestExpense(IntegrationTestCase):
 		try:
 			run_backfill(dry_run=False, commit=False)
 			doc.reload()
-			self.assertEqual(doc.expense_scope, "Single Purchase Order")
+			self.assertEqual(doc.expense_scope, "Purchase Order")
 			self.assertEqual(doc.linked_purchase_order, po.name)
 		finally:
 			frappe.delete_doc("Expense", doc.name, force=True)
@@ -317,9 +325,11 @@ class IntegrationTestExpense(IntegrationTestCase):
 		from nbs_customization.nbs_customization.backfill_expense_purchase_orders import (
 			run as run_backfill,
 		)
+		from nbs_customization.tests.sales_doubles import ensure_test_item
 
+		second_item = ensure_test_item("_Test Item 2")
 		po1 = self._make_po(qty=5)
-		po2 = self._make_po(qty=5)
+		po2 = self._make_po(qty=5, item_code=second_item)
 
 		pr = frappe.new_doc("Purchase Receipt")
 		pr.company = self.COMPANY
@@ -342,7 +352,7 @@ class IntegrationTestExpense(IntegrationTestCase):
 		pr.append(
 			"items",
 			{
-				"item_code": "_Test Item",
+				"item_code": second_item,
 				"qty": 5,
 				"received_qty": 5,
 				"rate": 100,

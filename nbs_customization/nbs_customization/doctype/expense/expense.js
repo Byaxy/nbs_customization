@@ -78,7 +78,9 @@ frappe.ui.form.on("Expense", {
 	validate(frm) {
 		if (frm.doc.is_check) {
 			if (!frm.doc.reference_no || !frm.doc.reference_date) {
-				frappe.msgprint(__("Cheque/Reference No and Reference Date are mandatory for Check payments."));
+				frappe.msgprint(
+					__("Cheque/Reference No and Reference Date are mandatory for Check payments.")
+				);
 				frappe.validated = false;
 			}
 			if (!frm.doc.check_bank) {
@@ -142,17 +144,20 @@ frappe.ui.form.on("Expense", {
 			callback(r) {
 				if (r.message) {
 					frm.set_value("paid_from", r.message.account);
-					frm.set_value(
-						"paid_from_account_currency",
-						r.message.account_currency,
-					);
+					frm.set_value("paid_from_account_currency", r.message.account_currency);
 					if (r.message.is_check) {
 						frm.doc.is_check = 1;
 						if (r.message.clearing_account_outward) {
 							frm.set_value("paid_from", r.message.clearing_account_outward);
 						}
-						if (r.message.default_clearing_destination && !frm.doc.clearing_destination_account) {
-							frm.set_value("clearing_destination_account", r.message.default_clearing_destination);
+						if (
+							r.message.default_clearing_destination &&
+							!frm.doc.clearing_destination_account
+						) {
+							frm.set_value(
+								"clearing_destination_account",
+								r.message.default_clearing_destination
+							);
 						}
 					} else {
 						frm.doc.is_check = 0;
@@ -181,7 +186,7 @@ frappe.ui.form.on("Expense", {
 				}
 				toggle_reference_required(frm);
 				update_paid_from_balance(frm);
-			},
+			}
 		);
 	},
 
@@ -205,7 +210,10 @@ frappe.ui.form.on("Expense", {
 	expense_scope(frm) {
 		toggle_accompanying_fields(frm);
 		// Clear the unused link when switching scope — normalize legacy alias
-		const normalized = frm.doc.expense_scope === "Single Purchase Order" ? "Purchase Order" : frm.doc.expense_scope;
+		const normalized =
+			frm.doc.expense_scope === "Single Purchase Order"
+				? "Purchase Order"
+				: frm.doc.expense_scope;
 		if (normalized !== frm.doc.expense_scope) {
 			frm.set_value("expense_scope", normalized);
 			return;
@@ -236,11 +244,13 @@ frappe.ui.form.on("Expense", {
 					frappe.show_alert(
 						{
 							message: __(
-								`Outstanding: ${frappe.format(pi.outstanding_amount, { fieldtype: "Currency" })}`,
+								`Outstanding: ${frappe.format(pi.outstanding_amount, {
+									fieldtype: "Currency",
+								})}`
 							),
 							indicator: "blue",
 						},
-						5,
+						5
 					);
 					resolve_paid_to(frm);
 				}
@@ -257,7 +267,7 @@ frappe.ui.form.on("Expense", {
 		frappe.db.get_value("Purchase Receipt", frm.doc.linked_purchase, "company", (r) => {
 			if (r && r.company !== frm.doc.company) {
 				frappe.msgprint(
-					__("The selected Purchase Receipt belongs to a different company."),
+					__("The selected Purchase Receipt belongs to a different company.")
 				);
 				frm.set_value("linked_purchase", null);
 			}
@@ -268,9 +278,7 @@ frappe.ui.form.on("Expense", {
 		if (!frm.doc.linked_purchase_order || !frm.doc.company) return;
 		frappe.db.get_value("Purchase Order", frm.doc.linked_purchase_order, "company", (r) => {
 			if (r && r.company !== frm.doc.company) {
-				frappe.msgprint(
-					__("The selected Purchase Order belongs to a different company."),
-				);
+				frappe.msgprint(__("The selected Purchase Order belongs to a different company."));
 				frm.set_value("linked_purchase_order", null);
 			}
 		});
@@ -342,7 +350,12 @@ function toggle_accompanying_fields(frm) {
 	frm.set_df_property("linked_shipment", "hidden", show && is_shipment ? 0 : 1);
 	frm.set_df_property("linked_shipment", "reqd", show && is_shipment ? 1 : 0);
 
-	frm.refresh_fields(["expense_scope", "purchase_orders", "linked_purchase_order", "linked_shipment"]);
+	frm.refresh_fields([
+		"expense_scope",
+		"purchase_orders",
+		"linked_purchase_order",
+		"linked_shipment",
+	]);
 
 	// Clear the info panel if not shipment scope
 	if (!show || !is_shipment) {
@@ -362,30 +375,22 @@ function resolve_paid_to(frm) {
 			frm.set_value("paid_to_account_currency", null);
 			return;
 		}
-		frappe.db.get_value(
-			"Purchase Invoice",
-			frm.doc.purchase_invoice,
-			"supplier",
-			(r) => {
-				if (!r || !r.supplier) return;
-				frappe.call({
-					method: "nbs_customization.nbs_customization.doctype.expense.expense.get_supplier_payable_details",
-					args: {
-						supplier: r.supplier,
-						company: frm.doc.company || frappe.defaults.get_user_default("Company"),
-					},
-					callback(pr) {
-						if (pr.message) {
-							frm.set_value("paid_to", pr.message.paid_to);
-							frm.set_value(
-								"paid_to_account_currency",
-								pr.message.account_currency,
-							);
-						}
-					},
-				});
-			},
-		);
+		frappe.db.get_value("Purchase Invoice", frm.doc.purchase_invoice, "supplier", (r) => {
+			if (!r || !r.supplier) return;
+			frappe.call({
+				method: "nbs_customization.nbs_customization.doctype.expense.expense.get_supplier_payable_details",
+				args: {
+					supplier: r.supplier,
+					company: frm.doc.company || frappe.defaults.get_user_default("Company"),
+				},
+				callback(pr) {
+					if (pr.message) {
+						frm.set_value("paid_to", pr.message.paid_to);
+						frm.set_value("paid_to_account_currency", pr.message.account_currency);
+					}
+				},
+			});
+		});
 		return;
 	}
 
@@ -395,27 +400,14 @@ function resolve_paid_to(frm) {
 		frm.set_value("paid_to_account_currency", null);
 		return;
 	}
-	frappe.db.get_value(
-		"Expense Category",
-		frm.doc.expense_category,
-		"expense_account",
-		(r) => {
-			if (r && r.expense_account) {
-				frm.set_value("paid_to", r.expense_account);
-				frappe.db.get_value(
-					"Account",
-					r.expense_account,
-					"account_currency",
-					(cr) => {
-						frm.set_value(
-							"paid_to_account_currency",
-							cr ? cr.account_currency : null,
-						);
-					},
-				);
-			}
-		},
-	);
+	frappe.db.get_value("Expense Category", frm.doc.expense_category, "expense_account", (r) => {
+		if (r && r.expense_account) {
+			frm.set_value("paid_to", r.expense_account);
+			frappe.db.get_value("Account", r.expense_account, "account_currency", (cr) => {
+				frm.set_value("paid_to_account_currency", cr ? cr.account_currency : null);
+			});
+		}
+	});
 }
 
 // ------------------------------------------------------------------ //
@@ -438,9 +430,9 @@ function render_shipment_info_panel(frm, s) {
 	$field.find(".shipment-info-panel").remove();
 	$field.append(`
         <div class="shipment-info-panel alert alert-info mt-2 mb-0" style="font-size:12px;">
-            <strong>${frm.doc.linked_shipment}</strong> — 
-            ${s.shipping_mode} | ${s.carrier} | 
-            ${s.pr_count} Purchase Receipt(s) | 
+            <strong>${frm.doc.linked_shipment}</strong> —
+            ${s.shipping_mode} | ${s.carrier} |
+            ${s.pr_count} Purchase Receipt(s) |
             ${flt(s.total_chargeable_weight, 2)} kg chargeable |
             Status: <b>${s.status}</b>
         </div>
@@ -492,7 +484,9 @@ function update_paid_from_balance(frm) {
 			frm.set_df_property(
 				"paid_from",
 				"description",
-				`<span style="color:${color};font-weight:600;">${__("Balance")} (${as_of}): ${formatted}</span>`,
+				`<span style="color:${color};font-weight:600;">${__(
+					"Balance"
+				)} (${as_of}): ${formatted}</span>`
 			);
 		},
 	});
@@ -540,12 +534,18 @@ function add_check_clearing_buttons(frm) {
 		frm.doc.clearing_journal_entry
 	)
 		return;
-	frm.add_custom_button(__("Mark Check Cleared"), () => expense_clearing_dialog(frm), __("Cheque"));
+	frm.add_custom_button(
+		__("Mark Check Cleared"),
+		() => expense_clearing_dialog(frm),
+		__("Cheque")
+	);
 	frm.add_custom_button(
 		__("Mark Check Returned"),
 		() => {
 			frappe.confirm(
-				__("Mark this cheque as returned/bounced? This reverses any clearing and cancels the Expense, re-opening allocations."),
+				__(
+					"Mark this cheque as returned/bounced? This reverses any clearing and cancels the Expense, re-opening allocations."
+				),
 				() => {
 					frappe.call({
 						method: "nbs_customization.nbs_customization.doctype.expense.expense.mark_expense_check_returned",
@@ -554,15 +554,17 @@ function add_check_clearing_buttons(frm) {
 						freeze_message: __("Marking cheque as returned..."),
 						callback(r) {
 							if (!r.exc) {
-								frappe.msgprint(__("Expense {0} cancelled as returned.", [frm.doc.name]));
+								frappe.msgprint(
+									__("Expense {0} cancelled as returned.", [frm.doc.name])
+								);
 								frm.reload_doc();
 							}
 						},
 					});
-				},
+				}
 			);
 		},
-		__("Cheque"),
+		__("Cheque")
 	);
 }
 
@@ -608,7 +610,11 @@ function expense_clearing_dialog(frm) {
 				freeze_message: __("Clearing cheque..."),
 				callback(r) {
 					if (!r.exc) {
-						frappe.msgprint(__("Cheque cleared. Journal Entry {0} created.", [r.message.journal_entry]));
+						frappe.msgprint(
+							__("Cheque cleared. Journal Entry {0} created.", [
+								r.message.journal_entry,
+							])
+						);
 						d.hide();
 						frm.reload_doc();
 					}
@@ -632,9 +638,7 @@ function toggle_lcv_button(frm) {
 	const lcv_not_made = !frm.doc.landed_cost_voucher;
 	const raw_scope = frm.doc.expense_scope || "Purchase Order";
 	const scope = raw_scope === "Single Purchase Order" ? "Purchase Order" : raw_scope;
-	const po_names = (frm.doc.purchase_orders || [])
-		.map((r) => r.purchase_order)
-		.filter(Boolean);
+	const po_names = (frm.doc.purchase_orders || []).map((r) => r.purchase_order).filter(Boolean);
 	const legacy_po = frm.doc.linked_purchase_order;
 	const has_po = scope === "Purchase Order" && (po_names.length > 0 || !!legacy_po);
 	const has_ship = scope === "Inbound Shipment" && !!frm.doc.linked_shipment;
@@ -644,7 +648,9 @@ function toggle_lcv_button(frm) {
 		const effective_pos = po_names.length ? po_names : legacy_po ? [legacy_po] : [];
 		const scope_label = has_ship
 			? `Inbound Shipment <b>${frm.doc.linked_shipment}</b>`
-			: `Purchase Order${effective_pos.length > 1 ? "s" : ""} <b>${effective_pos.join(", ")}</b>`;
+			: `Purchase Order${effective_pos.length > 1 ? "s" : ""} <b>${effective_pos.join(
+					", "
+			  )}</b>`;
 
 		frm.add_custom_button(
 			__("Landed Cost Voucher"),
@@ -667,7 +673,9 @@ function toggle_lcv_button(frm) {
 						if (!r.message.ready) {
 							// Show warning but allow proceed on confirm
 							frappe.msgprint({
-								title: has_ship ? __("Not Fully Received") : __("Partially Received — Proceed?"),
+								title: has_ship
+									? __("Not Fully Received")
+									: __("Partially Received — Proceed?"),
 								message: r.message.message,
 								indicator: "orange",
 							});
@@ -678,9 +686,9 @@ function toggle_lcv_button(frm) {
 							// PO scope: ask to proceed with already-received PRs
 							frappe.confirm(
 								__(
-									`Some Purchase Orders are partially received (see warning above).<br>Create LCV for <b>${frm.doc.name}</b> with already-received PRs only?<br>Scope: ${scope_label}`,
+									`Some Purchase Orders are partially received (see warning above).<br>Create LCV for <b>${frm.doc.name}</b> with already-received PRs only?<br>Scope: ${scope_label}`
 								),
-								() => confirm_and_create_lcv(frm, scope_label),
+								() => confirm_and_create_lcv(frm, scope_label)
 							);
 							return;
 						}
@@ -689,7 +697,7 @@ function toggle_lcv_button(frm) {
 					},
 				});
 			},
-			__("Create"),
+			__("Create")
 		);
 	}
 
@@ -700,7 +708,7 @@ function toggle_lcv_button(frm) {
 			() => {
 				frappe.set_route("Form", "Landed Cost Voucher", frm.doc.landed_cost_voucher);
 			},
-			__("View"),
+			__("View")
 		);
 	}
 
@@ -711,7 +719,7 @@ function toggle_lcv_button(frm) {
 			() => {
 				frappe.set_route("Form", "Inbound Shipment", frm.doc.linked_shipment);
 			},
-			__("View"),
+			__("View")
 		);
 	}
 
@@ -724,7 +732,7 @@ function toggle_lcv_button(frm) {
 				() => {
 					frappe.set_route("Form", "Purchase Order", po);
 				},
-				__("View"),
+				__("View")
 			);
 		}
 	} else if (frm.doc.linked_purchase_order) {
@@ -733,7 +741,7 @@ function toggle_lcv_button(frm) {
 			() => {
 				frappe.set_route("Form", "Purchase Order", frm.doc.linked_purchase_order);
 			},
-			__("View"),
+			__("View")
 		);
 	}
 
@@ -744,7 +752,7 @@ function toggle_lcv_button(frm) {
 			() => {
 				frappe.set_route("Form", "Payment Entry", frm.doc.payment_entry);
 			},
-			__("View"),
+			__("View")
 		);
 	}
 }
@@ -768,16 +776,16 @@ function confirm_and_create_lcv(frm, scope_label) {
 							{
 								message: __(
 									`LCV <b>${r.message}</b> created. ` +
-										`Click Get Items, run the Distribution Calculator (By Weight), then submit.`,
+										`Click Get Items, run the Distribution Calculator (By Weight), then submit.`
 								),
 								indicator: "green",
 							},
-							8,
+							8
 						);
 						frappe.set_route("Form", "Landed Cost Voucher", r.message);
 					}
 				},
 			});
-		},
+		}
 	);
 }

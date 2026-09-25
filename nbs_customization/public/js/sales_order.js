@@ -26,7 +26,7 @@ function add_linked_document_buttons(frm) {
 				frm.add_custom_button(
 					__("Customer Delivery Note"),
 					() => frappe.set_route("Form", "Customer Delivery Note", r.message[0].name),
-					__("View"),
+					__("View")
 				);
 			} else {
 				frm.add_custom_button(
@@ -36,7 +36,7 @@ function add_linked_document_buttons(frm) {
 							method: "nbs_customization.controllers.sales_order.make_customer_delivery_note",
 							frm: frm,
 						}),
-					__("Create"),
+					__("Create")
 				);
 			}
 		},
@@ -56,7 +56,7 @@ function add_linked_document_buttons(frm) {
 				frm.add_custom_button(
 					__("Promissory Note"),
 					() => frappe.set_route("Form", "Promissory Note", r.message[0].name),
-					__("View"),
+					__("View")
 				);
 			} else {
 				if (frm.doc.per_delivered >= 100) return;
@@ -68,7 +68,7 @@ function add_linked_document_buttons(frm) {
 							method: "nbs_customization.controllers.sales_order.make_promissory_note",
 							frm: frm,
 						}),
-					__("Create"),
+					__("Create")
 				);
 			}
 		},
@@ -97,7 +97,7 @@ function check_pending_loans(frm) {
 				frappe.msgprint({
 					title: __("No Pending Loans"),
 					message: __(
-						"No matching pending loan waybills were found for this Sales Order.",
+						"No matching pending loan waybills were found for this Sales Order."
 					),
 					indicator: "green",
 				});
@@ -275,7 +275,9 @@ function render_loan_items_table(dialog, items) {
 				<td>${it.qty_loaned}</td>
 				<td>${it.qty_converted}</td>
 				<td>${it.qty_remaining}</td>
-				<td class="text-bold" style="background-color: #f8f9fa; color: #007bff;">${it.max_convertible_qty || 0}</td>
+				<td class="text-bold" style="background-color: #f8f9fa; color: #007bff;">${
+					it.max_convertible_qty || 0
+				}</td>
 				<td>${it.batch_no || ""}</td>
 				<td>${it.serial_no || ""}</td>
 				<td>${it.expiry_date || ""}</td>
@@ -590,7 +592,7 @@ function check_and_show_pending_loan_button(frm) {
 			// Only show button if pending loans with matching items exist
 			if (r.message === true) {
 				frm.add_custom_button(__("Check Pending Loan Waybills"), () =>
-					check_pending_loans(frm),
+					check_pending_loans(frm)
 				).addClass("btn btn-danger btn-default btn-sm");
 			}
 		},

@@ -24,7 +24,11 @@ class TestInstrumentSpecification(FrappeTestCase):
 		).insert(ignore_if_duplicate=True)
 
 		self.test_param = frappe.get_doc(
-			{"doctype": "Test Parameter", "parameter_name": "_Test Param for Spec Valid", "parameter_code": "TVAL"}
+			{
+				"doctype": "Test Parameter",
+				"parameter_name": "_Test Param for Spec Valid",
+				"parameter_code": "TVAL",
+			}
 		).insert(ignore_if_duplicate=True)
 
 	def tearDown(self):

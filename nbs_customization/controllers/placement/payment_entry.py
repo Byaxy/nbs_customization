@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery
 
 

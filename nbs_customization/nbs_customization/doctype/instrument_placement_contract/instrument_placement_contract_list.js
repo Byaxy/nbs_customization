@@ -3,12 +3,12 @@ frappe.listview_settings["Instrument Placement Contract"] = {
 	has_indicator_for_draft: 1,
 	get_indicator(doc) {
 		const status_map = {
-			"Draft": [__("Draft"), "gray"],
-			"Active": [__("Active"), "green"],
-			"Fulfilled": [__("Fulfilled"), "blue"],
-			"Breached": [__("Breached"), "red"],
-			"Terminated": [__("Terminated"), "orange"],
-			"Expired": [__("Expired"), "darkgray"],
+			Draft: [__("Draft"), "gray"],
+			Active: [__("Active"), "green"],
+			Fulfilled: [__("Fulfilled"), "blue"],
+			Breached: [__("Breached"), "red"],
+			Terminated: [__("Terminated"), "orange"],
+			Expired: [__("Expired"), "darkgray"],
 		};
 		if (doc.contract_status) {
 			return status_map[doc.contract_status] || [__("Unknown"), "gray"];

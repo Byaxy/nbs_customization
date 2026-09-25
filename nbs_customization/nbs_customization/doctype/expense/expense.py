@@ -98,9 +98,9 @@ class Expense(Document):
 		expected = resolve_expected_paid_from(self.mode_of_payment, self.company)
 		if not expected:
 			frappe.throw(
-				_("Mode of Payment <b>{0}</b> has no paying account configured for company <b>{1}</b>.").format(
-					self.mode_of_payment, self.company
-				)
+				_(
+					"Mode of Payment <b>{0}</b> has no paying account configured for company <b>{1}</b>."
+				).format(self.mode_of_payment, self.company)
 			)
 		if self.paid_from != expected:
 			frappe.throw(
@@ -1070,7 +1070,9 @@ def make_landed_cost_voucher(expense_name):
 		if not pr_rows:
 			joined = ", ".join(f"<b>{p}</b>" for p in po_names)
 			frappe.throw(
-				_(f"Purchase Orders {joined} have no submitted Purchase Receipts yet. Receive at least one PO first.")
+				_(
+					f"Purchase Orders {joined} have no submitted Purchase Receipts yet. Receive at least one PO first."
+				)
 			)
 
 	elif scope == SCOPE_LEGACY_PR:

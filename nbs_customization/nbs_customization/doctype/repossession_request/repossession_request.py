@@ -40,22 +40,17 @@ class RepossessionRequest(Document):
 
 		frappe.throw(
 			frappe._(
-				"Cannot transition Repossession Request from '{0}' to '{1}'. "
-				"Allowed transitions: {2}"
+				"Cannot transition Repossession Request from '{0}' to '{1}'. Allowed transitions: {2}"
 			).format(old.status, self.status, ", ".join(allowed_next))
 		)
 
 	def _validate_required_fields(self):
 		if self.reason in ("Minimum Purchase Breach",):
 			if not self.breach_count:
-				frappe.throw(
-					frappe._("Breach Count is required when reason is '{0}'.").format(self.reason)
-				)
+				frappe.throw(frappe._("Breach Count is required when reason is '{0}'.").format(self.reason))
 		if self.reason in ("Non-Payment of Revenue Share", "Non-Payment of Invoices"):
 			if not self.unpaid_statements:
-				frappe.throw(
-					frappe._("Number of unpaid statements is required for non-payment reasons.")
-				)
+				frappe.throw(frappe._("Number of unpaid statements is required for non-payment reasons."))
 
 
 @frappe.whitelist()
@@ -64,15 +59,13 @@ def execute_retrieval(repossession_request_name):
 
 	if rr.status != "Approved":
 		frappe.throw(
-			frappe._("Cannot execute retrieval — Repossession Request status is '{0}', not 'Approved'.").format(
-				rr.status
-			)
+			frappe._(
+				"Cannot execute retrieval — Repossession Request status is '{0}', not 'Approved'."
+			).format(rr.status)
 		)
 
 	if not rr.analyzer_deployment:
-		frappe.throw(
-			frappe._("No Analyzer Deployment is linked to this Repossession Request.")
-		)
+		frappe.throw(frappe._("No Analyzer Deployment is linked to this Repossession Request."))
 
 	deployment = frappe.get_doc("Analyzer Deployment", rr.analyzer_deployment)
 	deployment.deployment_status = "Permanently Retrieved"

@@ -1,7 +1,5 @@
 import frappe
 
-from nbs_customization.tasks import _apply_amendment_to_contract
-
 
 @frappe.whitelist()
 def mark_effective(amendment_name):
@@ -9,11 +7,16 @@ def mark_effective(amendment_name):
 
 	if doc.status != "Approved":
 		frappe.throw(
-			frappe._(
-				"Cannot mark amendment effective — status is '{0}', not 'Approved'."
-			).format(doc.status)
+			frappe._("Cannot mark amendment effective — status is '{0}', not 'Approved'.").format(doc.status)
 		)
 
-	_apply_amendment_to_contract(doc)
+	if doc.effective_date and doc.effective_date > frappe.utils.getdate(frappe.utils.today()):
+		frappe.throw(
+			frappe._("Cannot mark amendment Effective before its effective date ({0}).").format(
+				doc.effective_date
+			)
+		)
+
+	doc.apply_to_contract()
 
 	return True

@@ -15,10 +15,10 @@ frappe.ui.form.on("Delivery Note", {
 			// Add a warning message
 			frm.dashboard.add_comment(
 				__(
-					"This is a Loan Conversion Waybill. Items cannot be added, removed, or reordered. Quantities are set from the loan conversion process.",
+					"This is a Loan Conversion Waybill. Items cannot be added, removed, or reordered. Quantities are set from the loan conversion process."
 				),
 				"yellow",
-				true,
+				true
 			);
 		}
 	},
@@ -80,7 +80,7 @@ function add_shipment_logic(frm) {
 			frm.add_custom_button(
 				__("Shipment"),
 				() => frappe.set_route("Form", "Shipment", shipment_name),
-				__("View"),
+				__("View")
 			);
 		},
 	});
@@ -221,7 +221,7 @@ frappe.ui.form.on("Delivery Note Item", {
 		if (frm.doc.custom_waybill_type === "Loan Conversion Waybill" && frm.doc.docstatus === 0) {
 			frappe.show_alert({
 				message: __(
-					"Cannot add items to a Loan Conversion Waybill. Please use the loan conversion process.",
+					"Cannot add items to a Loan Conversion Waybill. Please use the loan conversion process."
 				),
 				indicator: "red",
 			});

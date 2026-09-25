@@ -1,9 +1,11 @@
 # Copyright (c) 2026, Charles Byakutaga/NBS and contributors
 # For license information, please see license.txt
 
+from math import ceil
+
 import frappe
 from frappe.model.document import Document
-from math import ceil
+
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
 
 
@@ -79,9 +81,6 @@ class InstrumentPricingWorksheet(Document):
 
 		start = frappe.utils.today()
 		end = frappe.utils.add_years(start, self.contract_years or 1)
-
-		monthly_volumes = [ln.monthly_test_volume or 0 for ln in self.reagent_lines]
-		declared_vol = max(monthly_volumes) if monthly_volumes else 0
 
 		min_monthly_val = 0
 		for line in self.reagent_lines:

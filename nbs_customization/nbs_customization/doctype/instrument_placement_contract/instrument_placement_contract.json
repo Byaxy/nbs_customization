@@ -143,8 +143,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Asset",
-   "options": "Asset",
-   "reqd": 1
+   "options": "Asset"
   },
   {
    "fieldname": "column_break_gmvt",
@@ -156,8 +155,7 @@
    "fieldname": "serial_no",
    "fieldtype": "Data",
    "label": "Serial No",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
     "fieldname": "analyzer_pid",
@@ -301,18 +299,20 @@
    "fieldname": "column_break_zcpc",
    "fieldtype": "Column Break"
   },
-  {
-   "fieldname": "grace_period_days",
-   "fieldtype": "Int",
-   "label": "Grace Period (Days)",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "breach_threshold",
-   "fieldtype": "Int",
-   "label": "Breach Threshold (Consecutive Months)",
-   "non_negative": 1
-  },
+   {
+    "description": "Shortfalls within this many days of period-end stay in Grace Period without incrementing the breach count.",
+    "fieldname": "grace_period_days",
+    "fieldtype": "Int",
+    "label": "Grace Period (Days)",
+    "non_negative": 1
+   },
+   {
+    "description": "Auto-repossession triggers after this many consecutive shortfall months (default 3).",
+    "fieldname": "breach_threshold",
+    "fieldtype": "Int",
+    "label": "Breach Threshold (Consecutive Months)",
+    "non_negative": 1
+   },
   {
    "allow_on_submit": 1,
    "fieldname": "consecutive_breach_count",
@@ -462,6 +462,50 @@
    "share": 1,
    "submit": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Auditor"
   }
  ],
  "row_format": "Dynamic",

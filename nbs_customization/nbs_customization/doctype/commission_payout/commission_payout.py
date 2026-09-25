@@ -111,9 +111,9 @@ class CommissionPayout(Document):
 		expected = resolve_expected_paid_from(self.mode_of_payment, self.company)
 		if not expected:
 			frappe.throw(
-				_("Mode of Payment <b>{0}</b> has no paying account configured for company <b>{1}</b>.").format(
-					self.mode_of_payment, self.company
-				)
+				_(
+					"Mode of Payment <b>{0}</b> has no paying account configured for company <b>{1}</b>."
+				).format(self.mode_of_payment, self.company)
 			)
 		if self.paid_from != expected:
 			frappe.throw(

@@ -17,14 +17,14 @@
   "active_amendment",
   "asset",
   "period",
-   "calculation_section",
-   "declared_volume",
-   "revenue_share_pct",
-   "our_share_amount",
-   "kits_to_deliver",
-   "column_break_mmpm",
-   "fixed_monthly_gross_revenue",
-   "gross_revenue",
+  "calculation_section",
+  "declared_volume",
+  "revenue_share_pct",
+  "our_share_amount",
+  "kits_to_deliver",
+  "column_break_mmpm",
+  "fixed_monthly_gross_revenue",
+  "gross_revenue",
   "customer_share_amount",
   "recovery_tracking_section",
   "invoiced_this_period",
@@ -144,13 +144,13 @@
    "fieldname": "column_break_mmpm",
    "fieldtype": "Column Break"
   },
-   {
-    "fetch_from": "contract.fixed_monthly_gross_revenue",
-    "fieldname": "fixed_monthly_gross_revenue",
-    "fieldtype": "Currency",
-    "label": "Fixed Monthly Gross Revenue (per contract)",
-    "read_only": 1
-   },
+  {
+   "fetch_from": "contract.fixed_monthly_gross_revenue",
+   "fieldname": "fixed_monthly_gross_revenue",
+   "fieldtype": "Currency",
+   "label": "Fixed Monthly Gross Revenue (per contract)",
+   "read_only": 1
+  },
   {
    "fetch_from": "contract.revenue_share_pct",
    "fieldname": "revenue_share_pct",
@@ -289,6 +289,50 @@
    "share": 1,
    "submit": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Auditor"
   }
  ],
  "row_format": "Dynamic",

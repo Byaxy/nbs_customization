@@ -5,11 +5,11 @@
  "creation": "2026-07-08 18:08:28.664877",
  "doctype": "DocType",
  "engine": "InnoDB",
-  "field_order": [
-   "analyzer_type",
-   "column_break_bqid",
-   "item",
-   "description",
+ "field_order": [
+  "analyzer_type",
+  "column_break_bqid",
+  "item",
+  "description",
   "section_break_vtgp",
   "supported_test_methods",
   "section_break_mpbp",
@@ -30,8 +30,8 @@
    "fieldname": "column_break_bqid",
    "fieldtype": "Column Break"
   },
-   {
-    "fieldname": "section_break_vtgp",
+  {
+   "fieldname": "section_break_vtgp",
    "fieldtype": "Section Break"
   },
   {
@@ -85,7 +85,41 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Auditor"
   }
  ],
  "row_format": "Dynamic",

@@ -82,7 +82,8 @@ function _setup_queries(frm) {
 	}));
 
 	frm.set_query("pricing_worksheet", () => {
-		if (!frm.doc.customer) return { filters: { status: "Approved", linked_contract: ["is", "not set"] } };
+		if (!frm.doc.customer)
+			return { filters: { status: "Approved", linked_contract: ["is", "not set"] } };
 		return {
 			filters: {
 				customer: frm.doc.customer,
@@ -106,8 +107,8 @@ function _compute_duration(frm) {
 	if (frm.doc.start_date && frm.doc.end_date) {
 		const start = frappe.datetime.str_to_obj(frm.doc.start_date);
 		const end = frappe.datetime.str_to_obj(frm.doc.end_date);
-		const months = (end.getFullYear() - start.getFullYear()) * 12
-			+ (end.getMonth() - start.getMonth());
+		const months =
+			(end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
 		frm.set_value("contract_duration_months", Math.max(months, 0));
 	}
 }
@@ -128,7 +129,10 @@ function _on_pricing_worksheet_change(frm) {
 			frm.set_value("min_monthly_value", ws.min_monthly_value || 0);
 			frm.set_value("breach_threshold", 3);
 			frm.set_value("grace_period_days", 30);
-			frm.set_value("revenue_share_pct", ws.contract_type === "CPT" ? (ws.required_revenue_share_pct || 0) : 0);
+			frm.set_value(
+				"revenue_share_pct",
+				ws.contract_type === "CPT" ? ws.required_revenue_share_pct || 0 : 0
+			);
 
 			const start = frappe.datetime.now_date();
 			const end = frappe.datetime.add_days(start, (ws.contract_years || 1) * 365);
@@ -146,7 +150,9 @@ function _on_pricing_worksheet_change(frm) {
 				child.monthly_test_volume = line.monthly_test_volume;
 				child.contract_price = line.selling_price_per_pack || 0;
 				child.qty_required_total = line.packs_needed || 0;
-				child.min_monthly_qty = Math.ceil((line.monthly_test_volume || 0) / (line.tests_per_pack || 1));
+				child.min_monthly_qty = Math.ceil(
+					(line.monthly_test_volume || 0) / (line.tests_per_pack || 1)
+				);
 				child.cogs_per_unit = line.cogs_per_pack;
 				child.agreed_test_price = line.price_per_test || 0;
 			});
@@ -170,8 +176,10 @@ function _on_pricing_worksheet_change(frm) {
 function _set_default_contract_title(frm) {
 	if (frm.doc.contract_title && !frm.doc.__islocal) return;
 	if (!frm.doc.customer_name || !frm.doc.contract_type) return;
-	frm.set_value("contract_title",
-		`${frm.doc.customer_name} - ${frm.doc.contract_type} Placement Contract`);
+	frm.set_value(
+		"contract_title",
+		`${frm.doc.customer_name} - ${frm.doc.contract_type} Placement Contract`
+	);
 }
 
 function _fetch_line_details(frm, cdt, cdn) {
@@ -216,63 +224,69 @@ function _add_capitalize_button(frm) {
 	if (frm.doc.asset) return;
 	if (!frm.doc.analyzer_pid) return;
 
-	frm.add_custom_button(__("Capitalize for Placement"), () => {
-		const d = new frappe.ui.Dialog({
-			title: __("Capitalize Analyzer from Stock"),
-			fields: [
-				{
-					label: __("Warehouse"),
-					fieldname: "warehouse",
-					fieldtype: "Link",
-					options: "Warehouse",
-					reqd: 1,
-					get_query() {
-						return {
-							filters: {
-								company: frappe.defaults.get_default("company"),
-							},
-						};
+	frm.add_custom_button(
+		__("Capitalize for Placement"),
+		() => {
+			const d = new frappe.ui.Dialog({
+				title: __("Capitalize Analyzer from Stock"),
+				fields: [
+					{
+						label: __("Warehouse"),
+						fieldname: "warehouse",
+						fieldtype: "Link",
+						options: "Warehouse",
+						reqd: 1,
+						get_query() {
+							return {
+								filters: {
+									company: frappe.defaults.get_default("company"),
+								},
+							};
+						},
 					},
+					{
+						label: __("Serial No"),
+						fieldname: "serial_no",
+						fieldtype: "Link",
+						options: "Serial No",
+						reqd: 1,
+						get_query() {
+							return {
+								filters: {
+									item_code: frm.doc.analyzer_pid,
+									status: "In Store",
+									warehouse: d.get_value("warehouse") || "",
+								},
+							};
+						},
+					},
+				],
+				primary_action_label: __("Create Asset"),
+				primary_action(values) {
+					d.hide();
+					frappe.dom.freeze(__("Creating Asset..."));
+					frm.call({
+						method: "create_asset_from_stock",
+						args: {
+							warehouse: values.warehouse,
+							serial_no: values.serial_no,
+						},
+						callback(r) {
+							frappe.dom.unfreeze();
+							if (!r.exc) {
+								frappe.msgprint(
+									__("Asset {0} created and capitalized.", [r.message])
+								);
+								frm.refresh();
+							}
+						},
+					});
 				},
-				{
-					label: __("Serial No"),
-					fieldname: "serial_no",
-					fieldtype: "Link",
-					options: "Serial No",
-					reqd: 1,
-					get_query() {
-						return {
-							filters: {
-								item_code: frm.doc.analyzer_pid,
-								status: "In Store",
-								warehouse: d.get_value("warehouse") || "",
-							},
-						};
-					},
-				},
-			],
-			primary_action_label: __("Create Asset"),
-			primary_action(values) {
-				d.hide();
-				frappe.dom.freeze(__("Creating Asset..."));
-				frm.call({
-					method: "create_asset_from_stock",
-					args: {
-						warehouse: values.warehouse,
-						serial_no: values.serial_no,
-					},
-					callback(r) {
-						frappe.dom.unfreeze();
-						if (!r.exc) {
-							frappe.msgprint(__("Asset {0} created and capitalized.", [r.message]));
-							frm.refresh();
-						}
-					},
-				});
-			},
-		});
-		d.show();
-	}, __("Create"));
+			});
+			d.show();
+		},
+		__("Create")
+	);
 }
 
 function _add_deployment_button(frm) {
@@ -289,16 +303,24 @@ function _add_deployment_button(frm) {
 		},
 		callback(r) {
 			if (r.message && r.message.length) {
-				frm.add_custom_button(__("Analyzer Deployment"), () => {
-					frappe.set_route("Form", "Analyzer Deployment", r.message[0].name);
-				}, __("View"));
+				frm.add_custom_button(
+					__("Analyzer Deployment"),
+					() => {
+						frappe.set_route("Form", "Analyzer Deployment", r.message[0].name);
+					},
+					__("View")
+				);
 			} else {
-				frm.add_custom_button(__("Analyzer Deployment"), () => {
-					frappe.model.open_mapped_doc({
-						method: "nbs_customization.controllers.placement.contract.make_deployment",
-						frm: frm,
-					});
-				}, __("Create"));
+				frm.add_custom_button(
+					__("Analyzer Deployment"),
+					() => {
+						frappe.model.open_mapped_doc({
+							method: "nbs_customization.controllers.placement.contract.make_deployment",
+							frm: frm,
+						});
+					},
+					__("Create")
+				);
 			}
 		},
 	});
@@ -307,22 +329,30 @@ function _add_deployment_button(frm) {
 function _add_retrieve_button(frm) {
 	if (frm.doc.contract_status !== "Active") return;
 
-	frm.add_custom_button(__("Retrieve Analyzer"), () => {
-		frappe.model.open_mapped_doc({
-			method: "nbs_customization.controllers.placement.contract.make_repossession_request",
-			frm: frm,
-		});
-	}, __("Actions"));
+	frm.add_custom_button(
+		__("Retrieve Analyzer"),
+		() => {
+			frappe.model.open_mapped_doc({
+				method: "nbs_customization.controllers.placement.contract.make_repossession_request",
+				frm: frm,
+			});
+		},
+		__("Actions")
+	);
 }
 
 function _add_refresh_recovery_button(frm) {
 	if (frm.doc.docstatus !== 1) return;
 
-	frm.add_custom_button(__("Refresh Recovery"), () => {
-		frm.call("recompute_recovery").then(() => {
-			frm.refresh();
-		});
-	}, __("Actions"));
+	frm.add_custom_button(
+		__("Refresh Recovery"),
+		() => {
+			frm.call("recompute_recovery").then(() => {
+				frm.refresh();
+			});
+		},
+		__("Actions")
+	);
 }
 
 function _progress_color(pct) {
@@ -348,22 +378,32 @@ function _show_recovery_progress(frm) {
 				<div class="progress-chart">
 					<h6 style="margin: 5px 0 2px; font-weight: 600; font-size: 12px;">${__("Invoiced")}</h6>
 					<div class="progress" style="height: 18px;">
-						<div class="progress-bar" style="width: ${Math.max(invoiced, 3)}%; background-color: ${_progress_color(invoiced)};">
+						<div class="progress-bar" style="width: ${Math.max(
+							invoiced,
+							3
+						)}%; background-color: ${_progress_color(invoiced)};">
 							${invoiced > 8 ? `${Math.round(invoiced)}%` : ""}
 						</div>
 					</div>
-					<p style="margin: 2px 0 0; font-size: 11px; color: #888;">${Math.round(invoiced)}% ${__("of target recovered")}</p>
+					<p style="margin: 2px 0 0; font-size: 11px; color: #888;">${Math.round(invoiced)}% ${__(
+		"of target recovered"
+	)}</p>
 				</div>
 			</div>
 			<div class="col-sm-6" style="padding: 0 5px;">
 				<div class="progress-chart">
 					<h6 style="margin: 5px 0 2px; font-weight: 600; font-size: 12px;">${__("Collected / Paid")}</h6>
 					<div class="progress" style="height: 18px;">
-						<div class="progress-bar" style="width: ${Math.max(collected, 3)}%; background-color: ${_progress_color(collected)};">
+						<div class="progress-bar" style="width: ${Math.max(
+							collected,
+							3
+						)}%; background-color: ${_progress_color(collected)};">
 							${collected > 8 ? `${Math.round(collected)}%` : ""}
 						</div>
 					</div>
-					<p style="margin: 2px 0 0; font-size: 11px; color: #888;">${Math.round(collected)}% ${__("of target collected")}</p>
+					<p style="margin: 2px 0 0; font-size: 11px; color: #888;">${Math.round(collected)}% ${__(
+		"of target collected"
+	)}</p>
 				</div>
 			</div>
 		</div>
@@ -382,7 +422,9 @@ function _show_dashboard_alert(frm) {
 		true
 	);
 	frm.dashboard.add_comment(
-		__("Linked to Placement Contract: {0} — {1}",
-			[contract_link, frm.doc.custom_instrument_placement_contract])
+		__("Linked to Placement Contract: {0} — {1}", [
+			contract_link,
+			frm.doc.custom_instrument_placement_contract,
+		])
 	);
 }

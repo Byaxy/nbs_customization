@@ -37,21 +37,25 @@ function _add_penalty_button(frm) {
 	if (frm.doc.compliance_status !== "Shortfall") return;
 	if (frm.doc.penalty_invoice) return;
 
-	frm.add_custom_button(__("Create Shortfall Penalty Invoice"), () => {
-		frappe.call({
-			method: "nbs_customization.nbs_customization.nbs_customization.doctype.monthly_reconciliation.monthly_reconciliation.create_penalty_invoice",
-			args: { reconciliation_name: frm.doc.name },
-			freeze: true,
-			callback(r) {
-				if (r.message) {
-					frm.set_value("penalty_invoice", r.message);
-					frm.save();
-					frappe.show_alert({
-						message: __("Penalty Invoice {0} created.", [r.message]),
-						indicator: "green",
-					});
-				}
-			},
-		});
-	}, __("Actions"));
+	frm.add_custom_button(
+		__("Create Shortfall Penalty Invoice"),
+		() => {
+			frappe.call({
+				method: "nbs_customization.nbs_customization.nbs_customization.doctype.monthly_reconciliation.monthly_reconciliation.create_penalty_invoice",
+				args: { reconciliation_name: frm.doc.name },
+				freeze: true,
+				callback(r) {
+					if (r.message) {
+						frm.set_value("penalty_invoice", r.message);
+						frm.save();
+						frappe.show_alert({
+							message: __("Penalty Invoice {0} created.", [r.message]),
+							indicator: "green",
+						});
+					}
+				},
+			});
+		},
+		__("Actions")
+	);
 }

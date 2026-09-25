@@ -36,7 +36,7 @@ frappe.ui.form.on("Instrument Test Method", {
 						title: __("Invalid Reagent"),
 						message: __(
 							"Item {0} has Reagent Role '{1}'. Only Test Reagent items are allowed.",
-							[row.required_reagent, r.message.reagent_role],
+							[row.required_reagent, r.message.reagent_role]
 						),
 						indicator: "red",
 					});
@@ -44,9 +44,24 @@ frappe.ui.form.on("Instrument Test Method", {
 					return;
 				}
 
-				frappe.model.set_value(cdt, cdn, "default_pack_volume_ml", r.message.default_pack_volume_ml);
-				frappe.model.set_value(cdt, cdn, "default_tests_per_pack", r.message.default_tests_per_pack);
-				frappe.model.set_value(cdt, cdn, "default_cogs_per_pack", r.message.default_cogs_per_pack);
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"default_pack_volume_ml",
+					r.message.default_pack_volume_ml
+				);
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"default_tests_per_pack",
+					r.message.default_tests_per_pack
+				);
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"default_cogs_per_pack",
+					r.message.default_cogs_per_pack
+				);
 			},
 		});
 	},
@@ -83,7 +98,7 @@ frappe.ui.form.on("Instrument Consumable Requirement", {
 						title: __("Invalid Consumable"),
 						message: __(
 							"Item {0} has Reagent Role '{1}'. Only Non-Test Consumable items are allowed.",
-							[row.consumable_item, r.message.reagent_role],
+							[row.consumable_item, r.message.reagent_role]
 						),
 						indicator: "red",
 					});
@@ -91,9 +106,24 @@ frappe.ui.form.on("Instrument Consumable Requirement", {
 					return;
 				}
 
-				frappe.model.set_value(cdt, cdn, "consumption_qty", r.message.default_consumption_qty);
-				frappe.model.set_value(cdt, cdn, "consumption_frequency", r.message.default_consumption_frequency);
-				frappe.model.set_value(cdt, cdn, "default_cogs_per_unit", r.message.default_cogs_per_unit);
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"consumption_qty",
+					r.message.default_consumption_qty
+				);
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"consumption_frequency",
+					r.message.default_consumption_frequency
+				);
+				frappe.model.set_value(
+					cdt,
+					cdn,
+					"default_cogs_per_unit",
+					r.message.default_cogs_per_unit
+				);
 			},
 		});
 	},
@@ -131,7 +161,7 @@ function _check_duplicate_parameter(frm, cdt, cdn) {
 
 	const child_table = frm.doc.supported_test_methods || [];
 	const count = child_table.filter(
-		(r) => r.test_parameter === row.test_parameter && r.name !== row.name,
+		(r) => r.test_parameter === row.test_parameter && r.name !== row.name
 	).length;
 
 	if (count > 0) {
@@ -150,7 +180,7 @@ function _check_duplicate_consumable(frm, cdt, cdn) {
 
 	const child_table = frm.doc.required_consumables || [];
 	const duplicate = child_table.find(
-		(r) => r.consumable_item === row.consumable_item && r.name !== row.name,
+		(r) => r.consumable_item === row.consumable_item && r.name !== row.name
 	);
 
 	if (duplicate) {

@@ -19,7 +19,7 @@
 			// Anchors on the unique header-checkbox class
 			return html.replace(
 				/(<input\s+class="list-header-checkbox\s+list-check-all"[^>]*>\s*<\/span>)/,
-				"$1" + `<span class="nbs-row-no nbs-row-no-header">${__("SN")}</span>`,
+				"$1" + `<span class="nbs-row-no nbs-row-no-header">${__("SN")}</span>`
 			);
 		};
 
@@ -32,7 +32,7 @@
 				// Anchors on type=checkbox (each Subject column has exactly one)
 				return html.replace(
 					/(<input[^>]*type="checkbox"[^>]*>\s*<\/span>)/,
-					"$1" + `<span class="nbs-row-no">${row_no}</span>`,
+					"$1" + `<span class="nbs-row-no">${row_no}</span>`
 				);
 			}
 			return html;

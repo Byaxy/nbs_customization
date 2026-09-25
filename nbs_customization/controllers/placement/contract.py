@@ -37,6 +37,36 @@ def make_deployment(source_name, target_doc=None):
 
 
 @frappe.whitelist()
+def decommission_analyzer(asset_name, reason=None):
+	"""Scrap an unusable analyzer via the native Asset scrap flow.
+
+	Requires no Deployed deployment and no Active contract link.
+	"""
+	from erpnext.assets.doctype.asset.depreciation import scrap_asset
+
+	if frappe.db.get_value(
+		"Analyzer Deployment", {"asset": asset_name, "deployment_status": "Deployed"}, "name"
+	):
+		frappe.throw(
+			frappe._("Asset {0} has a Deployed deployment — retrieve it before decommissioning.").format(
+				asset_name
+			)
+		)
+	contract = frappe.db.get_value("Asset", asset_name, "custom_current_placement_contract")
+	if (
+		contract
+		and frappe.db.get_value("Instrument Placement Contract", contract, "contract_status") == "Active"
+	):
+		frappe.throw(
+			frappe._("Asset {0} is linked to Active contract {1} — close it first.").format(
+				asset_name, contract
+			)
+		)
+	scrap_asset(asset_name)
+	return asset_name
+
+
+@frappe.whitelist()
 def make_repossession_request(source_name, target_doc=None):
 	from frappe.model.mapper import get_mapped_doc
 

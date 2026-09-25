@@ -36,13 +36,13 @@ function _toggle_placement_fields(frm) {
 			"custom_instrument_specification",
 			"description",
 			__(
-				"Select the Instrument Specification if this item is an analyzer. Defines supported tests and consumables.",
-			),
+				"Select the Instrument Specification if this item is an analyzer. Defines supported tests and consumables."
+			)
 		);
 		frm.set_df_property(
 			"custom_reagent_specification",
 			"description",
-			__("Select the Reagent Specification if this item is a reagent or consumable."),
+			__("Select the Reagent Specification if this item is a reagent or consumable.")
 		);
 	}
 }

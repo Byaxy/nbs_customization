@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery as _recompute
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
 
@@ -19,6 +20,7 @@ class InstrumentPlacementContract(Document):
 	def before_submit(self):
 		self._require_contract_lines()
 		self._require_pricing_worksheet()
+		self._require_asset()
 
 	def on_submit(self):
 		self.approved_by = frappe.session.user
@@ -85,6 +87,14 @@ class InstrumentPlacementContract(Document):
 		self.fixed_monthly_gross_revenue = total_gross
 		self.fixed_monthly_share_amount = total_gross * pct
 
+	def _resolve_asset_location(self):
+		if self.customer_site and frappe.db.exists("Location", self.customer_site):
+			return self.customer_site
+		fallback = frappe.db.get_value("Location", {}, "name")
+		if not fallback:
+			frappe.throw(_("No Location found — create one before capitalizing an analyzer."))
+		return fallback
+
 	@frappe.whitelist()
 	def recompute_recovery(self):
 		_recompute(self.name)
@@ -96,11 +106,19 @@ class InstrumentPlacementContract(Document):
 			frappe.throw(_("Contract already has an Asset linked."))
 		if self.docstatus != 0:
 			frappe.throw(_("Contract must be in Draft to create an Asset."))
+		if not serial_no:
+			frappe.throw(_("A Serial No is required to capitalize an analyzer for placement."))
+		if not frappe.db.get_value("Item", self.analyzer_pid, "has_serial_no"):
+			frappe.throw(
+				_("Analyzer Item {0} must have Serial No tracking enabled (has_serial_no=1).").format(
+					self.analyzer_pid
+				)
+			)
 
 		serial_doc = frappe.get_doc("Serial No", serial_no)
 		if serial_doc.item_code != self.analyzer_pid:
 			frappe.throw(_("Serial No {0} does not match analyzer {1}.").format(serial_no, self.analyzer_pid))
-		if serial_doc.status != "In Store" or serial_doc.warehouse != warehouse:
+		if serial_doc.status != "Active" or serial_doc.warehouse != warehouse:
 			frappe.throw(_("Serial No {0} is not available in warehouse {1}.").format(serial_no, warehouse))
 
 		capital_item = "Capital Asset"
@@ -109,10 +127,7 @@ class InstrumentPlacementContract(Document):
 				_("Capital asset item '{0}' not found. Run migrate to create it.").format(capital_item)
 			)
 
-		company = (
-			frappe.db.get_value("Instrument Pricing Worksheet", self.pricing_worksheet, "company")
-			or frappe.defaults.get_defaults().company
-		)
+		company = frappe.defaults.get_defaults().get("company") or frappe.db.get_value("Company", {}, "name")
 
 		asset_category = frappe.db.get_value("Item", capital_item, "asset_category")
 		if not asset_category:
@@ -129,12 +144,14 @@ class InstrumentPlacementContract(Document):
 				"item_code": capital_item,
 				"company": company,
 				"asset_category": asset_category,
-				"location": self.customer_site,
+				"location": self._resolve_asset_location(),
 				"custom_serial_no": serial_no,
 				"custom_instrument_specification": instrument_spec,
 				"custom_current_deployment_status": "Warehouse",
 				"gross_purchase_amount": serial_doc.purchase_rate or 0,
+				"net_purchase_amount": serial_doc.purchase_rate or 0,
 				"purchase_date": frappe.utils.today(),
+				"available_for_use_date": frappe.utils.today(),
 				"asset_type": "Composite Asset",
 			}
 		).insert(ignore_permissions=True)
@@ -143,6 +160,7 @@ class InstrumentPlacementContract(Document):
 			{
 				"doctype": "Asset Capitalization",
 				"company": company,
+				"target_item_code": capital_item,
 				"target_asset": asset.name,
 				"posting_date": frappe.utils.today(),
 				"stock_items": [
@@ -183,6 +201,12 @@ class InstrumentPlacementContract(Document):
 	def _require_pricing_worksheet(self):
 		if not self.pricing_worksheet:
 			frappe.throw(frappe._("A Pricing Worksheet must be linked before submission."))
+
+	def _require_asset(self):
+		if not self.asset or not self.serial_no:
+			frappe.throw(
+				frappe._("An Asset with Serial No must be capitalized for placement before submission.")
+			)
 
 	def _require_contract_lines(self):
 		has_reagent = self.contract_reagent_lines and len(self.contract_reagent_lines) > 0

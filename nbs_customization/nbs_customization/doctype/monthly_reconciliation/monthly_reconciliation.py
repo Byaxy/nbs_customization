@@ -3,7 +3,8 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import getdate, add_months, add_days
+from frappe.utils import add_days, add_months, getdate
+
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery
 
 
@@ -40,9 +41,7 @@ class MonthlyReconciliation(Document):
 def generate_monthly_reconciliation(contract_name, period):
 	contract = frappe.get_doc("Instrument Placement Contract", contract_name)
 	if contract.contract_type not in ("RRA", "RLO"):
-		frappe.throw(
-			frappe._("Monthly Reconciliation is only for RRA/RLO contracts.")
-		)
+		frappe.throw(frappe._("Monthly Reconciliation is only for RRA/RLO contracts."))
 
 	existing = frappe.db.get_value(
 		"Monthly Reconciliation",
@@ -52,37 +51,45 @@ def generate_monthly_reconciliation(contract_name, period):
 	if existing:
 		mrc = frappe.get_doc("Monthly Reconciliation", existing)
 	else:
-		mrc = frappe.get_doc({
-			"doctype": "Monthly Reconciliation",
-			"contract": contract_name,
-			"period": period,
-			"period_start": format_date_range_start(period),
-			"period_end": format_date_range_end(period),
-		})
+		mrc = frappe.get_doc(
+			{
+				"doctype": "Monthly Reconciliation",
+				"contract": contract_name,
+				"period": period,
+				"period_start": format_date_range_start(period),
+				"period_end": format_date_range_end(period),
+			}
+		)
 		mrc.insert(ignore_permissions=True)
 
 	invoices = frappe.db.get_all(
 		"Sales Invoice",
 		filters={
 			"custom_instrument_placement_contract": contract_name,
-			"custom_placement_transaction_type": ("in", [
-				"Contract Reagent Sale", "Contract Consumable Replenishment",
-			]),
+			"custom_placement_transaction_type": (
+				"in",
+				[
+					"Contract Reagent Sale",
+					"Contract Consumable Replenishment",
+				],
+			),
 			"posting_date": ("between", [mrc.period_start, mrc.period_end]),
 			"docstatus": 1,
 		},
-		fields=["name", "posting_date", "grand_total",
-				"custom_placement_transaction_type"],
+		fields=["name", "posting_date", "grand_total", "custom_placement_transaction_type"],
 	)
 
 	mrc.linked_invoices = []
 	for inv in invoices:
-		mrc.append("linked_invoices", {
-			"sales_invoice": inv.name,
-			"invoice_date": inv.posting_date,
-			"invoice_amount": inv.grand_total,
-			"placement_transaction_type": inv.custom_placement_transaction_type,
-		})
+		mrc.append(
+			"linked_invoices",
+			{
+				"sales_invoice": inv.name,
+				"invoice_date": inv.posting_date,
+				"invoice_amount": inv.grand_total,
+				"placement_transaction_type": inv.custom_placement_transaction_type,
+			},
+		)
 
 	reagent_value = sum(
 		inv.grand_total
@@ -136,7 +143,7 @@ def _compute_compliance(mrc, contract, total_actual):
 
 	if grace > 0:
 		grace_deadline = add_days(mrc.period_end, grace)
-		if frappe.utils.today() <= grace_deadline:
+		if getdate(frappe.utils.today()) <= getdate(grace_deadline):
 			mrc.compliance_status = "Grace Period"
 			mrc.consecutive_breach_count = previous_breach_count
 			return
@@ -163,9 +170,9 @@ def create_penalty_invoice(reconciliation_name):
 
 	if mrc.penalty_invoice:
 		frappe.throw(
-			frappe._(
-				"Penalty Invoice {0} already exists for this reconciliation."
-			).format(mrc.penalty_invoice)
+			frappe._("Penalty Invoice {0} already exists for this reconciliation.").format(
+				mrc.penalty_invoice
+			)
 		)
 
 	contract = frappe.get_doc("Instrument Placement Contract", mrc.contract)
@@ -176,29 +183,51 @@ def create_penalty_invoice(reconciliation_name):
 	elif contract.shortfall_penalty_type == "Percentage":
 		penalty_amount = mrc.shortfall_value * (contract.penalty_value or 0) / 100
 
-	si = frappe.get_doc({
-		"doctype": "Sales Invoice",
-		"customer": contract.customer,
-		"custom_instrument_placement_contract": contract.name,
-		"custom_placement_transaction_type": "Shortfall Penalty",
-		"posting_date": frappe.utils.today(),
-		"items": [
-			{
-				"item_code": "SHORTFALL-PENALTY",
-				"qty": 1,
-				"rate": penalty_amount,
-			}
-		],
-	})
+	# Site mandates SO links on SI items — bill the penalty against its own order.
+	penalty_order = frappe.get_doc(
+		{
+			"doctype": "Sales Order",
+			"company": frappe.defaults.get_defaults().get("company")
+			or frappe.db.get_value("Company", {}, "name"),
+			"customer": contract.customer,
+			"transaction_date": frappe.utils.today(),
+			"delivery_date": frappe.utils.today(),
+			"custom_instrument_placement_contract": contract.name,
+			"custom_placement_transaction_type": "Shortfall Penalty",
+			"items": [
+				{
+					"item_code": "SHORTFALL-PENALTY",
+					"qty": 1,
+					"rate": penalty_amount,
+				}
+			],
+		}
+	)
+	penalty_order.insert(ignore_permissions=True)
+	penalty_order.submit()
+	si = frappe.get_doc(
+		{
+			"doctype": "Sales Invoice",
+			"customer": contract.customer,
+			"custom_instrument_placement_contract": contract.name,
+			"custom_placement_transaction_type": "Shortfall Penalty",
+			"posting_date": frappe.utils.today(),
+			"items": [
+				{
+					"item_code": "SHORTFALL-PENALTY",
+					"qty": 1,
+					"rate": penalty_amount,
+					"sales_order": penalty_order.name,
+					"so_detail": penalty_order.items[0].name,
+				}
+			],
+		}
+	)
 	si.insert(ignore_permissions=True)
 
 	mrc.db_set("penalty_invoice", si.name)
 
-	frappe.msgprint(
-		frappe._("Penalty Invoice {0} created successfully.").format(
-			frappe.bold(si.name)
-		)
-	)
+	frappe.msgprint(frappe._("Penalty Invoice {0} created successfully.").format(frappe.bold(si.name)))
 
 	return si.name
 
@@ -223,21 +252,22 @@ def _auto_create_repossession_request(mrc, contract):
 	if not deployment:
 		return
 
-	rr = frappe.get_doc({
-		"doctype": "Repossession Request",
-		"contract": contract.name,
-		"analyzer_deployment": deployment,
-		"reason": "Minimum Purchase Breach",
-		"breach_count": mrc.consecutive_breach_count,
-		"months_breached": mrc.consecutive_breach_count,
-		"requested_by": frappe.session.user,
-		"request_date": frappe.utils.today(),
-		"status": "Draft",
-	})
+	rr = frappe.get_doc(
+		{
+			"doctype": "Repossession Request",
+			"contract": contract.name,
+			"analyzer_deployment": deployment,
+			"reason": "Minimum Purchase Breach",
+			"breach_count": mrc.consecutive_breach_count,
+			"months_breached": mrc.consecutive_breach_count,
+			"requested_by": frappe.session.user,
+			"request_date": frappe.utils.today(),
+			"status": "Draft",
+		}
+	)
 	rr.insert(ignore_permissions=True)
 	frappe.msgprint(
 		frappe._(
-			"Repossession Request {0} has been auto-created for Contract {1} "
-			"due to breach threshold reached."
+			"Repossession Request {0} has been auto-created for Contract {1} due to breach threshold reached."
 		).format(frappe.bold(rr.name), frappe.bold(contract.name))
 	)

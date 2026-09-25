@@ -27,9 +27,7 @@ def recompute_contract_recovery(contract_name):
 	)
 
 	cumulative_invoiced = sum((inv.grand_total or 0) for inv in invoices)
-	cumulative_collected = sum(
-		(inv.grand_total or 0) - (inv.outstanding_amount or 0) for inv in invoices
-	)
+	cumulative_collected = sum((inv.grand_total or 0) - (inv.outstanding_amount or 0) for inv in invoices)
 	outstanding_on_contract = target - cumulative_collected
 
 	recovery_pct_invoiced = (cumulative_invoiced / target * 100) if target else 0

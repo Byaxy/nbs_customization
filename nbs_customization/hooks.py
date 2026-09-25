@@ -163,20 +163,21 @@ override_whitelisted_methods = {
 # ---------------
 
 scheduler_events = {
-    "monthly": [
-        "nbs_customization.tasks.monthly_generate_reconciliations",
-        "nbs_customization.tasks.monthly_generate_revenue_share",
-    ],
-    "daily": [
-        "nbs_customization.tasks.daily_process_amendments",
-        "nbs_customization.tasks.daily_check_rlo_ownership",
-    ],
+	"monthly": [
+		"nbs_customization.tasks.monthly_generate_reconciliations",
+		"nbs_customization.tasks.monthly_generate_revenue_share",
+	],
+	"daily": [
+		"nbs_customization.tasks.daily_process_amendments",
+		"nbs_customization.tasks.daily_check_rlo_ownership",
+	],
 }
 
 # Testing
 # -------
 
 # before_tests = "nbs_customization.install.before_tests"
+before_tests = "nbs_customization.tests.bootstrap_guard.before_tests"
 
 # Extend DocType Class
 # ------------------------------
@@ -402,11 +403,9 @@ doc_events = {
 		"validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
 		"before_cancel": "nbs_customization.controllers.stock_entry.before_cancel",
 	},
-	"Loan Waybill": {
-		"validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
-	},
+	"Loan Waybill": {"validate": "nbs_customization.controllers.validations.sales.validate_unique_items"},
 	"Purchase Receipt": {
-		"before_save":   "nbs_customization.controllers.purchase_receipt.before_save",
+		"before_save": "nbs_customization.controllers.purchase_receipt.before_save",
 		"before_submit": "nbs_customization.controllers.purchase_receipt.before_submit",
 		"validate": "nbs_customization.nbs_customization.doctype.inbound_shipment.inbound_shipment.validate_purchase_receipt_shipment_link",
 		"on_submit": [
@@ -419,7 +418,7 @@ doc_events = {
 		"on_submit": "nbs_customization.utils.pricing.on_landed_cost_voucher_submit",
 	},
 	"Purchase Invoice": {
-		"before_save":   "nbs_customization.controllers.purchase_invoice.before_save",
+		"before_save": "nbs_customization.controllers.purchase_invoice.before_save",
 		"before_submit": "nbs_customization.controllers.purchase_invoice.before_submit",
 	},
 	"Shipment": {

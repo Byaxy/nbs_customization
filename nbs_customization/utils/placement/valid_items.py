@@ -75,9 +75,7 @@ def _get_items_for_role(role, analyzer_type=None):
 	if not analyzer_type:
 		return {r["item"] for r in all_rs}
 
-	panels_to_check = {
-		r["test_panel_group"] for r in all_rs if r["test_panel_group"]
-	}
+	panels_to_check = {r["test_panel_group"] for r in all_rs if r["test_panel_group"]}
 	if panels_to_check:
 		panel_info = frappe.db.get_all(
 			"Test Panel Group",
@@ -85,15 +83,13 @@ def _get_items_for_role(role, analyzer_type=None):
 			fields=["name", "analyzer_type"],
 		)
 		matching_panels = {
-			p["name"] for p in panel_info
-			if not p.get("analyzer_type") or p["analyzer_type"] == analyzer_type
+			p["name"] for p in panel_info if not p.get("analyzer_type") or p["analyzer_type"] == analyzer_type
 		}
 	else:
 		matching_panels = set()
 
 	return {
-		r["item"] for r in all_rs
-		if not r["test_panel_group"] or r["test_panel_group"] in matching_panels
+		r["item"] for r in all_rs if not r["test_panel_group"] or r["test_panel_group"] in matching_panels
 	}
 
 
@@ -139,12 +135,9 @@ def get_valid_reagent_items(doctype, txt, searchfield, start, page_len, filters)
 	codes = list(valid.keys())
 	if txt:
 		txt_lower = txt.lower()
-		codes = [
-			c for c in codes
-			if txt_lower in c.lower() or txt_lower in valid.get(c, "").lower()
-		]
+		codes = [c for c in codes if txt_lower in c.lower() or txt_lower in valid.get(c, "").lower()]
 
-	return [[c, valid.get(c, c)] for c in codes[start:start + page_len]]
+	return [[c, valid.get(c, c)] for c in codes[start : start + page_len]]
 
 
 @frappe.whitelist()
@@ -162,12 +155,9 @@ def get_test_parameters_for_analyzer_type(doctype, txt, searchfield, start, page
 	tp_filters = {"parameter_name": ("like", f"%{txt}%")}
 
 	if analyzer_type:
-		all_panels = frappe.db.get_all(
-			"Test Panel Group", fields=["name", "analyzer_type"]
-		)
+		all_panels = frappe.db.get_all("Test Panel Group", fields=["name", "analyzer_type"])
 		panel_names = [
-			p["name"] for p in all_panels
-			if not p.get("analyzer_type") or p["analyzer_type"] == analyzer_type
+			p["name"] for p in all_panels if not p.get("analyzer_type") or p["analyzer_type"] == analyzer_type
 		]
 		if not panel_names:
 			return []

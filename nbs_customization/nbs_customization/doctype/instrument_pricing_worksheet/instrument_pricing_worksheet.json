@@ -371,7 +371,6 @@
  "owner": "Administrator",
  "permissions": [
   {
-   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -380,7 +379,6 @@
    "read": 1,
    "report": 1,
    "role": "System Manager",
-   "select": 1,
    "share": 1,
    "submit": 1,
    "write": 1
@@ -394,21 +392,40 @@
    "read": 1,
    "report": 1,
    "role": "Sales Manager",
-   "select": 1,
    "share": 1,
    "submit": 1,
    "write": 1
   },
   {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
    "email": 1,
    "export": 1,
    "print": 1,
    "read": 1,
    "report": 1,
    "role": "Sales User",
-   "select": 1,
-   "share": 1,
+   "submit": 1,
    "write": 1
+  },
+  {
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Auditor"
   }
  ],
  "row_format": "Dynamic",

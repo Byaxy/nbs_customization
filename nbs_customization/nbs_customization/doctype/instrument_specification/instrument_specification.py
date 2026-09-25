@@ -18,9 +18,9 @@ class InstrumentSpecification(Document):
 				continue
 			if row.test_parameter in seen:
 				frappe.throw(
-					frappe._(
-						"Test Parameter {0} appears more than once in Supported Test Methods."
-					).format(frappe.bold(row.test_parameter))
+					frappe._("Test Parameter {0} appears more than once in Supported Test Methods.").format(
+						frappe.bold(row.test_parameter)
+					)
 				)
 			seen.add(row.test_parameter)
 
@@ -57,13 +57,9 @@ class InstrumentSpecification(Document):
 
 		for row in self.get("supported_test_methods") or []:
 			if row.test_parameter:
-				panel = frappe.db.get_value(
-					"Test Parameter", row.test_parameter, "test_panel_group"
-				)
+				panel = frappe.db.get_value("Test Parameter", row.test_parameter, "test_panel_group")
 				if panel:
-					panel_at = frappe.db.get_value(
-						"Test Panel Group", panel, "analyzer_type"
-					)
+					panel_at = frappe.db.get_value("Test Panel Group", panel, "analyzer_type")
 					if panel_at and panel_at != self.analyzer_type:
 						frappe.throw(
 							frappe._(
@@ -78,15 +74,11 @@ class InstrumentSpecification(Document):
 						)
 
 			if row.required_reagent:
-				_check_item_analyzer_type(
-					row.required_reagent, self.analyzer_type, row.test_parameter
-				)
+				_check_item_analyzer_type(row.required_reagent, self.analyzer_type, row.test_parameter)
 
 		for row in self.get("required_consumables") or []:
 			if row.consumable_item:
-				_check_item_analyzer_type(
-					row.consumable_item, self.analyzer_type
-				)
+				_check_item_analyzer_type(row.consumable_item, self.analyzer_type)
 
 
 def _check_item_analyzer_type(item_code, expected_analyzer_type, test_parameter=None):
@@ -101,15 +93,12 @@ def _check_item_analyzer_type(item_code, expected_analyzer_type, test_parameter=
 	if panel_at and panel_at != expected_analyzer_type:
 		label = frappe.db.get_value("Item", item_code, "item_name") or item_code
 		ctx = frappe._(
-			"Item {0} belongs to Test Panel Group (Analyzer Type: {1}), "
-			"which doesn't match '{2}'."
+			"Item {0} belongs to Test Panel Group (Analyzer Type: {1}), which doesn't match '{2}'."
 		).format(
 			frappe.bold(label),
 			panel_at,
 			expected_analyzer_type,
 		)
 		if test_parameter:
-			ctx += " " + frappe._(
-				"(Test Parameter: {0})"
-			).format(frappe.bold(test_parameter))
+			ctx += " " + frappe._("(Test Parameter: {0})").format(frappe.bold(test_parameter))
 		frappe.throw(ctx)

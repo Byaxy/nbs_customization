@@ -19,29 +19,49 @@ function _add_status_buttons(frm) {
 	const status = frm.doc.deployment_status;
 
 	if (status === "Deployed") {
-		frm.add_custom_button(__("Send for Service"), () => {
-			_transition_to(frm, "Under Service");
-		}, __("Status"));
+		frm.add_custom_button(
+			__("Send for Service"),
+			() => {
+				_transition_to(frm, "Under Service");
+			},
+			__("Status")
+		);
 
-		frm.add_custom_button(__("Retrieve Analyzer"), () => {
-			_show_retrieval_dialog(frm, "Temporarily Retrieved");
-		}, __("Status"));
+		frm.add_custom_button(
+			__("Retrieve Analyzer"),
+			() => {
+				_show_retrieval_dialog(frm, "Temporarily Retrieved");
+			},
+			__("Status")
+		);
 	}
 
 	if (status === "Under Service") {
-		frm.add_custom_button(__("Return from Service"), () => {
-			_transition_to(frm, "Deployed");
-		}, __("Status"));
+		frm.add_custom_button(
+			__("Return from Service"),
+			() => {
+				_transition_to(frm, "Deployed");
+			},
+			__("Status")
+		);
 	}
 
 	if (status === "Temporarily Retrieved") {
-		frm.add_custom_button(__("Deploy Again"), () => {
-			_transition_to(frm, "Deployed");
-		}, __("Status"));
+		frm.add_custom_button(
+			__("Deploy Again"),
+			() => {
+				_transition_to(frm, "Deployed");
+			},
+			__("Status")
+		);
 
-		frm.add_custom_button(__("Permanently Retrieve"), () => {
-			_show_retrieval_dialog(frm, "Permanently Retrieved");
-		}, __("Status"));
+		frm.add_custom_button(
+			__("Permanently Retrieve"),
+			() => {
+				_show_retrieval_dialog(frm, "Permanently Retrieved");
+			},
+			__("Status")
+		);
 	}
 }
 
@@ -52,8 +72,9 @@ function _transition_to(frm, new_status) {
 
 function _show_retrieval_dialog(frm, new_status) {
 	const dialog = new frappe.ui.Dialog({
-		title: __("Analyzer Retrieval — {0}", [new_status === "Permanently Retrieved"
-			? __("Permanent") : __("Temporary")]),
+		title: __("Analyzer Retrieval — {0}", [
+			new_status === "Permanently Retrieved" ? __("Permanent") : __("Temporary"),
+		]),
 		fields: [
 			{
 				fieldname: "retrieval_reason",
