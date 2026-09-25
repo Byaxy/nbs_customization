@@ -254,7 +254,7 @@ function _add_capitalize_button(frm) {
 							return {
 								filters: {
 									item_code: frm.doc.analyzer_pid,
-									status: "In Store",
+									status: "Active",
 									warehouse: d.get_value("warehouse") || "",
 								},
 							};
@@ -267,6 +267,7 @@ function _add_capitalize_button(frm) {
 					frappe.dom.freeze(__("Creating Asset..."));
 					frm.call({
 						method: "create_asset_from_stock",
+						doc: frm.doc,
 						args: {
 							warehouse: values.warehouse,
 							serial_no: values.serial_no,

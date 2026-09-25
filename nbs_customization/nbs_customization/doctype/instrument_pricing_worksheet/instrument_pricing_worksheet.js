@@ -120,7 +120,9 @@ function _add_apply_button(frm) {
 					label: __("Asset"),
 					fieldtype: "Link",
 					options: "Asset",
-					reqd: 1,
+					description: __(
+						"Optional — leave blank to capitalize from stock on the Contract later."
+					),
 					get_query() {
 						return {
 							filters: {
