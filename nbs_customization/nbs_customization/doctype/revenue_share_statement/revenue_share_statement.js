@@ -12,7 +12,7 @@ function _add_generate_button(frm) {
 		}
 
 		frappe.call({
-			method: "nbs_customization.nbs_customization.nbs_customization.doctype.revenue_share_statement.revenue_share_statement.generate_revenue_share_statement",
+			method: "nbs_customization.nbs_customization.doctype.revenue_share_statement.revenue_share_statement.generate_revenue_share_statement",
 			args: {
 				contract_name: frm.doc.contract,
 				period: frm.doc.period,

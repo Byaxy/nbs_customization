@@ -65,7 +65,7 @@ function _add_status_buttons(frm) {
 					),
 					() => {
 						frappe.call({
-							method: "nbs_customization.nbs_customization.nbs_customization.doctype.ownership_transfer_request.ownership_transfer_request.complete_transfer",
+							method: "nbs_customization.nbs_customization.doctype.ownership_transfer_request.ownership_transfer_request.complete_transfer",
 							args: { otr_name: frm.doc.name },
 							freeze: true,
 							freeze_message: __("Completing transfer..."),

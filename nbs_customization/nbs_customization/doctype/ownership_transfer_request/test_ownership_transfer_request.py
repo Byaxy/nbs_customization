@@ -80,6 +80,26 @@ class TestOwnershipTransfer(IntegrationTestCase):
 		# No duplicate while one is open.
 		self.assertEqual(create_ownership_transfer_request(ctx["contract"].name), name)
 
+	def test_approval_buttons_save_after_submit(self):
+		# Finance/Legal button path: set_value + save on the submitted doc.
+		ctx = self._rlo("_TST-OT7")
+		name = create_ownership_transfer_request(ctx["contract"].name)
+		otr = frappe.get_doc("Ownership Transfer Request", name)
+		otr.submit()
+		otr.finance_reviewed_by = "Administrator"
+		otr.finance_review_date = frappe.utils.today()
+		otr.status = "Pending Legal Review"
+		otr.save()
+		otr.reload()
+		otr.legal_reviewed_by = "Administrator"
+		otr.legal_review_date = frappe.utils.today()
+		otr.status = "Approved"
+		otr.save()
+		self.assertEqual(
+			frappe.db.get_value("Ownership Transfer Request", name, "status"),
+			"Approved",
+		)
+
 	def test_complete_transfer_fulfills_contract(self):
 		ctx = self._rlo("_TST-OT5")
 		dep = make_deployed(ctx)

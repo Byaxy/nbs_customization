@@ -58,6 +58,19 @@ class OwnershipTransferRequest(Document):
 
 		self.gain_loss = (self.analyzer_recovery_collected or 0) - nbv
 
+		# Persist the snapshot: in-memory assignment alone is discarded after
+		# submit and poisons later saves (update-after-submit guard).
+		for field in (
+			"total_recovery_target",
+			"total_collected",
+			"outstanding_balance",
+			"analyzer_cost",
+			"analyzer_recovery_collected",
+			"net_book_value",
+			"gain_loss",
+		):
+			self.db_set(field, self.get(field))
+
 
 @frappe.whitelist()
 def create_ownership_transfer_request(contract_name):

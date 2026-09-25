@@ -75,6 +75,23 @@ class TestRecoveryRecompute(IntegrationTestCase):
 		ignored.reload()
 		ignored.cancel()
 
+	def test_full_collection_fulfills_active_contract(self):
+		ctx = make_contract_kit("_TST-RECF", target=12000)
+		ct = ctx["contract"].name
+		for d in ("2026-07-10", "2026-07-12", "2026-07-14"):
+			make_payment(make_si(ctx, 20, 200, d, "Contract Reagent Sale"))
+		doc = frappe.get_doc("Instrument Placement Contract", ct)
+		self.assertEqual(doc.cumulative_collected, 12000)
+		self.assertEqual(doc.contract_status, "Fulfilled")
+
+	def test_partial_collection_keeps_active(self):
+		ctx = make_contract_kit("_TST-RECP", target=12000)
+		ct = ctx["contract"].name
+		make_payment(make_si(ctx, 20, 200, "2026-07-10", "Contract Reagent Sale"))
+		doc = frappe.get_doc("Instrument Placement Contract", ct)
+		self.assertEqual(doc.cumulative_collected, 4000)
+		self.assertEqual(doc.contract_status, "Active")
+
 	def test_free_issue_excluded(self):
 		ctx = make_contract_kit("_TST-RECCPT", contract_type="CPT", target=60000)
 		free = make_si(ctx, 30, 200, "2026-07-10", "Contract Reagent Sale", counts=0)

@@ -239,13 +239,15 @@
    "label": "Legal Reviewed By",
    "options": "User"
   },
-  {
+   {
+   "allow_on_submit": 1,
    "fieldname": "legal_review_date",
    "fieldtype": "Date",
    "label": "Legal Review Date",
    "read_only": 1
-  },
-  {
+   },
+   {
+   "allow_on_submit": 1,
    "default": "Draft",
    "fieldname": "status",
    "fieldtype": "Select",

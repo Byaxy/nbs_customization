@@ -50,6 +50,19 @@ class TestRepossession(IntegrationTestCase):
 			"Pending Approval",
 		)
 
+	def test_approve_saves_after_submit(self):
+		# Approve button path: set_value + save on the submitted doc.
+		_ctx, _dep, rr = self._draft_rr("_TST-RP5")
+		rr.submit()
+		rr.status = "Approved"
+		rr.approved_by = "Administrator"
+		rr.approval_date = frappe.utils.today()
+		rr.save()
+		self.assertEqual(
+			frappe.db.get_value("Repossession Request", rr.name, "status"),
+			"Approved",
+		)
+
 	def test_illegal_transition_raises(self):
 		_ctx, _dep, rr = self._draft_rr("_TST-RP2")
 		rr.status = "Approved"

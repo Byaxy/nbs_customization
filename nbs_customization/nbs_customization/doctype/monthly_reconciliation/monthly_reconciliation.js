@@ -13,7 +13,7 @@ function _add_generate_button(frm) {
 		}
 
 		frappe.call({
-			method: "nbs_customization.nbs_customization.nbs_customization.doctype.monthly_reconciliation.monthly_reconciliation.generate_monthly_reconciliation",
+			method: "nbs_customization.nbs_customization.doctype.monthly_reconciliation.monthly_reconciliation.generate_monthly_reconciliation",
 			args: {
 				contract_name: frm.doc.contract,
 				period: frm.doc.period,
@@ -41,7 +41,7 @@ function _add_penalty_button(frm) {
 		__("Create Shortfall Penalty Invoice"),
 		() => {
 			frappe.call({
-				method: "nbs_customization.nbs_customization.nbs_customization.doctype.monthly_reconciliation.monthly_reconciliation.create_penalty_invoice",
+				method: "nbs_customization.nbs_customization.doctype.monthly_reconciliation.monthly_reconciliation.create_penalty_invoice",
 				args: { reconciliation_name: frm.doc.name },
 				freeze: true,
 				callback(r) {

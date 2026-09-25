@@ -48,6 +48,15 @@ def recompute_contract_recovery(contract_name):
 			update_modified=False,
 		)
 
+	# Full collection closes the commercial obligation; OTR path sets Fulfilled itself.
+	if target and cumulative_collected >= target and contract.contract_status == "Active":
+		frappe.db.set_value(
+			"Instrument Placement Contract",
+			contract_name,
+			"contract_status",
+			"Fulfilled",
+		)
+
 	return {
 		"cumulative_invoiced": cumulative_invoiced,
 		"cumulative_collected": cumulative_collected,

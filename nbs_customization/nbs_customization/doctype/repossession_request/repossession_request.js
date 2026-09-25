@@ -52,7 +52,7 @@ function _add_status_buttons(frm) {
 					),
 					() => {
 						frappe.call({
-							method: "nbs_customization.nbs_customization.nbs_customization.doctype.repossession_request.repossession_request.execute_retrieval",
+							method: "nbs_customization.nbs_customization.doctype.repossession_request.repossession_request.execute_retrieval",
 							args: { repossession_request_name: frm.doc.name },
 							freeze: true,
 							freeze_message: __("Executing retrieval..."),
