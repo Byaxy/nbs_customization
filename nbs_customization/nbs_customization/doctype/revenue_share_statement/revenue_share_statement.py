@@ -149,6 +149,9 @@ def _ensure_free_issue_order(contract, company, declared_volume):
 			"item_code": item_code,
 			"qty": qty,
 			"rate": 0,
+			# Explicit zero price_list_rate: ERPNext reprices falsy rates from
+			# the price list during validate (taxes_and_totals.calculate_item_rate).
+			"price_list_rate": 0,
 			"warehouse": _resolve_source_warehouse(item_code, company),
 		}
 		for item_code, qty in kits_per_line.items()
@@ -192,6 +195,9 @@ def _create_free_issue_delivery_note(contract, company, order_name, declared_vol
 					"item_code": item_code,
 					"qty": qty,
 					"rate": 0,
+					# See _ensure_free_issue_order: keep price_list_rate zero so
+					# core repricing leaves the free-issue rate alone.
+					"price_list_rate": 0,
 					"warehouse": _resolve_source_warehouse(item_code, company),
 					"against_sales_order": order_name,
 					"so_detail": so_items.get(item_code),

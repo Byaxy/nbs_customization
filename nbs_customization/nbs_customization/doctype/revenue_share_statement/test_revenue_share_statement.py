@@ -112,6 +112,28 @@ class TestRevenueShareStatement(IntegrationTestCase):
 			dn_count,
 		)
 
+	def test_free_issue_survives_standard_selling_price(self):
+		# Production has Standard Selling prices: core reprices falsy rates
+		# from the price list during validate — free-issue lines must stay 0.
+		from nbs_customization.setup import create_revenue_share_fee_item
+
+		create_revenue_share_fee_item()
+		ctx = self._cpt("_TST-RSS6")
+		frappe.get_doc(
+			{
+				"doctype": "Item Price",
+				"item_code": ctx["reagent"].name,
+				"price_list": "Standard Selling",
+				"price_list_rate": 200,
+			}
+		).insert()
+		name = generate_revenue_share_statement(ctx["contract"].name, "2026-07")
+		rss = frappe.get_doc("Revenue Share Statement", name)
+		dn = frappe.get_doc("Delivery Note", rss.waybill_kit_dispatch)
+		for row in dn.items:
+			self.assertEqual(row.rate, 0)
+			self.assertEqual(row.amount, 0)
+
 	def test_rra_rejected(self):
 		ctx = make_contract_kit("_TST-RSS5")
 		with self.assertRaises(frappe.ValidationError):
