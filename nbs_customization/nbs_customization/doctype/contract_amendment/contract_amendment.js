@@ -19,7 +19,8 @@ function _add_approve_button(frm) {
 				() => {
 					frm.set_value("status", "Approved");
 					frm.set_value("approved_by", frappe.session.user);
-					frm.save();
+					// save_or_update: submitted docs must use the Update path.
+					frm.save_or_update();
 				}
 			);
 		},

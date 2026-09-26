@@ -9,7 +9,7 @@ function _add_status_buttons(frm) {
 
 	if (status === "Draft") {
 		frm.add_custom_button(__("Submit for Approval"), () => {
-			frm.save("submit");
+			frm.savesubmit();
 		});
 	}
 
@@ -25,7 +25,8 @@ function _add_status_buttons(frm) {
 						frm.set_value("status", "Approved");
 						frm.set_value("approved_by", frappe.session.user);
 						frm.set_value("approval_date", frappe.datetime.get_today());
-						frm.save();
+						// save_or_update: submitted docs must use the Update path.
+						frm.save_or_update();
 					}
 				);
 			},
@@ -36,7 +37,7 @@ function _add_status_buttons(frm) {
 			__("Reject"),
 			() => {
 				frm.set_value("status", "Closed");
-				frm.save();
+				frm.save_or_update();
 			},
 			__("Actions")
 		);

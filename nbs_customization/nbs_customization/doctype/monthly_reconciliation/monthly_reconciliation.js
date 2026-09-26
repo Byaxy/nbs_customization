@@ -47,7 +47,8 @@ function _add_penalty_button(frm) {
 				callback(r) {
 					if (r.message) {
 						frm.set_value("penalty_invoice", r.message);
-						frm.save();
+						// save_or_update: submitted docs must use the Update path.
+						frm.save_or_update();
 						frappe.show_alert({
 							message: __("Penalty Invoice {0} created.", [r.message]),
 							indicator: "green",

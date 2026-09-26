@@ -9,7 +9,7 @@ function _add_status_buttons(frm) {
 
 	if (status === "Draft") {
 		frm.add_custom_button(__("Submit"), () => {
-			frm.save("submit");
+			frm.savesubmit();
 		});
 	}
 
@@ -21,7 +21,8 @@ function _add_status_buttons(frm) {
 					frm.set_value("finance_reviewed_by", frappe.session.user);
 					frm.set_value("finance_review_date", frappe.datetime.get_today());
 					frm.set_value("status", "Pending Legal Review");
-					frm.save();
+					// save_or_update: submitted docs must use the Update path.
+					frm.save_or_update();
 				});
 			},
 			__("Approvals")
@@ -36,7 +37,7 @@ function _add_status_buttons(frm) {
 					frm.set_value("legal_reviewed_by", frappe.session.user);
 					frm.set_value("legal_review_date", frappe.datetime.get_today());
 					frm.set_value("status", "Approved");
-					frm.save();
+					frm.save_or_update();
 				});
 			},
 			__("Approvals")
