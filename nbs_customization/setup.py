@@ -557,7 +557,18 @@ def _backfill_equipment_accounts():
 	for row in _equipment_account_rows():
 		if row["company_name"] not in known:
 			cat.append("accounts", row)
-	if cat.has_value_changed("accounts"):
+	if not cat.finance_books:
+		# Pre-existing categories often lack books: no depreciation runs,
+		# so RLO transfers would halt nothing. Seed straight-line defaults.
+		cat.append(
+			"finance_books",
+			{
+				"depreciation_method": "Straight Line",
+				"frequency_of_depreciation": 12,
+				"total_number_of_depreciations": 60,
+			},
+		)
+	if cat.has_value_changed("accounts") or cat.has_value_changed("finance_books"):
 		cat.save(ignore_permissions=True)
 
 

@@ -155,7 +155,8 @@ function _add_apply_button(frm) {
 					method: "apply_worksheet_to_contract",
 					doc: frm.doc,
 					args: {
-						asset: asset,
+						// Blank asset = capitalize later; server tolerates "".
+						asset: asset || "",
 						customer_site: customer_site,
 					},
 					freeze: true,
