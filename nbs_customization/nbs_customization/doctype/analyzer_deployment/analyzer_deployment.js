@@ -2,6 +2,7 @@ frappe.ui.form.on("Analyzer Deployment", {
 	refresh(frm) {
 		_setup_queries(frm);
 		_add_status_buttons(frm);
+		_add_decommission_button(frm);
 	},
 });
 
@@ -68,6 +69,42 @@ function _add_status_buttons(frm) {
 function _transition_to(frm, new_status) {
 	frm.set_value("deployment_status", new_status);
 	frm.save();
+}
+
+function _add_decommission_button(frm) {
+	if (frm.doc.__islocal) return;
+	if (frm.doc.deployment_status !== "Permanently Retrieved") return;
+	if (!frm.doc.asset) return;
+
+	frm.add_custom_button(
+		__("Decommission Analyzer"),
+		() => {
+			frappe.confirm(
+				__(
+					"Scrap asset {0} via the native Asset scrap flow? This is terminal and cannot be undone.",
+					[frm.doc.asset]
+				),
+				() => {
+					frappe.call({
+						method: "nbs_customization.controllers.placement.contract.decommission_analyzer",
+						args: { asset_name: frm.doc.asset },
+						freeze: true,
+						freeze_message: __("Scrapping asset..."),
+						callback(r) {
+							if (!r.exc) {
+								frm.reload_doc();
+								frappe.show_alert({
+									message: __("Asset {0} scrapped.", [frm.doc.asset]),
+									indicator: "green",
+								});
+							}
+						},
+					});
+				}
+			);
+		},
+		__("Actions")
+	);
 }
 
 function _show_retrieval_dialog(frm, new_status) {
