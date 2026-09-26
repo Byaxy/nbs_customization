@@ -47,6 +47,10 @@ class AnalyzerDeployment(Document):
 			"custom_current_placement_contract",
 			self.contract,
 		)
+		# Assert the physical precondition explicitly: same-day movements tie
+		# on transaction_date, so ERPNext's latest-location lookup is a coin
+		# flip — the movement below validates source against this field.
+		frappe.db.set_value("Asset", self.asset, "location", self.asset_storage_location)
 		self._create_asset_movement(
 			from_location=self.asset_storage_location,
 			to_location=self.asset_location,
@@ -82,6 +86,9 @@ class AnalyzerDeployment(Document):
 			"custom_current_placement_contract",
 			None,
 		)
+		# Same same-day-tie rationale as _on_deployed: assert the asset sits
+		# at the deployment site before the return movement validates it.
+		frappe.db.set_value("Asset", self.asset, "location", self.asset_location)
 		self._create_asset_movement(
 			from_location=self.asset_location,
 			to_location=self.asset_storage_location,
