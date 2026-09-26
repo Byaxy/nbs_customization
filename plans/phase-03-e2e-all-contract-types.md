@@ -63,3 +63,33 @@ E3. Cancel + amend interplay: cancel a contract SI → recovery reverses on form
 - All steps A1–A6, B1–B5, C1–C7, E1–E3 executed with a PNG + snapshot-text pair in `plans/screenshots/`; any code fix restarts from the failed step, never by skipping.
 - Recovery panels, MRC compliance states, RSS math, OTR terminal states, and scrap postings visible in screenshots.
 - Run log (appendix to this doc on completion): date, site, commit hash, which steps needed scheduler vs manual trigger, all defects found with linked fixes.
+
+---
+
+## Appendix — Run log (2026-09-25/26, site nbs.localhost)
+
+- Date: 2026-09-25 → 2026-09-26 (UTC). Site: `nbs.localhost`, company NORTHLAND BIOMEDICAL SOLUTIONS, currency USD. Tooling: global `agent-browser` as Administrator.
+- Commit chain (app repo `apps/nbs_customization`, branch `placement-module`): `61fe415` (phase-02 checkpoint) → `7b11de2` → `4776504` → `8e06f75` → `40e59e8` → `3b177e0` → `0d77e52` → `7d6b761` → `7961b77` → `0022168` → `38abacd` (+ this log).
+- Pre-flight: `migrate` clean, seeders verified (REVENUE-SHARE-FEE, SHORTFALL-PENALTY, Capital Asset, Others, Equipment), full suite green at start (75+24) and end (82+24, +7 regression tests).
+- Scheduler vs manual: C4 OTR created manually per plan allowance (daily job not waited on). All period jobs (MRC/RSS) driven via Desk Generate buttons, never via scheduler.
+- Key doc IDs: RRA `NBSIPC-2026/0001` (retrieved) → `NBSIPC-2026/0002` (Fulfilled 8160.12); CPT `NBSIPC-2026/0003` (retrieved); RLO `NBSIPC-2026/0005` (transferred); C7 RRA `NBSIPC-2026/0007` (scrapped asset `ACC-ASS-2026-00003` via JE `NBSJE-2026-00025`). Serials SN-001..004.
+- Order deviations (logged, none skipped): B0 capitalize fail-stop fixed then resumed on draft `NBSIPC-2026/0003`; C6 run before C4 (negative first); B4 effective-dated inside September (site date 09-25/26 makes October un-markable — the effective-date gate is correct behavior); Sept MRC/RSS regenerations pick up late-posted invoices by design.
+- Data repairs (console, logged): `NBSIPC-2026/0002` recompute flip to Fulfilled post-fix; `NBSCAM-2026/0001` status/effective-date set to what submit should have produced (pre on_submit fix); asset-2 location assert pre-retrieval.
+- E2E-only artifacts left in site: 8 cancelled zero-rate SO/SI (entry-order lesson, superseded), penalty SI draft, failed-throw screenshots. No code TODOs left open.
+
+### Defects found (all fixed + regression-tested, E2E re-proven from failed step)
+
+1. Triple `nbs_customization` module path in 5 `frappe.call` sites (RR execute, MRC generate+penalty, RSS generate, OTR complete) → corrected to double path; proven via B5/C5 buttons.
+2. `status` (+ OTR `legal_review_date`) lacked `allow_on_submit` → Approve buttons threw; set on RR/OTR/amendment (+ `approved_by`, `effective_date`).
+3. OTR `on_submit` computed snapshots in memory only → `db_set` each field.
+4. No auto-Fulfilled on full collection → `recompute_contract_recovery` flips Active→Fulfilled; re-proven on contract 2.
+5. Capitalize button `frm.call` without `doc` → dotted path `get_attr` fails for instance methods; pass `doc: frm.doc` (run_doc_method). Serial dialog filter `In Store` → `Active`; Apply dialog asset optional + `asset || ""`.
+6. Free-issue SO/DN repriced 50 by core `calculate_item_rate` (falsy 0 + price list) → pass explicit `price_list_rate: 0`.
+7. Custom `frm.save("submit")` → KeyError; use `savesubmit()` (RR/OTR submit buttons).
+8. Bare `frm.save()` on submitted docs → DocstatusTransitionError; `save_or_update()` on 6 approval/penalty buttons.
+9. Amendment had no submit transition (stuck Draft, buttons unreachable) → `on_submit` sets Pending Customer Signature.
+10. RSS gross read stale `fixed_monthly` snapshot (post-submit saves skip validate) → live line math in generate + explicit recompute in `apply_to_contract` (explicit `new_min_value` wins).
+11. Same-day movement tie breaks ERPNext latest-location lookup → assert `Asset.location` pre-movement in deploy/retrieve handlers.
+12. `decommission_analyzer` had no Desk entry → Decommission button on Permanently Retrieved deployments; proven in C7.
+13. Equipment finance-book backfill missing (pre-existing categories got accounts but no books → no depreciation, transfers halt nothing) → backfill Straight Line 12/60. C5 halt itself remains backend-proven (no live schedules on asset 2); new assets now schedule-bearing.
+14. E2E-method observations (no product change): item rows must be added item-first (fetch overwrites preset rates); SI requires `sales_order` (site `so_required`); group Locations unselectable in filtered dropdowns (used Test Location); deployment naming inherits contract series (`NBSIPC-2026/0004/0006/0008` are deployments).
