@@ -33,6 +33,33 @@ class TestContractAmendment(IntegrationTestCase):
 		args.update(overrides)
 		return frappe.get_doc(args).insert()
 
+	def test_submit_sets_pending_customer_signature(self):
+		ctx = make_contract_kit("_TST-AMD0")
+		am = self._amendment(ctx, status="Draft")
+		am.submit()
+		self.assertEqual(
+			frappe.db.get_value("Contract Amendment", am.name, "status"),
+			"Pending Customer Signature",
+		)
+
+	def test_approve_button_saves_after_submit(self):
+		# Approve Amendment button path: set_value + save on submitted doc.
+		ctx = make_contract_kit("_TST-AMD9")
+		am = self._amendment(ctx, status="Draft")
+		am.submit()
+		am.status = "Approved"
+		am.approved_by = "Administrator"
+		am.save()
+		self.assertEqual(
+			frappe.db.get_value("Contract Amendment", am.name, "status"),
+			"Approved",
+		)
+		mark_effective(am.name)
+		self.assertEqual(
+			frappe.db.get_value("Contract Amendment", am.name, "status"),
+			"Effective",
+		)
+
 	def test_apply_volume_updates_lines(self):
 		ctx = make_contract_kit("_TST-AMD1")
 		am = self._amendment(ctx)

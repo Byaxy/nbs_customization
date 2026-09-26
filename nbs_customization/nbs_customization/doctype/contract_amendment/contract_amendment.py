@@ -8,6 +8,10 @@ from frappe.model.document import Document
 
 
 class ContractAmendment(Document):
+	def on_submit(self):
+		self.status = "Pending Customer Signature"
+		self.db_set("status", "Pending Customer Signature")
+
 	def apply_to_contract(self):
 		"""Push approved terms onto the linked contract and flip Effective."""
 		if self.status != "Approved":
@@ -46,6 +50,14 @@ class ContractAmendment(Document):
 
 		if self.new_recovery_target:
 			contract.total_recovery_target = self.new_recovery_target
+
+		# Recompute derived economics explicitly: post-submit saves skip
+		# validate, so without this the stored snapshot keeps pre-amendment
+		# values. An explicit new_min_value still wins over the recompute.
+		contract._compute_min_monthly_value()
+		contract._compute_cpt_fields()
+		if self.new_min_value:
+			contract.min_monthly_value = self.new_min_value
 
 		# Amendments are the authorized mutation path for submitted contracts.
 		contract.flags.ignore_validate_update_after_submit = True

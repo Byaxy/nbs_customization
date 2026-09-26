@@ -28,7 +28,13 @@ def generate_revenue_share_statement(contract_name, period):
 	declared_volume = _resolve_declared_volume(contract, period)
 	revenue_share_pct = (contract.revenue_share_pct or 0) / 100
 
-	gross_revenue = contract.fixed_monthly_gross_revenue or 0
+	# Live line math, not the stored snapshot: amendments push new volumes
+	# prices onto lines via post-submit saves, which skip validate, so the
+	# snapshot only refreshes when apply_to_contract recomputes it.
+	gross_revenue = sum(
+		(line.monthly_test_volume or 0) * (line.agreed_test_price or 0)
+		for line in contract.contract_reagent_lines
+	)
 	our_share = gross_revenue * revenue_share_pct
 	customer_share = gross_revenue - our_share
 
