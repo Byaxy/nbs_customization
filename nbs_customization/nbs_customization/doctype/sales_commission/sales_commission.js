@@ -22,9 +22,9 @@ frappe.ui.form.on("Sales Commission", {
 		if (frm.doc.docstatus === 1) {
 			frm.set_intro(
 				__(
-					"This commission has been <b>approved (submitted)</b>. Payouts can now be processed.",
+					"This commission has been <b>approved (submitted)</b>. Payouts can now be processed."
 				),
-				"green",
+				"green"
 			);
 		} else if (frm.doc.docstatus === 2) {
 			frm.set_intro(__("This commission has been <b>cancelled</b>."), "red");
@@ -41,7 +41,7 @@ frappe.ui.form.on("Sales Commission", {
 		if (frm.doc.docstatus === 0 && has_entries) {
 			frappe.confirm(
 				__(
-					"Changing the customer will clear all existing Commission Sale entries. Continue?",
+					"Changing the customer will clear all existing Commission Sale entries. Continue?"
 				),
 				() => {
 					frm.clear_table("commission_sales");
@@ -49,7 +49,7 @@ frappe.ui.form.on("Sales Commission", {
 					_recalculate_all_totals(frm);
 					_apply_invoice_filter(frm);
 				},
-				() => frm.reload_doc(),
+				() => frm.reload_doc()
 			);
 		} else {
 			_apply_invoice_filter(frm);
@@ -61,7 +61,7 @@ frappe.ui.form.on("Sales Commission", {
 
 		const total_allocated = (frm.doc.commission_recipients || []).reduce(
 			(sum, r) => sum + (r.allocated_amount || 0),
-			0,
+			0
 		);
 		const total_payable = frm.doc.total_commission_payable || 0;
 
@@ -70,7 +70,7 @@ frappe.ui.form.on("Sales Commission", {
 				title: __("Allocation Mismatch"),
 				message: __(
 					"Total Allocated Amount ({0}) exceeds Total Commission Payable ({1}). Please adjust.",
-					[format_currency(total_allocated), format_currency(total_payable)],
+					[format_currency(total_allocated), format_currency(total_payable)]
 				),
 				indicator: "red",
 			});
@@ -118,7 +118,7 @@ frappe.ui.form.on("Commission Sale Entry", {
 						cdt,
 						cdn,
 						"withholding_tax_amount",
-						d.wht_amount_on_inv || 0,
+						d.wht_amount_on_inv || 0
 					);
 				} else {
 					frappe.model.set_value(cdt, cdn, "withholding_tax", "");
@@ -159,7 +159,7 @@ frappe.ui.form.on("Commission Recipient", {
 			cdt,
 			cdn,
 			"remaining_due",
-			Math.max(0, (row.allocated_amount || 0) - (row.paid_amount || 0)),
+			Math.max(0, (row.allocated_amount || 0) - (row.paid_amount || 0))
 		);
 		_render_allocation_bar(frm);
 	},
@@ -225,7 +225,7 @@ function _recalculate_all_totals(frm) {
 			total_gross_commission: 0,
 			total_withholding_tax_amount: 0,
 			total_commission_payable: 0,
-		},
+		}
 	);
 
 	Object.entries(t).forEach(([k, v]) => frm.set_value(k, parseFloat(v.toFixed(2))));
@@ -237,14 +237,14 @@ function _add_custom_buttons(frm) {
 		frm.add_custom_button(
 			__("Process Payout"),
 			() => frappe.new_doc("Commission Payout", { commission: frm.doc.name }),
-			__("Actions"),
+			__("Actions")
 		);
 	}
 	if (frm.doc.docstatus === 1) {
 		frm.add_custom_button(
 			__("View Payouts"),
 			() => frappe.set_route("List", "Commission Payout", { commission: frm.doc.name }),
-			__("Actions"),
+			__("Actions")
 		);
 	}
 }
@@ -269,7 +269,7 @@ function _render_allocation_bar(frm) {
 	const total_payable = frm.doc.total_commission_payable || 0;
 	const total_allocated = (frm.doc.commission_recipients || []).reduce(
 		(sum, r) => sum + (r.allocated_amount || 0),
-		0,
+		0
 	);
 
 	const pct = total_payable > 0 ? Math.min(100, (total_allocated / total_payable) * 100) : 0;
@@ -279,18 +279,20 @@ function _render_allocation_bar(frm) {
 	const bar = exact
 		? "var(--green-500,#28a745)"
 		: over
-			? "var(--red-500,#e65252)"
-			: "var(--orange-500,#ff851b)";
+		? "var(--red-500,#e65252)"
+		: "var(--orange-500,#ff851b)";
 	const text = exact
 		? "var(--green-600,#2f9d58)"
 		: over
-			? "var(--red-600,#dc2626)"
-			: "var(--orange-600,#d97706)";
+		? "var(--red-600,#dc2626)"
+		: "var(--orange-600,#d97706)";
 
 	wrapper.find(".allocation-bar").css({ width: pct + "%", backgroundColor: bar });
 	wrapper
 		.find(".allocation-text")
 		.html(
-			`Allocation: <span style="color:${text}"><b>${format_currency(total_allocated)}</b></span> / <b>${format_currency(total_payable)}</b>`,
+			`Allocation: <span style="color:${text}"><b>${format_currency(
+				total_allocated
+			)}</b></span> / <b>${format_currency(total_payable)}</b>`
 		);
 }

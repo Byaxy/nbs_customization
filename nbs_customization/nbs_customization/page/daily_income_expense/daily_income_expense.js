@@ -14,7 +14,8 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 		return /^\d{4}-\d{2}-\d{2}$/.test(value) && !isNaN(new Date(value).getTime());
 	}
 
-	const url_from = frappe.utils.get_url_arg("from_date") || frappe.utils.get_url_arg("report_date");
+	const url_from =
+		frappe.utils.get_url_arg("from_date") || frappe.utils.get_url_arg("report_date");
 	const url_to = frappe.utils.get_url_arg("to_date") || frappe.utils.get_url_arg("report_date");
 	const url_company = frappe.utils.get_url_arg("company");
 	const url_income_only = frappe.utils.get_url_arg("income_only");
@@ -92,7 +93,9 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 	controls.income_only.set_value(filter_df[3].default);
 	controls.expense_only.set_value(filter_df[4].default);
 	// Backward compat: legacy report_date URL
-	const legacy = is_valid_date(frappe.utils.get_url_arg("report_date")) ? frappe.utils.get_url_arg("report_date") : null;
+	const legacy = is_valid_date(frappe.utils.get_url_arg("report_date"))
+		? frappe.utils.get_url_arg("report_date")
+		: null;
 	if (legacy && !url_from && !url_to) {
 		controls.from_date.set_value(legacy);
 		controls.to_date.set_value(legacy);
@@ -105,7 +108,13 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 		const to_date = controls.to_date.get_value();
 		const income_only = controls.income_only.get_value() ? 1 : 0;
 		const expense_only = controls.expense_only.get_value() ? 1 : 0;
-		const qs = frappe.utils.make_query_string({ company, from_date, to_date, income_only, expense_only });
+		const qs = frappe.utils.make_query_string({
+			company,
+			from_date,
+			to_date,
+			income_only,
+			expense_only,
+		});
 		window.history.replaceState(null, "", location.pathname + (qs === "?" ? "" : qs));
 	}
 
@@ -202,7 +211,10 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 			const $card = $('<div class="daily-ie-card"></div>').appendTo($cards);
 			$card.append(`<div class="daily-ie-card-label">${card.label}</div>`);
 			const $value = $(
-				`<div class="daily-ie-card-value ${card.css}">${amount(card.value, data.currency)}</div>`,
+				`<div class="daily-ie-card-value ${card.css}">${amount(
+					card.value,
+					data.currency
+				)}</div>`
 			);
 			$card.append($value);
 			$card.css("border-left-color", getComputedStyle($value[0]).color);
@@ -223,7 +235,7 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 					.append($('<th class="text-right"></th>').text(__("Brought Forward")))
 					.append($('<th class="text-right"></th>').text(__("Day Movement")))
 					.append($('<th class="text-right"></th>').text(__("Carried Forward")))
-					.append($("<th></th>").text(__("Currency"))),
+					.append($("<th></th>").text(__("Currency")))
 			);
 
 		const $tbody = $("<tbody></tbody>").appendTo($table);
@@ -232,16 +244,16 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 				.append($("<td></td>").text(row.account))
 				.append(
 					$('<td class="text-right"></td>').text(
-						amount(row.brought_forward, row.currency),
-					),
+						amount(row.brought_forward, row.currency)
+					)
 				)
 				.append(
-					$('<td class="text-right"></td>').text(amount(row.day_movement, row.currency)),
+					$('<td class="text-right"></td>').text(amount(row.day_movement, row.currency))
 				)
 				.append(
 					$('<td class="text-right"></td>').text(
-						amount(row.carried_forward, row.currency),
-					),
+						amount(row.carried_forward, row.currency)
+					)
 				)
 				.append($("<td></td>").text(row.currency))
 				.appendTo($tbody);
@@ -253,16 +265,16 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 			.append($("<td></td>").text(__("Total Cash & Bank")))
 			.append(
 				$('<td class="text-right"></td>').text(
-					amount(total.brought_forward, data.currency),
-				),
+					amount(total.brought_forward, data.currency)
+				)
 			)
 			.append(
-				$('<td class="text-right"></td>').text(amount(total.day_movement, data.currency)),
+				$('<td class="text-right"></td>').text(amount(total.day_movement, data.currency))
 			)
 			.append(
 				$('<td class="text-right"></td>').text(
-					amount(total.carried_forward, data.currency),
-				),
+					amount(total.carried_forward, data.currency)
+				)
 			)
 			.append($("<td></td>").text(data.currency))
 			.appendTo($tbody);
@@ -284,8 +296,8 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 							$th.addClass("text-right");
 						}
 						return $th;
-					}),
-				),
+					})
+				)
 			);
 
 		const $tbody = $("<tbody></tbody>").appendTo($table);
@@ -299,7 +311,7 @@ frappe.pages["daily_income_expense"].on_page_load = function (wrapper) {
 						}
 						$td.append(col.render(row));
 						return $td;
-					}),
+					})
 				)
 				.appendTo($tbody);
 		});

@@ -67,7 +67,7 @@ frappe.ui.form.on("Loan Waybill", {
 						frm.clear_table("items");
 						frm.add_child("items");
 						frm.refresh_field("items");
-					},
+					}
 				);
 			} else {
 				frm.refresh_field("items");
@@ -128,8 +128,8 @@ function set_address_contact_filters(frm) {
 			? {
 					query: "frappe.contacts.doctype.address.address.address_query",
 					filters: { link_doctype: "Customer", link_name: frm.doc.customer },
-				}
-			: empty,
+			  }
+			: empty
 	);
 
 	frm.set_query("shipping_address_name", () =>
@@ -137,8 +137,8 @@ function set_address_contact_filters(frm) {
 			? {
 					query: "frappe.contacts.doctype.address.address.address_query",
 					filters: { link_doctype: "Customer", link_name: frm.doc.customer },
-				}
-			: empty,
+			  }
+			: empty
 	);
 
 	frm.set_query("received_by", () =>
@@ -146,8 +146,8 @@ function set_address_contact_filters(frm) {
 			? {
 					query: "frappe.contacts.doctype.contact.contact.contact_query",
 					filters: { link_doctype: "Customer", link_name: frm.doc.customer },
-				}
-			: empty,
+			  }
+			: empty
 	);
 }
 
@@ -165,7 +165,7 @@ function setup_customer_redirect(frm) {
 				e.preventDefault();
 				frappe.show_alert(
 					{ message: __("Please select a Customer first"), indicator: "orange" },
-					3,
+					3
 				);
 				frm.scroll_to_field("customer");
 			}

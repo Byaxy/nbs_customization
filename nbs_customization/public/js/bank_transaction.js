@@ -15,7 +15,9 @@ function clear_cheque_dialog(frm) {
 				value: c.name,
 				label:
 					`${c.name} \u00b7 ${c.party} \u00b7 ${c.paid_amount.toLocaleString()} ` +
-					`${frm.doc.currency || ""} \u00b7 ${c.reference_no || __("no ref")} \u00b7 ${c.posting_date}`,
+					`${frm.doc.currency || ""} \u00b7 ${c.reference_no || __("no ref")} \u00b7 ${
+						c.posting_date
+					}`,
 			}));
 
 			let d = new frappe.ui.Dialog({
@@ -44,8 +46,8 @@ function clear_cheque_dialog(frm) {
 								frappe.msgprint(
 									__(
 										"Cheque cleared and Bank Transaction reconciled. Journal Entry {0} linked.",
-										[cb.message.journal_entry],
-									),
+										[cb.message.journal_entry]
+									)
 								);
 								d.hide();
 								frm.reload_doc();

@@ -23,9 +23,10 @@
 		"no-extra-boolean-cast": ["off"],
 		"no-control-regex": ["off"],
 	},
-	"root": true,
-	"globals": {
-		"frappe": true,
+ 	"root": true,
+ 	"globals": {
+ 		"erpnext": true,
+ 		"frappe": true,
 		"Vue": true,
 		"SetVueGlobals": true,
 		"__": true,

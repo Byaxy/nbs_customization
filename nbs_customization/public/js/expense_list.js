@@ -7,7 +7,7 @@ frappe.listview_settings["Expense"] = {
 			__("Add Multiple Expenses"),
 			() => open_bulk_expense_dialog(listview),
 			null,
-			"primary",
+			"primary"
 		);
 	},
 };
@@ -311,7 +311,7 @@ function add_expense_row(wrapper, categories, company) {
 
 	// Add extra PO button for multi-PO expenses (shown only for PO scope)
 	const add_po_btn = $(
-		`<button class="btn btn-xs btn-light add-po-btn mt-1" style="display:none; font-size:11px;"><i class="fa fa-plus"></i> PO</button>`,
+		`<button class="btn btn-xs btn-light add-po-btn mt-1" style="display:none; font-size:11px;"><i class="fa fa-plus"></i> PO</button>`
 	);
 	row.find(".td-linked-doc").append(add_po_btn);
 	add_po_btn.on("click", function () {
@@ -331,7 +331,11 @@ function add_expense_row(wrapper, categories, company) {
 		});
 		po_controls.push(extra_ctrl);
 		// toggle add button hidden when shipment scope
-		if ((row.find(".exp-scope").val() !== "Purchase Order" && row.find(".exp-scope").val() !== "Single Purchase Order") || !row.find(".exp-accompanying").is(":checked")) {
+		if (
+			(row.find(".exp-scope").val() !== "Purchase Order" &&
+				row.find(".exp-scope").val() !== "Single Purchase Order") ||
+			!row.find(".exp-accompanying").is(":checked")
+		) {
 			extra_wrap.hide();
 			set_control_enabled(extra_ctrl, false);
 		}
@@ -371,7 +375,9 @@ function add_expense_row(wrapper, categories, company) {
 					row.find(".exp-payee").val(pi.supplier_name || pi.supplier);
 				}
 				row.find(".exp-invoice-outstanding").text(
-					`Outstanding: ${frappe.format(pi.outstanding_amount, { fieldtype: "Currency" })}`,
+					`Outstanding: ${frappe.format(pi.outstanding_amount, {
+						fieldtype: "Currency",
+					})}`
 				);
 			},
 		});
@@ -428,7 +434,9 @@ function add_expense_row(wrapper, categories, company) {
 			set_control_enabled(c, !is_shipment);
 			if (is_shipment) c.set_value("");
 		});
-		row.find(".add-po-btn").toggle(!is_shipment && row.find(".exp-accompanying").is(":checked"));
+		row.find(".add-po-btn").toggle(
+			!is_shipment && row.find(".exp-accompanying").is(":checked")
+		);
 
 		set_control_visible(shipment_control, is_shipment);
 		set_control_enabled(shipment_control, is_shipment);
@@ -453,7 +461,9 @@ function add_expense_row(wrapper, categories, company) {
 				if (!r.message) return;
 				const s = r.message;
 				row.find(".exp-linked-info").html(
-					`${s.pr_count} PR(s) | ${flt(s.total_chargeable_weight, 2)} kg | <b>${s.status}</b>`,
+					`${s.pr_count} PR(s) | ${flt(s.total_chargeable_weight, 2)} kg | <b>${
+						s.status
+					}</b>`
 				);
 			},
 		});
@@ -474,9 +484,10 @@ function add_expense_row(wrapper, categories, company) {
 			callback(r) {
 				if (r.message) {
 					// For Check, route to outward clearing even if default account is inward
-					const account = r.message.is_check && r.message.clearing_account_outward
-						? r.message.clearing_account_outward
-						: r.message.account;
+					const account =
+						r.message.is_check && r.message.clearing_account_outward
+							? r.message.clearing_account_outward
+							: r.message.account;
 					row.data("resolved_account", account);
 					if (r.message.is_check) {
 						row.data("needs_ref", true);
@@ -517,7 +528,7 @@ function add_expense_row(wrapper, categories, company) {
 					message: __("At least one row is required."),
 					indicator: "orange",
 				},
-				3,
+				3
 			);
 		}
 	});
@@ -571,9 +582,10 @@ function submit_bulk_expenses(dialog, listview, company) {
 		// normalize legacy
 		if (scope === "Single Purchase Order") scope = "Purchase Order";
 		const po_controls_arr = row.data("po_controls") || (controls.po ? [controls.po] : []);
-		const po_names = scope === "Purchase Order"
-			? po_controls_arr.map((c) => c.get_value()).filter(Boolean)
-			: [];
+		const po_names =
+			scope === "Purchase Order"
+				? po_controls_arr.map((c) => c.get_value()).filter(Boolean)
+				: [];
 		const linked_purchase_order = po_names.length ? po_names[0] : null;
 		const purchase_orders = po_names.map((name) => ({ purchase_order: name }));
 		const linked_shipment =
@@ -642,7 +654,7 @@ function submit_bulk_expenses(dialog, listview, company) {
 				message: __("Please fix the highlighted rows before submitting."),
 				indicator: "red",
 			},
-			5,
+			5
 		);
 		return;
 	}
@@ -653,7 +665,7 @@ function submit_bulk_expenses(dialog, listview, company) {
 		function () {
 			dialog.hide();
 			submit_expenses_sequentially(expenses, listview);
-		},
+		}
 	);
 }
 
@@ -768,7 +780,7 @@ function show_bulk_results(results, listview) {
 							<td>${r.description}</td>
 							<td>${frappe.format(r.amount, { fieldtype: "Currency" })}</td>
 						</tr>
-					`,
+					`
 						)
 						.join("")}
 				</tbody>
@@ -800,7 +812,7 @@ function show_bulk_results(results, listview) {
 							<td>${frappe.format(r.amount, { fieldtype: "Currency" })}</td>
 							<td><small class="text-danger">${r.error}</small></td>
 						</tr>
-					`,
+					`
 						)
 						.join("")}
 				</tbody>

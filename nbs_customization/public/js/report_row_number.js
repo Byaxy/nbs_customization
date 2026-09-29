@@ -35,7 +35,7 @@
 			const mo = new MutationObserver(() => {
 				if (!dt.options.serialNoColumn) return;
 				const cells = _bodyRenderer.bodyScrollable.querySelectorAll(
-					".dt-cell--col-0 .dt-cell__content",
+					".dt-cell--col-0 .dt-cell__content"
 				);
 				cells.forEach((el, i) => {
 					const val = i + 1 + "";

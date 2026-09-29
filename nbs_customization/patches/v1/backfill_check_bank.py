@@ -183,7 +183,9 @@ def _resolve_pe_check_bank(row):
 
 	# Pay fallbacks only
 	if row.get("mode_of_payment"):
-		mop = frappe.db.get_value("Mode of Payment", row.get("mode_of_payment"), "default_clearing_destination")
+		mop = frappe.db.get_value(
+			"Mode of Payment", row.get("mode_of_payment"), "default_clearing_destination"
+		)
 		b = _resolve_bank_from_account(mop)
 		if b:
 			return b

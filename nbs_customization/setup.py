@@ -436,6 +436,7 @@ def after_migrate():
 	3. Inject NBS expense group into both Accounting and Invoicing sidebars.
 	4. Create cheque clearing accounts + the Check Mode of Payment.
 	5. Ensure pricing tier Price Lists (Standard Selling = 30% reuse).
+	6. Seed placement billing/capital items (Others brand, fee items, Equipment category).
 	Idempotent — only writes when a change is actually needed.
 	"""
 
@@ -489,69 +490,140 @@ def after_migrate():
 	# ── Pricing tier Price Lists (Standard Selling = 30% reuse) ──────────────
 	_ensure_tier_price_lists()
 
-	# ── Placement Fee Items (PAUSED — revenue share / placement WIP) ─────
-	# Re-enable when the placement module is ready for production.
-	# _ensure_brand_others()
-	# create_revenue_share_fee_item()
-	# create_shortfall_penalty_item()
-	# create_nbs_capital_asset_item()
+	# ── Placement billing + capital items ────────────────────────────────────
+	_ensure_brand_others()
+	create_revenue_share_fee_item()
+	create_shortfall_penalty_item()
+	create_nbs_capital_asset_item()
 
 
-# ── PAUSED: revenue share / placement seeders — re-enable with the module ─────
-# def _ensure_brand_others():
-# 	"""Create 'Others' brand if absent."""
-# 	if not frappe.db.exists("Brand", "Others"):
-# 		frappe.get_doc({"doctype": "Brand", "brand": "Others"}).insert(ignore_permissions=True)
-#
-#
-# def create_revenue_share_fee_item():
-# 	"""Create the Revenue Share Fee non-stock item if absent."""
-# 	if not frappe.db.exists("Item", "REVENUE-SHARE-FEE"):
-# 		item = frappe.get_doc(
-# 			{
-# 				"doctype": "Item",
-# 				"item_code": "REVENUE-SHARE-FEE",
-# 				"item_name": "Revenue Share Fee",
-# 				"description": "Revenue Share Fee",
-# 				"item_group": "Services",
-# 				"is_stock_item": 0,
-# 				"brand": "Others",
-# 			}
-# 		)
-# 		item.insert(ignore_permissions=True)
-#
-#
-# def create_shortfall_penalty_item():
-# 	"""Create the Shortfall Penalty non-stock item if absent."""
-# 	if not frappe.db.exists("Item", "SHORTFALL-PENALTY"):
-# 		item = frappe.get_doc(
-# 			{
-# 				"doctype": "Item",
-# 				"item_code": "SHORTFALL-PENALTY",
-# 				"item_name": "Shortfall Penalty",
-# 				"description": "Shortfall Penalty",
-# 				"item_group": "Services",
-# 				"is_stock_item": 0,
-# 				"brand": "Others",
-# 			}
-# 		)
-# 		item.insert(ignore_permissions=True)
-#
-#
-# def create_nbs_capital_asset_item():
-# 	"""Create the shared capital asset fixed-asset item if absent."""
-# 	if not frappe.db.exists("Item", "Capital Asset"):
-# 		item = frappe.get_doc(
-# 			{
-# 				"doctype": "Item",
-# 				"item_code": "Capital Asset",
-# 				"item_name": "Capital Asset",
-# 				"description": "Generic capital asset item for capitalized placement analyzers.",
-# 				"item_group": "Products",
-# 				"is_fixed_asset": 1,
-# 				"asset_category": "Equipment",
-# 				"is_stock_item": 0,
-# 				"brand": "Others",
-# 			}
-# 		)
-# 		item.insert(ignore_permissions=True)
+def _ensure_brand_others():
+	"""Create 'Others' brand if absent."""
+	if not frappe.db.exists("Brand", "Others"):
+		frappe.get_doc({"doctype": "Brand", "brand": "Others"}).insert(ignore_permissions=True)
+
+
+def _ensure_equipment_category():
+	"""Create Asset Category 'Equipment' with straight-line defaults if absent."""
+	if frappe.db.exists("Asset Category", "Equipment"):
+		_backfill_equipment_accounts()
+		return
+	frappe.get_doc(
+		{
+			"doctype": "Asset Category",
+			"asset_category_name": "Equipment",
+			"accounts": _equipment_account_rows(),
+			"finance_books": [
+				{
+					"depreciation_method": "Straight Line",
+					"frequency_of_depreciation": 12,
+					"total_number_of_depreciations": 60,
+				}
+			],
+		}
+	).insert(ignore_permissions=True)
+
+
+def _equipment_account_rows():
+	"""One accounts row per company with standard fixed-asset accounts."""
+	rows = []
+	for name in frappe.db.get_all("Company", pluck="name"):
+		abbr = frappe.db.get_value("Company", name, "abbr")
+		fixed = frappe.db.get_value("Account", f"Capital Equipment - {abbr}", "name") or frappe.db.get_value(
+			"Account", {"company": name, "account_type": "Fixed Asset", "is_group": 0}, "name"
+		)
+		accum = frappe.db.get_value(
+			"Account", {"company": name, "account_type": "Accumulated Depreciation", "is_group": 0}, "name"
+		)
+		expense = frappe.db.get_value(
+			"Account", {"company": name, "account_type": "Depreciation", "is_group": 0}, "name"
+		)
+		if fixed and accum and expense:
+			rows.append(
+				{
+					"company_name": name,
+					"fixed_asset_account": fixed,
+					"accumulated_depreciation_account": accum,
+					"depreciation_expense_account": expense,
+				}
+			)
+	return rows
+
+
+def _backfill_equipment_accounts():
+	"""Add accounts rows to an existing Equipment category for companies missing them."""
+	cat = frappe.get_doc("Asset Category", "Equipment")
+	known = {r.company_name for r in cat.accounts}
+	for row in _equipment_account_rows():
+		if row["company_name"] not in known:
+			cat.append("accounts", row)
+	if not cat.finance_books:
+		# Pre-existing categories often lack books: no depreciation runs,
+		# so RLO transfers would halt nothing. Seed straight-line defaults.
+		cat.append(
+			"finance_books",
+			{
+				"depreciation_method": "Straight Line",
+				"frequency_of_depreciation": 12,
+				"total_number_of_depreciations": 60,
+			},
+		)
+	if cat.has_value_changed("accounts") or cat.has_value_changed("finance_books"):
+		cat.save(ignore_permissions=True)
+
+
+def create_revenue_share_fee_item():
+	"""Create the Revenue Share Fee non-stock item if absent."""
+	_ensure_brand_others()
+	if not frappe.db.exists("Item", "REVENUE-SHARE-FEE"):
+		item = frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": "REVENUE-SHARE-FEE",
+				"item_name": "Revenue Share Fee",
+				"description": "Revenue Share Fee",
+				"item_group": "Services",
+				"is_stock_item": 0,
+				"brand": "Others",
+			}
+		)
+		item.insert(ignore_permissions=True)
+
+
+def create_shortfall_penalty_item():
+	"""Create the Shortfall Penalty non-stock item if absent."""
+	_ensure_brand_others()
+	if not frappe.db.exists("Item", "SHORTFALL-PENALTY"):
+		item = frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": "SHORTFALL-PENALTY",
+				"item_name": "Shortfall Penalty",
+				"description": "Shortfall Penalty",
+				"item_group": "Services",
+				"is_stock_item": 0,
+				"brand": "Others",
+			}
+		)
+		item.insert(ignore_permissions=True)
+
+
+def create_nbs_capital_asset_item():
+	"""Create the shared capital asset fixed-asset item if absent."""
+	_ensure_brand_others()
+	_ensure_equipment_category()
+	if not frappe.db.exists("Item", "Capital Asset"):
+		item = frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": "Capital Asset",
+				"item_name": "Capital Asset",
+				"description": "Generic capital asset item for capitalized placement analyzers.",
+				"item_group": "Products",
+				"is_fixed_asset": 1,
+				"asset_category": "Equipment",
+				"is_stock_item": 0,
+				"brand": "Others",
+			}
+		)
+		item.insert(ignore_permissions=True)

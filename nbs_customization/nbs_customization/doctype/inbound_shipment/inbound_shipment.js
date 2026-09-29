@@ -50,7 +50,7 @@ frappe.ui.form.on("Inbound Shipment", {
 						message: __("Please select a Purchase Order on this row first."),
 						indicator: "orange",
 					},
-					3,
+					3
 				);
 				return { filters: { name: ["in", ["__none__"]] } };
 			}
@@ -115,11 +115,11 @@ frappe.ui.form.on("Inbound Shipment", {
 			frappe.show_alert(
 				{
 					message: __(
-						"Carrier cleared — please select a carrier for the new shipping mode.",
+						"Carrier cleared — please select a carrier for the new shipping mode."
 					),
 					indicator: "orange",
 				},
-				4,
+				4
 			);
 		}
 	},
@@ -233,7 +233,7 @@ frappe.ui.form.on("Inbound Shipment Purchase Order", {
 				frappe.model.set_value(cdt, cdn, "transaction_date", r.transaction_date);
 				frappe.model.set_value(cdt, cdn, "grand_total", r.grand_total);
 				frappe.model.set_value(cdt, cdn, "status", r.status);
-			},
+			}
 		);
 
 		// Refresh package items PO filter now that PO list changed
@@ -326,7 +326,7 @@ function update_package_number_options(frm) {
 	frm.fields_dict.package_items.grid.update_docfield_property(
 		"package_number",
 		"options",
-		options,
+		options
 	);
 	frm.fields_dict.package_items.grid.refresh();
 
@@ -348,7 +348,7 @@ function toggle_package_items_addable(frm) {
 		$header.find(".grid-heading-row").after(
 			`<div class="no-packages-msg text-muted small p-2">
                 ⚠ Add at least one package above before adding items.
-            </div>`,
+            </div>`
 		);
 	}
 }
@@ -385,8 +385,8 @@ async function validate_package_item_qty_within_po_qty(frm) {
 			errors.push(
 				__(
 					"Item <b>{0}</b> from PO <b>{1}</b>: total package qty <b>{2}</b> exceeds PO qty <b>{3}</b> {4}.",
-					[item_code, purchase_order, flt(qty_map[key]), allowed_qty, uom],
-				),
+					[item_code, purchase_order, flt(qty_map[key]), allowed_qty, uom]
+				)
 			);
 		}
 	}
@@ -593,7 +593,7 @@ function validate_unique_package_item(frm, cdt, cdn) {
 			r.name !== cdn &&
 			r.package_number === row.package_number &&
 			r.purchase_order === row.purchase_order &&
-			r.item_code === row.item_code,
+			r.item_code === row.item_code
 	);
 
 	if (duplicate) {
@@ -602,11 +602,11 @@ function validate_unique_package_item(frm, cdt, cdn) {
 				message: __(
 					`Item <b>${row.item_code}</b> from <b>${row.purchase_order}</b> ` +
 						`already exists in <b>${row.package_number}</b> ` +
-						`(row #${duplicate.idx}). Please combine the quantities.`,
+						`(row #${duplicate.idx}). Please combine the quantities.`
 				),
 				indicator: "red",
 			},
-			6,
+			6
 		);
 
 		// Clear the field that just triggered the duplicate
@@ -659,35 +659,35 @@ function recompute_totals(frm) {
 	frm.set_value("total_packages", pkgs.length);
 	frm.set_value(
 		"total_items",
-		items.reduce((s, i) => s + flt(i.qty), 0),
+		items.reduce((s, i) => s + flt(i.qty), 0)
 	);
 	frm.set_value(
 		"total_net_weight",
 		flt(
 			pkgs.reduce((s, p) => s + flt(p.net_weight), 0),
-			3,
-		),
+			3
+		)
 	);
 	frm.set_value(
 		"total_gross_weight",
 		flt(
 			pkgs.reduce((s, p) => s + flt(p.gross_weight), 0),
-			3,
-		),
+			3
+		)
 	);
 	frm.set_value(
 		"total_chargeable_weight",
 		flt(
 			pkgs.reduce((s, p) => s + flt(p.chargeable_weight), 0),
-			3,
-		),
+			3
+		)
 	);
 	frm.set_value(
 		"total_freight_charges",
 		flt(
 			pkgs.reduce((s, p) => s + flt(p.freight_charge), 0),
-			2,
-		),
+			2
+		)
 	);
 }
 
@@ -705,7 +705,7 @@ function add_shipment_action_buttons(frm) {
 			() => {
 				frappe.set_route("List", "Expense", { linked_shipment: frm.doc.name });
 			},
-			__("View"),
+			__("View")
 		);
 
 		frm.add_custom_button(
@@ -718,7 +718,7 @@ function add_shipment_action_buttons(frm) {
 					company: frm.doc.company,
 				});
 			},
-			__("Create"),
+			__("Create")
 		);
 	}
 }

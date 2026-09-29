@@ -109,26 +109,36 @@ frappe.ui.form.on("Item Pricing Settings", {
 				flt(frm.doc.manual_overhead) ||
 				flt(frm.doc.manual_fixed_cost);
 			if (hasBreakdown) {
-				frappe.confirm(__("Switching to Override will clear breakdown totals and base rate. Continue?"), () => {
-					frm.set_value("estimated_base_rate", 0);
-					frm.set_value("manual_bank_charges", 0);
-					frm.set_value("manual_freight", 0);
-					frm.set_value("manual_clearing_fees", 0);
-					frm.set_value("manual_transport_in", 0);
-					frm.set_value("manual_transport_out", 0);
-					frm.set_value("manual_overhead", 0);
-					frm.set_value("manual_fixed_cost", 0);
-				}, () => {
-					frm.set_value("manual_cost_mode", "Breakdown");
-				});
+				frappe.confirm(
+					__(
+						"Switching to Override will clear breakdown totals and base rate. Continue?"
+					),
+					() => {
+						frm.set_value("estimated_base_rate", 0);
+						frm.set_value("manual_bank_charges", 0);
+						frm.set_value("manual_freight", 0);
+						frm.set_value("manual_clearing_fees", 0);
+						frm.set_value("manual_transport_in", 0);
+						frm.set_value("manual_transport_out", 0);
+						frm.set_value("manual_overhead", 0);
+						frm.set_value("manual_fixed_cost", 0);
+					},
+					() => {
+						frm.set_value("manual_cost_mode", "Breakdown");
+					}
+				);
 			}
 		} else if (frm.doc.manual_cost_mode === "Breakdown") {
 			if (flt(frm.doc.estimated_true_cost_override)) {
-				frappe.confirm(__("Switching to Breakdown will clear True Cost Override. Continue?"), () => {
-					frm.set_value("estimated_true_cost_override", 0);
-				}, () => {
-					frm.set_value("manual_cost_mode", "Override");
-				});
+				frappe.confirm(
+					__("Switching to Breakdown will clear True Cost Override. Continue?"),
+					() => {
+						frm.set_value("estimated_true_cost_override", 0);
+					},
+					() => {
+						frm.set_value("manual_cost_mode", "Override");
+					}
+				);
 			}
 		}
 	},
@@ -159,10 +169,18 @@ frappe.ui.form.on("Item Pricing Settings", {
 			frm.clear_custom_buttons();
 		}
 		// Y fallback: if user types override while in Breakdown, auto-switch to Override with confirm
-		if (flt(frm.doc.estimated_true_cost_override) && frm.doc.manual_cost_mode === "Breakdown") {
-			frappe.confirm(__("True Cost Override filled while in Breakdown mode. Switch to Override mode and hide breakdown?"), () => {
-				frm.set_value("manual_cost_mode", "Override");
-			});
+		if (
+			flt(frm.doc.estimated_true_cost_override) &&
+			frm.doc.manual_cost_mode === "Breakdown"
+		) {
+			frappe.confirm(
+				__(
+					"True Cost Override filled while in Breakdown mode. Switch to Override mode and hide breakdown?"
+				),
+				() => {
+					frm.set_value("manual_cost_mode", "Override");
+				}
+			);
 		}
 	},
 
@@ -174,7 +192,10 @@ frappe.ui.form.on("Item Pricing Settings", {
 			frm.clear_custom_buttons();
 		}
 		if (flt(frm.doc.manual_bank_charges) && frm.doc.manual_cost_mode === "Override") {
-			frappe.confirm(__("Breakdown total entered while in Override mode. Switch to Breakdown?"), () => frm.set_value("manual_cost_mode", "Breakdown"));
+			frappe.confirm(
+				__("Breakdown total entered while in Override mode. Switch to Breakdown?"),
+				() => frm.set_value("manual_cost_mode", "Breakdown")
+			);
 		}
 	},
 
@@ -186,7 +207,10 @@ frappe.ui.form.on("Item Pricing Settings", {
 			frm.clear_custom_buttons();
 		}
 		if (flt(frm.doc.manual_freight) && frm.doc.manual_cost_mode === "Override") {
-			frappe.confirm(__("Breakdown total entered while in Override mode. Switch to Breakdown?"), () => frm.set_value("manual_cost_mode", "Breakdown"));
+			frappe.confirm(
+				__("Breakdown total entered while in Override mode. Switch to Breakdown?"),
+				() => frm.set_value("manual_cost_mode", "Breakdown")
+			);
 		}
 	},
 
@@ -198,7 +222,10 @@ frappe.ui.form.on("Item Pricing Settings", {
 			frm.clear_custom_buttons();
 		}
 		if (flt(frm.doc.manual_clearing_fees) && frm.doc.manual_cost_mode === "Override") {
-			frappe.confirm(__("Breakdown total entered while in Override mode. Switch to Breakdown?"), () => frm.set_value("manual_cost_mode", "Breakdown"));
+			frappe.confirm(
+				__("Breakdown total entered while in Override mode. Switch to Breakdown?"),
+				() => frm.set_value("manual_cost_mode", "Breakdown")
+			);
 		}
 	},
 
@@ -210,7 +237,10 @@ frappe.ui.form.on("Item Pricing Settings", {
 			frm.clear_custom_buttons();
 		}
 		if (flt(frm.doc.manual_transport_in) && frm.doc.manual_cost_mode === "Override") {
-			frappe.confirm(__("Breakdown total entered while in Override mode. Switch to Breakdown?"), () => frm.set_value("manual_cost_mode", "Breakdown"));
+			frappe.confirm(
+				__("Breakdown total entered while in Override mode. Switch to Breakdown?"),
+				() => frm.set_value("manual_cost_mode", "Breakdown")
+			);
 		}
 	},
 
@@ -222,7 +252,10 @@ frappe.ui.form.on("Item Pricing Settings", {
 			frm.clear_custom_buttons();
 		}
 		if (flt(frm.doc.manual_transport_out) && frm.doc.manual_cost_mode === "Override") {
-			frappe.confirm(__("Breakdown total entered while in Override mode. Switch to Breakdown?"), () => frm.set_value("manual_cost_mode", "Breakdown"));
+			frappe.confirm(
+				__("Breakdown total entered while in Override mode. Switch to Breakdown?"),
+				() => frm.set_value("manual_cost_mode", "Breakdown")
+			);
 		}
 	},
 
@@ -234,7 +267,10 @@ frappe.ui.form.on("Item Pricing Settings", {
 			frm.clear_custom_buttons();
 		}
 		if (flt(frm.doc.manual_overhead) && frm.doc.manual_cost_mode === "Override") {
-			frappe.confirm(__("Breakdown total entered while in Override mode. Switch to Breakdown?"), () => frm.set_value("manual_cost_mode", "Breakdown"));
+			frappe.confirm(
+				__("Breakdown total entered while in Override mode. Switch to Breakdown?"),
+				() => frm.set_value("manual_cost_mode", "Breakdown")
+			);
 		}
 	},
 
@@ -246,7 +282,10 @@ frappe.ui.form.on("Item Pricing Settings", {
 			frm.clear_custom_buttons();
 		}
 		if (flt(frm.doc.manual_fixed_cost) && frm.doc.manual_cost_mode === "Override") {
-			frappe.confirm(__("Breakdown total entered while in Override mode. Switch to Breakdown?"), () => frm.set_value("manual_cost_mode", "Breakdown"));
+			frappe.confirm(
+				__("Breakdown total entered while in Override mode. Switch to Breakdown?"),
+				() => frm.set_value("manual_cost_mode", "Breakdown")
+			);
 		}
 	},
 
@@ -294,22 +333,49 @@ frappe.ui.form.on("Item Pricing Settings", {
 		_render_converted_hints(frm);
 		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
 	},
-	convert_manual_bank_charges(frm) { _render_converted_hints(frm); if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save(); },
-	convert_manual_freight(frm) { _render_converted_hints(frm); if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save(); },
-	convert_manual_clearing_fees(frm) { _render_converted_hints(frm); if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save(); },
-	convert_manual_transport_in(frm) { _render_converted_hints(frm); if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save(); },
-	convert_manual_transport_out(frm) { _render_converted_hints(frm); if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save(); },
-	convert_manual_overhead(frm) { _render_converted_hints(frm); if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save(); },
-	convert_manual_fixed_cost(frm) { _render_converted_hints(frm); if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save(); },
-	convert_estimated_true_cost_override(frm) { _render_converted_hints(frm); if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save(); },
+	convert_manual_bank_charges(frm) {
+		_render_converted_hints(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
+	},
+	convert_manual_freight(frm) {
+		_render_converted_hints(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
+	},
+	convert_manual_clearing_fees(frm) {
+		_render_converted_hints(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
+	},
+	convert_manual_transport_in(frm) {
+		_render_converted_hints(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
+	},
+	convert_manual_transport_out(frm) {
+		_render_converted_hints(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
+	},
+	convert_manual_overhead(frm) {
+		_render_converted_hints(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
+	},
+	convert_manual_fixed_cost(frm) {
+		_render_converted_hints(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
+	},
+	convert_estimated_true_cost_override(frm) {
+		_render_converted_hints(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Manual") frm.enable_save();
+	},
 });
 
 function _add_action_buttons(frm) {
-	const needsRefresh = !frm.doc.last_updated || new Date(frm.doc.modified) > new Date(frm.doc.last_updated);
+	const needsRefresh =
+		!frm.doc.last_updated || new Date(frm.doc.modified) > new Date(frm.doc.last_updated);
 
 	const isManual = frm.doc.pricing_mode === "Manual";
 	const refreshLabel = isManual ? __("Recalculate Estimate") : __("Refresh Valuation");
-	const refreshMsg = isManual ? __("Recalculating tiers...") : __("Reading latest valuation rate...");
+	const refreshMsg = isManual
+		? __("Recalculating tiers...")
+		: __("Reading latest valuation rate...");
 
 	const $refresh = frm.add_custom_button(refreshLabel, () => {
 		frappe.call({
@@ -331,7 +397,8 @@ function _add_action_buttons(frm) {
 	}
 
 	// Apply tiers
-	const hasAnyTier = flt(frm.doc.basic_rate) || flt(frm.doc.rate_30) || flt(frm.doc.suggested_selling_price);
+	const hasAnyTier =
+		flt(frm.doc.basic_rate) || flt(frm.doc.rate_30) || flt(frm.doc.suggested_selling_price);
 	if (hasAnyTier) {
 		const current = flt(frm.doc.current_selling_price);
 		const suggested = flt(frm.doc.suggested_selling_price);
@@ -354,7 +421,9 @@ function _validate_no_duplicate_price_lists(frm) {
 		if (FIXED_TIER_SET.includes(name)) {
 			frappe.msgprint({
 				title: __("Invalid Price List"),
-				message: __("Price List {0} for {1} cannot be one of the 6 fixed tier lists.").format(name, label),
+				message: __(
+					"Price List {0} for {1} cannot be one of the 6 fixed tier lists."
+				).format(name, label),
 				indicator: "red",
 			});
 			frappe.validated = false;
@@ -363,7 +432,10 @@ function _validate_no_duplicate_price_lists(frm) {
 		if (seen[name]) {
 			frappe.msgprint({
 				title: __("Duplicate Price List"),
-				message: __("Price List {0} is used for both {1} and {2}. Please choose distinct Price Lists.", [name, seen[name], label]),
+				message: __(
+					"Price List {0} is used for both {1} and {2}. Please choose distinct Price Lists.",
+					[name, seen[name], label]
+				),
 				indicator: "red",
 			});
 			frappe.validated = false;
@@ -382,7 +454,9 @@ function _show_preview(frm) {
 	const target_label = `Target (${flt(d.target_margin_pct) || 0}%)`;
 	const target_is_source = (d.standard_selling_source_tier || "30%") === "Target";
 	const tc_label = `Target Commission (${flt(d.commission_pct) || 0}%)`;
-	const tct_label = `Target Commission (Tax) (${flt(d.commission_pct) || 0}%+${flt(d.wht_pct) || 0}%)`;
+	const tct_label = `Target Commission (Tax) (${flt(d.commission_pct) || 0}%+${
+		flt(d.wht_pct) || 0
+	}%)`;
 	const tc_is_source = (d.standard_selling_source_tier || "30%") === "Target Commission";
 	const tct_is_source = (d.standard_selling_source_tier || "30%") === "Target Commission (Tax)";
 	const rows = [
@@ -391,14 +465,35 @@ function _show_preview(frm) {
 		["30%", d.rate_30, d.price_list_30 || "Selling - 30%"],
 		["45%", d.rate_45, d.price_list_45],
 		["Commission (10%)", d.rate_commission, d.price_list_commission || "Selling - Commission"],
-		["Commission + Tax (10%+3%)", d.rate_commission_tax, d.price_list_commission_tax || "Selling - Commission (Tax)"],
+		[
+			"Commission + Tax (10%+3%)",
+			d.rate_commission_tax,
+			d.price_list_commission_tax || "Selling - Commission (Tax)",
+		],
 	];
-	if (hasTarget) rows.splice(1, 0, [target_label + (target_is_source ? " → Standard Selling" : ""), d.target_rate, d.price_list]);
-	if (hasTC) rows.push([tc_label + (tc_is_source ? " → Standard Selling" : ""), d.rate_target_commission, d.price_list_target_commission]);
-	if (hasTCT) rows.push([tct_label + (tct_is_source ? " → Standard Selling" : ""), d.rate_target_commission_tax, d.price_list_target_commission_tax]);
+	if (hasTarget)
+		rows.splice(1, 0, [
+			target_label + (target_is_source ? " → Standard Selling" : ""),
+			d.target_rate,
+			d.price_list,
+		]);
+	if (hasTC)
+		rows.push([
+			tc_label + (tc_is_source ? " → Standard Selling" : ""),
+			d.rate_target_commission,
+			d.price_list_target_commission,
+		]);
+	if (hasTCT)
+		rows.push([
+			tct_label + (tct_is_source ? " → Standard Selling" : ""),
+			d.rate_target_commission_tax,
+			d.price_list_target_commission_tax,
+		]);
 	const current = flt(d.current_selling_price);
 	let html = `<div style="max-height:420px;overflow:auto;"><table class="table table-bordered small" style="min-width:720px;">
-		<thead><tr><th>Tier</th><th>Price List</th><th class="text-right">Rate (Company: ${d.company_currency || ""})</th><th>vs Current</th></tr></thead><tbody>`;
+		<thead><tr><th>Tier</th><th>Price List</th><th class="text-right">Rate (Company: ${
+			d.company_currency || ""
+		})</th><th>vs Current</th></tr></thead><tbody>`;
 	for (const [label, rate, pl] of rows) {
 		const r = flt(rate);
 		let delta = "";
@@ -410,10 +505,20 @@ function _show_preview(frm) {
 			else delta = `<span style="color:var(--gray-600)">✓ same</span>`;
 		}
 		const bold = label.includes("Standard Selling") ? "font-weight:600;" : "";
-		html += `<tr style="${bold}"><td>${label}</td><td class="text-muted small">${pl || ""}</td><td class="text-right">${r ? format_currency(r) : "-"}</td><td class="text-center">${delta}</td></tr>`;
+		html += `<tr style="${bold}"><td>${label}</td><td class="text-muted small">${
+			pl || ""
+		}</td><td class="text-right">${
+			r ? format_currency(r) : "-"
+		}</td><td class="text-center">${delta}</td></tr>`;
 	}
 	html += `</tbody></table>`;
-	html += `<div class="text-muted small">Standard Selling source: <b>${d.standard_selling_source_tier || "30%"}</b> → Suggested ${format_currency(d.suggested_selling_price)} | Current ${format_currency(current)} | Mode ${d.pricing_mode} · All prices in Company Currency (${d.company_currency || ""})</div></div>`;
+	html += `<div class="text-muted small">Standard Selling source: <b>${
+		d.standard_selling_source_tier || "30%"
+	}</b> → Suggested ${format_currency(d.suggested_selling_price)} | Current ${format_currency(
+		current
+	)} | Mode ${d.pricing_mode} · All prices in Company Currency (${
+		d.company_currency || ""
+	})</div></div>`;
 
 	const preview = new frappe.ui.Dialog({
 		title: __("Tier Preview — ") + d.item_code,
@@ -430,19 +535,114 @@ function _show_apply_dialog(frm) {
 	const hasTCT = flt(frm.doc.wht_pct) && frm.doc.price_list_target_commission_tax;
 	const target_label = `Target (${flt(frm.doc.target_margin_pct) || 0}%)`;
 	const tc_label = `Target Commission (${flt(frm.doc.commission_pct) || 0}%)`;
-	const tct_label = `Target Commission (Tax) (${flt(frm.doc.commission_pct) || 0}%+${flt(frm.doc.wht_pct) || 0}%)`;
+	const tct_label = `Target Commission (Tax) (${flt(frm.doc.commission_pct) || 0}%+${
+		flt(frm.doc.wht_pct) || 0
+	}%)`;
 	const fields = [
-		{ fieldname: "info", fieldtype: "HTML", options: `<div class="text-muted small">Standard Selling will be set from <b>${frm.doc.standard_selling_source_tier || "30%"}</b> (${format_currency(frm.doc.suggested_selling_price)}) in <b>${frm.doc.company_currency || ""}</b>. Choose tiers to create/update Item Price rows. History kept via <code>valid_from</code>. 6 fixed tiers are always available; targets appear only when % + Price List are set. All prices in Company Currency.</div>` },
-		{ fieldname: "tier_basic", fieldtype: "Check", label: __("Basic (") + format_currency(frm.doc.basic_rate) + " → " + (frm.doc.price_list_basic || "Selling - Basic") + ")" },
-		{ fieldname: "tier_15", fieldtype: "Check", label: __("15% (") + format_currency(frm.doc.rate_15) + " → " + (frm.doc.price_list_15 || "Selling - 15%") + ")" },
-		{ fieldname: "tier_30", fieldtype: "Check", label: __("30% (") + format_currency(frm.doc.rate_30) + " → " + (frm.doc.price_list_30 || "Selling - 30%") + ")" },
-		{ fieldname: "tier_45", fieldtype: "Check", label: __("45% (") + format_currency(frm.doc.rate_45) + " → " + (frm.doc.price_list_45 || "Selling - 45%") + ")" },
-		{ fieldname: "tier_commission", fieldtype: "Check", label: __("Commission (10%) (") + format_currency(frm.doc.rate_commission) + " → " + (frm.doc.price_list_commission || "Selling - Commission") + ")" },
-		{ fieldname: "tier_commission_tax", fieldtype: "Check", label: __("Commission + Tax (10%+3%) (") + format_currency(frm.doc.rate_commission_tax) + " → " + (frm.doc.price_list_commission_tax || "Selling - Commission (Tax)") + ")" },
+		{
+			fieldname: "info",
+			fieldtype: "HTML",
+			options: `<div class="text-muted small">Standard Selling will be set from <b>${
+				frm.doc.standard_selling_source_tier || "30%"
+			}</b> (${format_currency(frm.doc.suggested_selling_price)}) in <b>${
+				frm.doc.company_currency || ""
+			}</b>. Choose tiers to create/update Item Price rows. History kept via <code>valid_from</code>. 6 fixed tiers are always available; targets appear only when % + Price List are set. All prices in Company Currency.</div>`,
+		},
+		{
+			fieldname: "tier_basic",
+			fieldtype: "Check",
+			label:
+				__("Basic (") +
+				format_currency(frm.doc.basic_rate) +
+				" → " +
+				(frm.doc.price_list_basic || "Selling - Basic") +
+				")",
+		},
+		{
+			fieldname: "tier_15",
+			fieldtype: "Check",
+			label:
+				__("15% (") +
+				format_currency(frm.doc.rate_15) +
+				" → " +
+				(frm.doc.price_list_15 || "Selling - 15%") +
+				")",
+		},
+		{
+			fieldname: "tier_30",
+			fieldtype: "Check",
+			label:
+				__("30% (") +
+				format_currency(frm.doc.rate_30) +
+				" → " +
+				(frm.doc.price_list_30 || "Selling - 30%") +
+				")",
+		},
+		{
+			fieldname: "tier_45",
+			fieldtype: "Check",
+			label:
+				__("45% (") +
+				format_currency(frm.doc.rate_45) +
+				" → " +
+				(frm.doc.price_list_45 || "Selling - 45%") +
+				")",
+		},
+		{
+			fieldname: "tier_commission",
+			fieldtype: "Check",
+			label:
+				__("Commission (10%) (") +
+				format_currency(frm.doc.rate_commission) +
+				" → " +
+				(frm.doc.price_list_commission || "Selling - Commission") +
+				")",
+		},
+		{
+			fieldname: "tier_commission_tax",
+			fieldtype: "Check",
+			label:
+				__("Commission + Tax (10%+3%) (") +
+				format_currency(frm.doc.rate_commission_tax) +
+				" → " +
+				(frm.doc.price_list_commission_tax || "Selling - Commission (Tax)") +
+				")",
+		},
 	];
-	if (hasTarget) fields.push({ fieldname: "tier_target", fieldtype: "Check", label: __(target_label + " (") + format_currency(frm.doc.target_rate) + " → " + frm.doc.price_list + ")", default: 1 });
-	if (hasTC) fields.push({ fieldname: "tier_target_commission", fieldtype: "Check", label: __(tc_label + " (") + format_currency(frm.doc.rate_target_commission) + " → " + frm.doc.price_list_target_commission + ")" });
-	if (hasTCT) fields.push({ fieldname: "tier_target_commission_tax", fieldtype: "Check", label: __(tct_label + " (") + format_currency(frm.doc.rate_target_commission_tax) + " → " + frm.doc.price_list_target_commission_tax + ")" });
+	if (hasTarget)
+		fields.push({
+			fieldname: "tier_target",
+			fieldtype: "Check",
+			label:
+				__(target_label + " (") +
+				format_currency(frm.doc.target_rate) +
+				" → " +
+				frm.doc.price_list +
+				")",
+			default: 1,
+		});
+	if (hasTC)
+		fields.push({
+			fieldname: "tier_target_commission",
+			fieldtype: "Check",
+			label:
+				__(tc_label + " (") +
+				format_currency(frm.doc.rate_target_commission) +
+				" → " +
+				frm.doc.price_list_target_commission +
+				")",
+		});
+	if (hasTCT)
+		fields.push({
+			fieldname: "tier_target_commission_tax",
+			fieldtype: "Check",
+			label:
+				__(tct_label + " (") +
+				format_currency(frm.doc.rate_target_commission_tax) +
+				" → " +
+				frm.doc.price_list_target_commission_tax +
+				")",
+		});
 
 	const d = new frappe.ui.Dialog({
 		title: __("Apply Tier Prices — ") + frm.doc.item_code,
@@ -450,7 +650,17 @@ function _show_apply_dialog(frm) {
 		fields: fields,
 		primary_action_label: __("Apply Selected"),
 		primary_action(values) {
-			const map = { tier_basic: "basic", tier_target: "target", tier_15: "15", tier_30: "30", tier_45: "45", tier_commission: "commission", tier_commission_tax: "commission_tax", tier_target_commission: "target_commission", tier_target_commission_tax: "target_commission_tax" };
+			const map = {
+				tier_basic: "basic",
+				tier_target: "target",
+				tier_15: "15",
+				tier_30: "30",
+				tier_45: "45",
+				tier_commission: "commission",
+				tier_commission_tax: "commission_tax",
+				tier_target_commission: "target_commission",
+				tier_target_commission_tax: "target_commission_tax",
+			};
 			const selected = [];
 			for (const [fld, key] of Object.entries(map)) if (values[fld]) selected.push(key);
 			if (!selected.length) {
@@ -460,9 +670,9 @@ function _show_apply_dialog(frm) {
 			// duplicate check (only optionals can collide, fixed are distinct)
 			const pl_map = {
 				basic: frm.doc.price_list_basic || "Selling - Basic",
-				"15": frm.doc.price_list_15 || "Selling - 15%",
-				"30": frm.doc.price_list_30 || "Selling - 30%",
-				"45": frm.doc.price_list_45 || "Selling - 45%",
+				15: frm.doc.price_list_15 || "Selling - 15%",
+				30: frm.doc.price_list_30 || "Selling - 30%",
+				45: frm.doc.price_list_45 || "Selling - 45%",
 				commission: frm.doc.price_list_commission || "Selling - Commission",
 				commission_tax: frm.doc.price_list_commission_tax || "Selling - Commission (Tax)",
 				target: frm.doc.price_list || "",
@@ -473,34 +683,63 @@ function _show_apply_dialog(frm) {
 			for (const k of selected) {
 				const pl = pl_map[k];
 				if (!pl) continue;
-				if (FIXED_TIER_SET.includes(pl) && ["target", "target_commission", "target_commission_tax"].includes(k)) {
-					frappe.msgprint({title: __("Invalid Price List"), message: __("Price List {0} for {1} cannot be one of the 6 fixed tier lists.").format(pl, k), indicator: "red"});
+				if (
+					FIXED_TIER_SET.includes(pl) &&
+					["target", "target_commission", "target_commission_tax"].includes(k)
+				) {
+					frappe.msgprint({
+						title: __("Invalid Price List"),
+						message: __(
+							"Price List {0} for {1} cannot be one of the 6 fixed tier lists."
+						).format(pl, k),
+						indicator: "red",
+					});
 					return;
 				}
 				if (seen[pl]) {
-					frappe.msgprint({title: __("Duplicate Price List"), message: __("Price List {0} is used for both {1} and {2}. Please choose distinct Price Lists.", [pl, seen[pl], k]), indicator: "red"});
+					frappe.msgprint({
+						title: __("Duplicate Price List"),
+						message: __(
+							"Price List {0} is used for both {1} and {2}. Please choose distinct Price Lists.",
+							[pl, seen[pl], k]
+						),
+						indicator: "red",
+					});
 					return;
 				}
 				seen[pl] = k;
 			}
 			if (seen["Standard Selling"]) {
-				frappe.msgprint({title: __("Duplicate Price List"), message: __("Price List {0} is used for both {1} and Standard Selling. Please choose distinct Price Lists.", ["Standard Selling", seen["Standard Selling"]]), indicator: "red"});
+				frappe.msgprint({
+					title: __("Duplicate Price List"),
+					message: __(
+						"Price List {0} is used for both {1} and Standard Selling. Please choose distinct Price Lists.",
+						["Standard Selling", seen["Standard Selling"]]
+					),
+					indicator: "red",
+				});
 				return;
 			}
-			frappe.confirm(__("Apply {0} tier(s)? This creates/updates Item Price with valid_from=today (history kept).", [selected.length]), () => {
-				frappe.call({
-					method: "nbs_customization.nbs_customization.doctype.item_pricing_settings.item_pricing_settings.apply_tiers",
-					args: { doc_name: frm.doc.name, selected_tiers: selected },
-					freeze: true,
-					freeze_message: __("Updating Item Prices..."),
-					callback(r) {
-						if (!r.exc) {
-							d.hide();
-							frm.reload_doc();
-						}
-					},
-				});
-			});
+			frappe.confirm(
+				__(
+					"Apply {0} tier(s)? This creates/updates Item Price with valid_from=today (history kept).",
+					[selected.length]
+				),
+				() => {
+					frappe.call({
+						method: "nbs_customization.nbs_customization.doctype.item_pricing_settings.item_pricing_settings.apply_tiers",
+						args: { doc_name: frm.doc.name, selected_tiers: selected },
+						freeze: true,
+						freeze_message: __("Updating Item Prices..."),
+						callback(r) {
+							if (!r.exc) {
+								d.hide();
+								frm.reload_doc();
+							}
+						},
+					});
+				}
+			);
 		},
 	});
 	const all = ["basic", "15", "30", "45", "commission", "commission_tax"];
@@ -511,9 +750,9 @@ function _show_apply_dialog(frm) {
 		// duplicate check for All
 		const all_pl_map = {
 			basic: frm.doc.price_list_basic || "Selling - Basic",
-			"15": frm.doc.price_list_15 || "Selling - 15%",
-			"30": frm.doc.price_list_30 || "Selling - 30%",
-			"45": frm.doc.price_list_45 || "Selling - 45%",
+			15: frm.doc.price_list_15 || "Selling - 15%",
+			30: frm.doc.price_list_30 || "Selling - 30%",
+			45: frm.doc.price_list_45 || "Selling - 45%",
 			commission: frm.doc.price_list_commission || "Selling - Commission",
 			commission_tax: frm.doc.price_list_commission_tax || "Selling - Commission (Tax)",
 			target: frm.doc.price_list || "",
@@ -525,13 +764,27 @@ function _show_apply_dialog(frm) {
 			const pl = all_pl_map[k];
 			if (!pl) continue;
 			if (all_seen[pl]) {
-				frappe.msgprint({title: __("Duplicate Price List"), message: __("Price List {0} is used for both {1} and {2}. Please choose distinct Price Lists.", [pl, all_seen[pl], k]), indicator: "red"});
+				frappe.msgprint({
+					title: __("Duplicate Price List"),
+					message: __(
+						"Price List {0} is used for both {1} and {2}. Please choose distinct Price Lists.",
+						[pl, all_seen[pl], k]
+					),
+					indicator: "red",
+				});
 				return;
 			}
 			all_seen[pl] = k;
 		}
 		if (all_seen["Standard Selling"]) {
-			frappe.msgprint({title: __("Duplicate Price List"), message: __("Price List {0} is used for both {1} and Standard Selling. Please choose distinct Price Lists.", ["Standard Selling", all_seen["Standard Selling"]]), indicator: "red"});
+			frappe.msgprint({
+				title: __("Duplicate Price List"),
+				message: __(
+					"Price List {0} is used for both {1} and Standard Selling. Please choose distinct Price Lists.",
+					["Standard Selling", all_seen["Standard Selling"]]
+				),
+				indicator: "red",
+			});
 			return;
 		}
 		frappe.confirm(__("Apply ALL {0} tiers?", [all.length]), () => {
@@ -563,7 +816,10 @@ function _render_manual_totals_helper(frm) {
 	field.$wrapper.find(".manual-totals-hint").remove();
 	const qty = flt(frm.doc.manual_qty) || 1;
 	const rate = flt(frm.doc.exchange_rate) || 1;
-	const isFX = frm.doc.cost_currency && frm.doc.company_currency && frm.doc.cost_currency !== frm.doc.company_currency;
+	const isFX =
+		frm.doc.cost_currency &&
+		frm.doc.company_currency &&
+		frm.doc.cost_currency !== frm.doc.company_currency;
 
 	function converted(val, doConvert) {
 		if (!isFX || !doConvert) return flt(val, 2);
@@ -574,17 +830,39 @@ function _render_manual_totals_helper(frm) {
 		const raw = flt(frm.doc.estimated_true_cost_override);
 		const conv = converted(raw, frm.doc.convert_estimated_true_cost_override);
 		const per = conv / qty;
-		const hint = `<div class="manual-totals-hint text-muted small" style="margin-top:6px;">Override total ${format_currency(raw)} ${frm.doc.cost_currency || ""} ${frm.doc.convert_estimated_true_cost_override ? `→ ${format_currency(conv)} ${frm.doc.company_currency || ""}` : ""} for ${qty} units → <b>${format_currency(per)} / unit (${frm.doc.company_currency || ""})</b></div>`;
+		const hint = `<div class="manual-totals-hint text-muted small" style="margin-top:6px;">Override total ${format_currency(
+			raw
+		)} ${frm.doc.cost_currency || ""} ${
+			frm.doc.convert_estimated_true_cost_override
+				? `→ ${format_currency(conv)} ${frm.doc.company_currency || ""}`
+				: ""
+		} for ${qty} units → <b>${format_currency(per)} / unit (${
+			frm.doc.company_currency || ""
+		})</b></div>`;
 		field.$wrapper.find(".control-value").after(hint);
 		return;
 	}
 
 	const baseRaw = flt(frm.doc.estimated_base_rate) * qty;
-	const baseConv = converted(flt(frm.doc.estimated_base_rate), frm.doc.convert_estimated_base_rate) * qty;
+	const baseConv =
+		converted(flt(frm.doc.estimated_base_rate), frm.doc.convert_estimated_base_rate) * qty;
 	const fixedRaw = flt(frm.doc.manual_fixed_cost) * qty;
-	const fixedConv = converted(flt(frm.doc.manual_fixed_cost), frm.doc.convert_manual_fixed_cost) * qty;
-	let otherRaw = flt(frm.doc.manual_bank_charges) + flt(frm.doc.manual_freight) + flt(frm.doc.manual_clearing_fees) + flt(frm.doc.manual_transport_in) + flt(frm.doc.manual_transport_out) + flt(frm.doc.manual_overhead);
-	let otherConv = converted(flt(frm.doc.manual_bank_charges), frm.doc.convert_manual_bank_charges) + converted(flt(frm.doc.manual_freight), frm.doc.convert_manual_freight) + converted(flt(frm.doc.manual_clearing_fees), frm.doc.convert_manual_clearing_fees) + converted(flt(frm.doc.manual_transport_in), frm.doc.convert_manual_transport_in) + converted(flt(frm.doc.manual_transport_out), frm.doc.convert_manual_transport_out) + converted(flt(frm.doc.manual_overhead), frm.doc.convert_manual_overhead);
+	const fixedConv =
+		converted(flt(frm.doc.manual_fixed_cost), frm.doc.convert_manual_fixed_cost) * qty;
+	let otherRaw =
+		flt(frm.doc.manual_bank_charges) +
+		flt(frm.doc.manual_freight) +
+		flt(frm.doc.manual_clearing_fees) +
+		flt(frm.doc.manual_transport_in) +
+		flt(frm.doc.manual_transport_out) +
+		flt(frm.doc.manual_overhead);
+	let otherConv =
+		converted(flt(frm.doc.manual_bank_charges), frm.doc.convert_manual_bank_charges) +
+		converted(flt(frm.doc.manual_freight), frm.doc.convert_manual_freight) +
+		converted(flt(frm.doc.manual_clearing_fees), frm.doc.convert_manual_clearing_fees) +
+		converted(flt(frm.doc.manual_transport_in), frm.doc.convert_manual_transport_in) +
+		converted(flt(frm.doc.manual_transport_out), frm.doc.convert_manual_transport_out) +
+		converted(flt(frm.doc.manual_overhead), frm.doc.convert_manual_overhead);
 	const totalsConv = otherConv + fixedConv;
 	const trueTotal = baseConv + totalsConv;
 	const truePer = trueTotal / qty;
@@ -592,23 +870,69 @@ function _render_manual_totals_helper(frm) {
 	if (!baseRaw && !otherRaw && !fixedRaw) return;
 
 	const parts = [];
-	if (flt(frm.doc.manual_bank_charges)) parts.push(`Bank ${format_currency(converted(flt(frm.doc.manual_bank_charges), frm.doc.convert_manual_bank_charges))}/u ${frm.doc.convert_manual_bank_charges ? '('+frm.doc.cost_currency+')' : ''}`);
-	if (flt(frm.doc.manual_freight)) parts.push(`Freight ${format_currency(converted(flt(frm.doc.manual_freight), frm.doc.convert_manual_freight))}/u`);
-	if (flt(frm.doc.manual_clearing_fees)) parts.push(`Clearing ${format_currency(converted(flt(frm.doc.manual_clearing_fees), frm.doc.convert_manual_clearing_fees))}/u`);
-	if (flt(frm.doc.manual_transport_in)) parts.push(`Tin ${format_currency(converted(flt(frm.doc.manual_transport_in), frm.doc.convert_manual_transport_in))}/u`);
-	if (flt(frm.doc.manual_transport_out)) parts.push(`Tout ${format_currency(converted(flt(frm.doc.manual_transport_out), frm.doc.convert_manual_transport_out))}/u`);
-	if (flt(frm.doc.manual_overhead)) parts.push(`Overhead ${format_currency(converted(flt(frm.doc.manual_overhead), frm.doc.convert_manual_overhead))}/u`);
-	if (flt(frm.doc.manual_fixed_cost)) parts.push(`Fixed ${format_currency(converted(flt(frm.doc.manual_fixed_cost), frm.doc.convert_manual_fixed_cost))}/u`);
+	if (flt(frm.doc.manual_bank_charges))
+		parts.push(
+			`Bank ${format_currency(
+				converted(flt(frm.doc.manual_bank_charges), frm.doc.convert_manual_bank_charges)
+			)}/u ${frm.doc.convert_manual_bank_charges ? "(" + frm.doc.cost_currency + ")" : ""}`
+		);
+	if (flt(frm.doc.manual_freight))
+		parts.push(
+			`Freight ${format_currency(
+				converted(flt(frm.doc.manual_freight), frm.doc.convert_manual_freight)
+			)}/u`
+		);
+	if (flt(frm.doc.manual_clearing_fees))
+		parts.push(
+			`Clearing ${format_currency(
+				converted(flt(frm.doc.manual_clearing_fees), frm.doc.convert_manual_clearing_fees)
+			)}/u`
+		);
+	if (flt(frm.doc.manual_transport_in))
+		parts.push(
+			`Tin ${format_currency(
+				converted(flt(frm.doc.manual_transport_in), frm.doc.convert_manual_transport_in)
+			)}/u`
+		);
+	if (flt(frm.doc.manual_transport_out))
+		parts.push(
+			`Tout ${format_currency(
+				converted(flt(frm.doc.manual_transport_out), frm.doc.convert_manual_transport_out)
+			)}/u`
+		);
+	if (flt(frm.doc.manual_overhead))
+		parts.push(
+			`Overhead ${format_currency(
+				converted(flt(frm.doc.manual_overhead), frm.doc.convert_manual_overhead)
+			)}/u`
+		);
+	if (flt(frm.doc.manual_fixed_cost))
+		parts.push(
+			`Fixed ${format_currency(
+				converted(flt(frm.doc.manual_fixed_cost), frm.doc.convert_manual_fixed_cost)
+			)}/u`
+		);
 
 	const detail = parts.length ? ` · ${parts.join(" · ")}` : "";
-	const fxInfo = isFX ? ` (Rate ${rate} ${frm.doc.cost_currency}→${frm.doc.company_currency})` : "";
-	const hint = `<div class="manual-totals-hint text-muted small" style="margin-top:6px;">Base ${format_currency(baseConv)} + shared ${format_currency(totalsConv)} = total ${format_currency(trueTotal)} for ${qty} units → <b>${format_currency(truePer)} / unit (${frm.doc.company_currency || ""})</b>${fxInfo}<span class="text-muted">${detail}</span></div>`;
+	const fxInfo = isFX
+		? ` (Rate ${rate} ${frm.doc.cost_currency}→${frm.doc.company_currency})`
+		: "";
+	const hint = `<div class="manual-totals-hint text-muted small" style="margin-top:6px;">Base ${format_currency(
+		baseConv
+	)} + shared ${format_currency(totalsConv)} = total ${format_currency(
+		trueTotal
+	)} for ${qty} units → <b>${format_currency(truePer)} / unit (${
+		frm.doc.company_currency || ""
+	})</b>${fxInfo}<span class="text-muted">${detail}</span></div>`;
 	field.$wrapper.find(".control-value").after(hint);
 }
 
 function _render_converted_hints(frm) {
 	if (frm.doc.pricing_mode !== "Manual") return;
-	const isFX = frm.doc.cost_currency && frm.doc.company_currency && frm.doc.cost_currency !== frm.doc.company_currency;
+	const isFX =
+		frm.doc.cost_currency &&
+		frm.doc.company_currency &&
+		frm.doc.cost_currency !== frm.doc.company_currency;
 	const rate = flt(frm.doc.exchange_rate) || 1;
 	const fields = [
 		["estimated_base_rate", "convert_estimated_base_rate"],
@@ -630,10 +954,16 @@ function _render_converted_hints(frm) {
 		const doConvert = frm.doc[convField];
 		if (doConvert) {
 			const conv = flt(val * rate, 2);
-			const hint = `<div class="converted-hint text-muted small" style="margin-top:2px;">${format_currency(val)} ${frm.doc.cost_currency} → <b>${format_currency(conv)} ${frm.doc.company_currency}</b> @ ${rate}</div>`;
+			const hint = `<div class="converted-hint text-muted small" style="margin-top:2px;">${format_currency(
+				val
+			)} ${frm.doc.cost_currency} → <b>${format_currency(conv)} ${
+				frm.doc.company_currency
+			}</b> @ ${rate}</div>`;
 			fld.$wrapper.find(".control-value").after(hint);
 		} else {
-			const hint = `<div class="converted-hint text-muted small" style="margin-top:2px;">${format_currency(val)} ${frm.doc.company_currency} (no convert)</div>`;
+			const hint = `<div class="converted-hint text-muted small" style="margin-top:2px;">${format_currency(
+				val
+			)} ${frm.doc.company_currency} (no convert)</div>`;
 			fld.$wrapper.find(".control-value").after(hint);
 		}
 	}
@@ -650,11 +980,19 @@ function _render_price_comparison(frm) {
 	} else if (suggested > current) {
 		const diff = flt(suggested - current, 2);
 		const pct = flt(((suggested - current) / current) * 100, 1);
-		hint_html = `<span class="price-comparison-hint" style="color: var(--orange-500); font-size: 12px;">▲ ${pct}% above Standard Selling (current: ${format_currency(current)}, diff: ${format_currency(diff)}) — source: ${frm.doc.standard_selling_source_tier || "30%"}</span>`;
+		hint_html = `<span class="price-comparison-hint" style="color: var(--orange-500); font-size: 12px;">▲ ${pct}% above Standard Selling (current: ${format_currency(
+			current
+		)}, diff: ${format_currency(diff)}) — source: ${
+			frm.doc.standard_selling_source_tier || "30%"
+		}</span>`;
 	} else if (suggested < current) {
 		const diff = flt(current - suggested, 2);
 		const pct = flt(((current - suggested) / current) * 100, 1);
-		hint_html = `<span class="price-comparison-hint" style="color: var(--green-500); font-size: 12px;">▼ ${pct}% below Standard Selling (current: ${format_currency(current)}, diff: ${format_currency(diff)}) — source: ${frm.doc.standard_selling_source_tier || "30%"}</span>`;
+		hint_html = `<span class="price-comparison-hint" style="color: var(--green-500); font-size: 12px;">▼ ${pct}% below Standard Selling (current: ${format_currency(
+			current
+		)}, diff: ${format_currency(diff)}) — source: ${
+			frm.doc.standard_selling_source_tier || "30%"
+		}</span>`;
 	} else {
 		hint_html = `<span class="price-comparison-hint" style="color: var(--gray-500); font-size: 12px;">✓ Matches Standard Selling</span>`;
 	}
@@ -665,9 +1003,27 @@ function _render_price_comparison(frm) {
 	if (tier) {
 		tier.$wrapper.find(".tier-lane").remove();
 		if (flt(frm.doc.final_rate_per_unit)) {
-			const tgt = flt(frm.doc.target_rate) ? `Target ${format_currency(frm.doc.target_rate)} · ` : "";
-			const tc = flt(frm.doc.rate_target_commission) ? `TComm ${format_currency(frm.doc.rate_target_commission)} · TComm+Tax ${format_currency(frm.doc.rate_target_commission_tax)} · ` : "";
-			tier.$wrapper.append(`<div class="tier-lane text-muted small" style="margin-top:4px;">Basic ${format_currency(frm.doc.basic_rate)} · ${tgt}15% ${format_currency(frm.doc.rate_15)} · 30% ${format_currency(frm.doc.rate_30)} · 45% ${format_currency(frm.doc.rate_45)} · Comm10% ${format_currency(frm.doc.rate_commission)} · Comm10+3% ${format_currency(frm.doc.rate_commission_tax)} · ${tc}Final ${format_currency(frm.doc.final_rate_per_unit)} (${frm.doc.company_currency || ""})</div>`);
+			const tgt = flt(frm.doc.target_rate)
+				? `Target ${format_currency(frm.doc.target_rate)} · `
+				: "";
+			const tc = flt(frm.doc.rate_target_commission)
+				? `TComm ${format_currency(
+						frm.doc.rate_target_commission
+				  )} · TComm+Tax ${format_currency(frm.doc.rate_target_commission_tax)} · `
+				: "";
+			tier.$wrapper.append(
+				`<div class="tier-lane text-muted small" style="margin-top:4px;">Basic ${format_currency(
+					frm.doc.basic_rate
+				)} · ${tgt}15% ${format_currency(frm.doc.rate_15)} · 30% ${format_currency(
+					frm.doc.rate_30
+				)} · 45% ${format_currency(frm.doc.rate_45)} · Comm10% ${format_currency(
+					frm.doc.rate_commission
+				)} · Comm10+3% ${format_currency(
+					frm.doc.rate_commission_tax
+				)} · ${tc}Final ${format_currency(frm.doc.final_rate_per_unit)} (${
+					frm.doc.company_currency || ""
+				})</div>`
+			);
 		}
 	}
 }

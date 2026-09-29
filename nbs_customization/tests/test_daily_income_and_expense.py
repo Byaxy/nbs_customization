@@ -11,12 +11,13 @@ from nbs_customization.nbs_customization.page.daily_income_expense.daily_income_
 from nbs_customization.nbs_customization.report.daily_income_and_expense.daily_income_and_expense import (
 	execute as run_daily_report,
 )
+from nbs_customization.tests.sales_doubles import ensure_mop_default
 
 
 class IntegrationTestDailyIncomeAndExpense(IntegrationTestCase):
 	COMPANY = "_Test Company"
 	BANK = "_Test Bank - _TC"
-	CASH = "_Test Cash - _TC"
+	CASH = "Cash - _TC"
 	EXPENSE_ACCOUNT = "Loyalty - _TC"
 	EQUITY = "Opening Balance Equity - _TC"
 	REPORT_DATE = getdate("2026-01-15")
@@ -24,6 +25,12 @@ class IntegrationTestDailyIncomeAndExpense(IntegrationTestCase):
 	# ------------------------------------------------------------------ #
 	# Fixtures                                                            #
 	# ------------------------------------------------------------------ #
+
+	def setUp(self):
+		super().setUp()
+		# Prod locks paid_from to the MoP default account — the report needs
+		# two paying accounts, so Wire Transfer defaults to bank in-test.
+		ensure_mop_default("Wire Transfer", self.COMPANY, self.BANK)
 
 	def _seed_bank(self, amount=10000):
 		je = frappe.new_doc("Journal Entry")
@@ -72,7 +79,7 @@ class IntegrationTestDailyIncomeAndExpense(IntegrationTestCase):
 				"payee": "Test Payee",
 				"expense_category": self._expense_category(),
 				"payment_type": "Direct Payment",
-				"mode_of_payment": "Wire Transfer",
+				"mode_of_payment": "Cash",
 				"paid_from": self.CASH,
 			}
 		)
@@ -150,6 +157,8 @@ class IntegrationTestDailyIncomeAndExpense(IntegrationTestCase):
 				"expense_category": self._expense_category(),
 				"mode_of_payment": "Wire Transfer",
 				"paid_from": self.BANK,
+				"reference_no": "BANK-PAY-001",
+				"reference_date": self.REPORT_DATE,
 			}
 		)
 		cp.insert(ignore_permissions=True)
@@ -174,20 +183,18 @@ class IntegrationTestDailyIncomeAndExpense(IntegrationTestCase):
 	# ------------------------------------------------------------------ #
 
 	def test_report_balances_and_pnl(self):
-		from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import (
-			make_purchase_invoice,
-		)
-		from erpnext.accounts.doctype.sales_invoice.test_sales_invoice import (
-			create_sales_invoice,
+		from nbs_customization.tests.sales_doubles import (
+			make_test_purchase_invoice,
+			make_test_sales_invoice,
 		)
 
 		seed = self._seed_bank()
 		baseline = self._run()
 
-		si = create_sales_invoice(posting_date=self.REPORT_DATE, rate=100, qty=1)
+		si = make_test_sales_invoice(posting_date=self.REPORT_DATE, rate=100, qty=1)
 		received = self._receive_pe(si)
 		direct = self._direct_expense()
-		pi = make_purchase_invoice()
+		pi = make_test_purchase_invoice()
 		against = self._against_pi_expense(pi)
 		commission_payout, commission = self._commission_payout(si)
 
@@ -276,20 +283,18 @@ class IntegrationTestDailyIncomeAndExpense(IntegrationTestCase):
 			seed.cancel()
 
 	def test_dashboard_get_data(self):
-		from erpnext.accounts.doctype.purchase_invoice.test_purchase_invoice import (
-			make_purchase_invoice,
-		)
-		from erpnext.accounts.doctype.sales_invoice.test_sales_invoice import (
-			create_sales_invoice,
+		from nbs_customization.tests.sales_doubles import (
+			make_test_purchase_invoice,
+			make_test_sales_invoice,
 		)
 
 		seed = self._seed_bank()
 
 		try:
-			si = create_sales_invoice(posting_date=self.REPORT_DATE, rate=100, qty=1)
+			si = make_test_sales_invoice(posting_date=self.REPORT_DATE, rate=100, qty=1)
 			received = self._receive_pe(si)
 			direct = self._direct_expense()
-			pi = make_purchase_invoice()
+			pi = make_test_purchase_invoice()
 			against = self._against_pi_expense(pi)
 			commission_payout, commission = self._commission_payout(si)
 

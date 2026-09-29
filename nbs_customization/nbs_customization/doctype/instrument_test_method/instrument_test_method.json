@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-07-08 17:55:19.279417",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "test_parameter",
+  "required_reagent",
+  "default_pack_volume_ml",
+  "column_break_sahh",
+  "default_tests_per_pack",
+  "default_cogs_per_pack"
+ ],
+ "fields": [
+  {
+   "fieldname": "test_parameter",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Test Parameter",
+   "options": "Test Parameter",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_sahh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "required_reagent",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Required Reagent",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "default_pack_volume_ml",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Default Pack Volume (ml)"
+  },
+  {
+   "fieldname": "default_tests_per_pack",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Default Tests per Pack"
+  },
+  {
+   "fieldname": "default_cogs_per_pack",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Default COGS per Pack"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-20 18:04:52.602458",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Instrument Test Method",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

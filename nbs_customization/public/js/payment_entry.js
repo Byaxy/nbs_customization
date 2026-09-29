@@ -31,7 +31,7 @@ frappe.provide("erpnext.accounts.pos");
 				} else if (pos_account_getter) {
 					pos_account_getter(frm, mode_of_payment, callback);
 				}
-			},
+			}
 		);
 	};
 })();
@@ -48,7 +48,7 @@ function maybe_add_receipt_button(frm) {
 		frm.add_custom_button(
 			__("Receipt"),
 			() => frappe.set_route("Form", "Receipt", frm.doc.custom_receipt),
-			__("View"),
+			__("View")
 		);
 	} else {
 		frm.add_custom_button(
@@ -58,7 +58,7 @@ function maybe_add_receipt_button(frm) {
 					method: "nbs_customization.nbs_customization.doctype.receipt.receipt.create_receipt_from_pe",
 					frm: frm,
 				}),
-			__("Create"),
+			__("Create")
 		);
 		frm.page.set_inner_btn_group_as_primary(__("Create"));
 	}
@@ -81,7 +81,7 @@ function add_check_clearing_buttons(frm) {
 		() => {
 			frappe.confirm(
 				__(
-					"Mark this cheque as returned/bounced? This reverses any clearing and cancels the Payment Entry, re-opening the allocated invoices.",
+					"Mark this cheque as returned/bounced? This reverses any clearing and cancels the Payment Entry, re-opening the allocated invoices."
 				),
 				() => {
 					frappe.call({
@@ -94,17 +94,17 @@ function add_check_clearing_buttons(frm) {
 								frappe.msgprint(
 									__(
 										"Payment Entry {0} cancelled. Invoice allocations are re-opened.",
-										[frm.doc.name],
-									),
+										[frm.doc.name]
+									)
 								);
 								frm.reload_doc();
 							}
 						},
 					});
-				},
+				}
 			);
 		},
-		__("Cheque"),
+		__("Cheque")
 	);
 }
 
@@ -153,7 +153,7 @@ function clearing_dialog(frm) {
 						frappe.msgprint(
 							__("Cheque cleared. Journal Entry {0} created.", [
 								r.message.journal_entry,
-							]),
+							])
 						);
 						d.hide();
 						frm.reload_doc();
@@ -202,7 +202,9 @@ frappe.ui.form.on("Payment Entry", {
 	validate(frm) {
 		if (frm.doc.is_check) {
 			if (!frm.doc.reference_no || !frm.doc.reference_date) {
-				frappe.msgprint(__("Cheque/Reference No and Reference Date are mandatory for Check payments."));
+				frappe.msgprint(
+					__("Cheque/Reference No and Reference Date are mandatory for Check payments.")
+				);
 				frappe.validated = false;
 			}
 			if (!frm.doc.check_bank) {

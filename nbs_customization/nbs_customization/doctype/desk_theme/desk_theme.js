@@ -19,7 +19,7 @@ frappe.ui.form.on("Desk Theme", {
 					}
 				});
 			},
-			__("Actions"),
+			__("Actions")
 		);
 
 		// ---- Reset to Defaults button ------------------------------------
@@ -42,19 +42,19 @@ frappe.ui.form.on("Desk Theme", {
 							.catch(() => {
 								frappe.msgprint(__("Reset failed. Please try again."));
 							});
-					},
+					}
 				);
 			},
-			__("Actions"),
+			__("Actions")
 		);
 
 		// ---- Helpful note in the form -----------------------------------
 		if (!frm.doc.__islocal) {
 			frm.set_intro(
 				__(
-					"Edit colors in the tabs below, then click <b>Actions → Apply Theme</b> to save and apply changes immediately.",
+					"Edit colors in the tabs below, then click <b>Actions → Apply Theme</b> to save and apply changes immediately."
 				),
-				"blue",
+				"blue"
 			);
 		}
 	},

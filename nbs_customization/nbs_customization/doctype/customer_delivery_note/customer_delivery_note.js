@@ -68,7 +68,7 @@ frappe.ui.form.on("Customer Delivery Note", {
 						indicator: "red",
 						message: __(
 							'This Sales Order is already linked to Customer Delivery Note: <a href="/app/customer-delivery-note/{0}" target="_blank">{0}</a>',
-							[r.message[0].name],
+							[r.message[0].name]
 						),
 					});
 					frm.set_value("sales_order", "");
@@ -126,7 +126,7 @@ function fetch_sales_order_data(frm) {
 			frm.set_value("customer_address", so.customer_address || null);
 			frm.set_value(
 				"shipping_address_name",
-				so.shipping_address_name || so.customer_address || null,
+				so.shipping_address_name || so.customer_address || null
 			);
 
 			set_address_contact_filters(frm);
@@ -187,7 +187,7 @@ function set_address_contact_filters(frm) {
 		? {
 				query: "frappe.contacts.doctype.address.address.address_query",
 				filters: { link_doctype: "Customer", link_name: frm.doc.customer },
-			}
+		  }
 		: { filters: [["name", "=", ""]] };
 
 	frm.set_query("customer_address", () => customer_filter);
@@ -226,7 +226,7 @@ function setup_sales_order_redirect(frm) {
 							message: __("Please select a Sales Order first"),
 							indicator: "orange",
 						},
-						3,
+						3
 					);
 					frm.scroll_to_field("sales_order");
 					setTimeout(() => {

@@ -1,0 +1,63 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-07-08 18:04:25.687141",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "consumable_item",
+  "consumption_frequency",
+  "column_break_rwnb",
+  "consumption_qty",
+  "default_cogs_per_unit"
+ ],
+ "fields": [
+  {
+   "fieldname": "consumable_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Consumable Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "column_break_rwnb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "consumption_qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Consumption Qty"
+  },
+  {
+   "fieldname": "consumption_frequency",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Consumption Frequency",
+   "options": "Per Month\nPer Service Interval\nPer Year"
+  },
+  {
+   "fieldname": "default_cogs_per_unit",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Default COGS per Unit"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-20 18:01:49.212222",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Instrument Consumable Requirement",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

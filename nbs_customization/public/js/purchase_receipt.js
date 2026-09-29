@@ -72,7 +72,7 @@ function add_shipment_link_button(frm) {
 			() => {
 				open_link_dialog(frm);
 			},
-			__("Actions"),
+			__("Actions")
 		);
 	}
 }
@@ -153,11 +153,11 @@ function open_link_dialog(frm) {
 							{
 								message: __(
 									`Purchase Receipt <b>${frm.doc.name}</b> linked to ` +
-										`Inbound Shipment <b>${values.shipment}</b>.`,
+										`Inbound Shipment <b>${values.shipment}</b>.`
 								),
 								indicator: "green",
 							},
-							6,
+							6
 						);
 					}
 
@@ -201,7 +201,7 @@ function open_link_dialog(frm) {
 				const s = r.message;
 				$preview.html(`
                     <div class="alert alert-secondary mb-0 mt-1" style="font-size:12px;">
-                        <b>${shipment_name}</b> — 
+                        <b>${shipment_name}</b> —
                         ${s.shipping_mode} | ${s.carrier} |
                         ${s.pr_count} PR(s) linked |
                         Status: <b>${s.status}</b>

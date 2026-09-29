@@ -20,7 +20,9 @@ def fix_children_order(node):
 
 
 def validate_print_format(doc, method=None):
-	if not doc.print_designer or not doc.print_designer_print_format:
+	if not hasattr(doc, "print_designer") or not doc.print_designer:
+		return
+	if not hasattr(doc, "print_designer_print_format") or not doc.print_designer_print_format:
 		return
 	tree = frappe.parse_json(doc.print_designer_print_format)
 

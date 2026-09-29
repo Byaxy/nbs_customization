@@ -1,0 +1,171 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "creation": "2026-07-29 18:43:37.631736",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item_code",
+  "description",
+  "column_break_drdk",
+  "test_parameter",
+  "pack_volume_ml",
+  "tests_per_pack",
+  "monthly_test_volume",
+  "section_break_lzlz",
+  "cogs_per_pack",
+  "price_per_test",
+  "markup_factor_applied",
+  "column_break_ipkl",
+  "selling_price_per_pack",
+  "selling_price_per_test",
+  "calculations_section",
+  "total_tests_over_term",
+  "packs_needed",
+  "column_break_pipf",
+  "total_gross_revenue_line",
+  "total_cost_line"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Product",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.description",
+   "fetch_if_empty": 1,
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_drdk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "test_parameter",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Test Parameter",
+   "options": "Test Parameter",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pack_volume_ml",
+   "fieldtype": "Float",
+   "label": "Pack Volume (ml)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "tests_per_pack",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Tests per Pack",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "monthly_test_volume",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Monthly Test Volume",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "section_break_lzlz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cogs_per_pack",
+   "fieldtype": "Currency",
+   "label": "COGS per Pack",
+   "non_negative": 1
+  },
+  {
+   "depends_on": "eval:parent.calculation_output_type==\"Markup Factor on Reagent Price\";",
+   "fieldname": "markup_factor_applied",
+   "fieldtype": "Float",
+   "label": "Markup Factor Applied",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ipkl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "selling_price_per_pack",
+   "fieldtype": "Currency",
+   "label": "Selling Price per Pack",
+   "read_only": 1
+  },
+  {
+   "fieldname": "selling_price_per_test",
+   "fieldtype": "Currency",
+   "label": "Selling Price per Test",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculations_section",
+   "fieldtype": "Section Break",
+   "label": "Calculations"
+  },
+  {
+   "fieldname": "total_tests_over_term",
+   "fieldtype": "Int",
+   "label": "Total Tests Over Term",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "packs_needed",
+   "fieldtype": "Int",
+   "label": "Packs Needed",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pipf",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_gross_revenue_line",
+   "fieldtype": "Currency",
+   "label": "Total Gross Revenue This Line (Term)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_cost_line",
+   "fieldtype": "Currency",
+   "label": "Total Cost (This Line)",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:parent.calculation_output_type==\"Revenue Share Percentage\";",
+   "fieldname": "price_per_test",
+   "fieldtype": "Currency",
+   "label": "Price per Test"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-29 20:26:50.434999",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Worksheet Test Reagent Line",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

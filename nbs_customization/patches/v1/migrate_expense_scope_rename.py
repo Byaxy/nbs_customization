@@ -14,14 +14,14 @@ import frappe
 def execute():
 	frappe.logger().info("[migrate_expense_scope_rename] Starting...")
 
-	updated = frappe.db.sql(
+	frappe.db.sql(
 		"UPDATE `tabExpense` SET expense_scope='Purchase Order' WHERE expense_scope='Single Purchase Order'"
 	)
 	# MySQL cursor returns rowcount via modified rows; fallback query for logging
-	count = frappe.db.sql(
-		"SELECT COUNT(*) FROM `tabExpense` WHERE expense_scope='Purchase Order'"
-	)[0][0]
-	frappe.logger().info(f"[migrate_expense_scope_rename] normalized legacy rows. total now with Purchase Order={count}")
+	count = frappe.db.sql("SELECT COUNT(*) FROM `tabExpense` WHERE expense_scope='Purchase Order'")[0][0]
+	frappe.logger().info(
+		f"[migrate_expense_scope_rename] normalized legacy rows. total now with Purchase Order={count}"
+	)
 
 	frappe.db.commit()
 	frappe.logger().info("[migrate_expense_scope_rename] Done.")
