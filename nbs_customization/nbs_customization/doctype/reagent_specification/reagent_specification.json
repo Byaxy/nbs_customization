@@ -90,17 +90,17 @@
    "non_negative": 1
   },
   {
+   "depends_on": "eval:doc.reagent_role==\"Non-Test Consumable\";",
+   "fieldname": "non_test_consumable_details_section",
+   "fieldtype": "Section Break",
+   "label": "Non-Test Consumable Details"
+  },
+  {
    "fieldname": "default_consumption_qty",
    "fieldtype": "Float",
    "label": "Default Consumption Qty",
    "non_negative": 1,
    "precision": "2"
-  },
-  {
-   "depends_on": "eval:doc.reagent_role==\"Non-Test Consumable\";",
-   "fieldname": "non_test_consumable_details_section",
-   "fieldtype": "Section Break",
-   "label": "Non-Test Consumable Details"
   },
   {
    "fieldname": "column_break_mnua",
@@ -122,7 +122,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-20 18:26:34.709063",
+ "modified": "2026-10-02 16:10:13.571518",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Reagent Specification",
@@ -139,7 +139,6 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {
@@ -152,7 +151,6 @@
    "report": 1,
    "role": "Sales Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {
@@ -165,7 +163,6 @@
    "report": 1,
    "role": "Accounts Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {

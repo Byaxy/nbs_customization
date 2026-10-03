@@ -30,6 +30,9 @@ frappe.ui.form.on("Instrument Pricing Worksheet", {
 });
 
 frappe.ui.form.on("Worksheet Test Reagent Line", {
+	test_parameter(frm, cdt, cdn) {
+		_apply_parameter_mapping(frm, cdt, cdn);
+	},
 	item_code(frm, cdt, cdn) {
 		_fetch_reagent_details(frm, cdt, cdn);
 	},
@@ -58,14 +61,26 @@ function _setup_queries(frm) {
 function _refresh_reagent_queries(frm) {
 	if (!frm.doc.analyzer_pid) return;
 
-	frm.set_query("item_code", "reagent_lines", () => ({
-		query: "nbs_customization.utils.placement.valid_items.get_valid_reagent_items",
-		filters: { analyzer_item: frm.doc.analyzer_pid, reagent_role: "Test Reagent" },
+	frm.set_query("test_parameter", "reagent_lines", () => ({
+		query: "nbs_customization.utils.placement.spec_lines.get_spec_test_parameters",
+		filters: { analyzer_item: frm.doc.analyzer_pid },
 	}));
 
+	frm.set_query("item_code", "reagent_lines", (doc, cdt, cdn) => {
+		const row = locals[cdt] && locals[cdt][cdn];
+		const filters = { analyzer_item: frm.doc.analyzer_pid, reagent_role: "Test Reagent" };
+		if (row && row.test_parameter) {
+			filters.test_parameter = row.test_parameter;
+		}
+		return {
+			query: "nbs_customization.utils.placement.valid_items.get_valid_reagent_items",
+			filters: filters,
+		};
+	});
+
 	frm.set_query("item_code", "consumable_lines", () => ({
-		query: "nbs_customization.utils.placement.valid_items.get_valid_reagent_items",
-		filters: { analyzer_item: frm.doc.analyzer_pid, reagent_role: "Non-Test Consumable" },
+		query: "nbs_customization.utils.placement.spec_lines.get_spec_consumables",
+		filters: { analyzer_item: frm.doc.analyzer_pid },
 	}));
 }
 
@@ -178,15 +193,121 @@ function _toggle_apply_button(frm, $btn) {
 	$btn.toggle(frm.doc.docstatus === 1 && !frm.doc.linked_contract);
 }
 
+function _apply_parameter_mapping(frm, cdt, cdn) {
+	const row = locals[cdt][cdn];
+	if (!row.test_parameter) return;
+
+	if (_check_duplicate_test_parameter(frm, cdt, cdn)) return;
+
+	if (!frm.doc.analyzer_pid) return;
+
+	frappe.call({
+		method: "nbs_customization.utils.placement.spec_lines.get_spec_test_method_details",
+		args: {
+			analyzer_item: frm.doc.analyzer_pid,
+			test_parameter: row.test_parameter,
+		},
+		callback(r) {
+			if (!r.message || !r.message.required_reagent) {
+				frappe.msgprint({
+					title: __("Unknown Parameter"),
+					message: __(
+						"Test Parameter {0} is not on this analyzer's specification. Reagent cleared.",
+						[row.test_parameter]
+					),
+					indicator: "orange",
+				});
+				_clear_reagent_pack_fields(cdt, cdn);
+				return;
+			}
+			if (row.item_code && row.item_code !== r.message.required_reagent) {
+				frappe.show_alert({
+					message: __("Reagent updated to {0} for this test.", [
+						r.message.required_reagent,
+					]),
+					indicator: "orange",
+				});
+			}
+			frappe.model.set_value(cdt, cdn, "item_code", r.message.required_reagent);
+			frappe.model.set_value(cdt, cdn, "description", r.message.description || "");
+		},
+	});
+}
+
+function _check_duplicate_test_parameter(frm, cdt, cdn) {
+	const row = locals[cdt][cdn];
+	const lines = frm.doc.reagent_lines || [];
+	const duplicate = lines.find(
+		(r) => r.test_parameter === row.test_parameter && r.name !== row.name
+	);
+
+	if (duplicate) {
+		frappe.msgprint({
+			title: __("Duplicate Parameter"),
+			message: __("Test Parameter {0} is already in the list.", [row.test_parameter]),
+			indicator: "orange",
+		});
+		frappe.model.set_value(cdt, cdn, "test_parameter", null);
+		return true;
+	}
+	return false;
+}
+
+function _clear_reagent_pack_fields(cdt, cdn) {
+	frappe.model.set_value(cdt, cdn, "item_code", null);
+	frappe.model.set_value(cdt, cdn, "description", null);
+	frappe.model.set_value(cdt, cdn, "pack_volume_ml", 0);
+	frappe.model.set_value(cdt, cdn, "tests_per_pack", 0);
+	frappe.model.set_value(cdt, cdn, "cogs_per_pack", 0);
+}
+
 function _fetch_reagent_details(frm, cdt, cdn) {
 	const row = locals[cdt][cdn];
 	if (!row.item_code) return;
 
+	if (row.test_parameter && frm.doc.analyzer_pid) {
+		frappe.call({
+			method: "nbs_customization.utils.placement.spec_lines.get_spec_test_method_details",
+			args: {
+				analyzer_item: frm.doc.analyzer_pid,
+				test_parameter: row.test_parameter,
+			},
+			callback(r) {
+				if (r.message && r.message.required_reagent) {
+					frappe.model.set_value(
+						cdt,
+						cdn,
+						"pack_volume_ml",
+						r.message.default_pack_volume_ml
+					);
+					frappe.model.set_value(
+						cdt,
+						cdn,
+						"tests_per_pack",
+						r.message.default_tests_per_pack
+					);
+					frappe.model.set_value(
+						cdt,
+						cdn,
+						"cogs_per_pack",
+						r.message.default_cogs_per_pack
+					);
+				} else {
+					_fetch_reagent_defaults(cdt, cdn, row.item_code);
+				}
+			},
+		});
+		return;
+	}
+	_fetch_reagent_defaults(cdt, cdn, row.item_code);
+}
+
+function _fetch_reagent_defaults(cdt, cdn, item_code) {
 	frappe.call({
 		method: "frappe.client.get_value",
 		args: {
 			doctype: "Reagent Specification",
-			filters: { item: row.item_code },
+			filters: { item: item_code },
 			fieldname: [
 				"default_pack_volume_ml",
 				"default_tests_per_pack",
@@ -207,11 +328,63 @@ function _fetch_consumable_details(frm, cdt, cdn) {
 	const row = locals[cdt][cdn];
 	if (!row.item_code) return;
 
+	if (frm.doc.analyzer_pid) {
+		frappe.call({
+			method: "nbs_customization.utils.placement.spec_lines.get_spec_consumable_details",
+			args: {
+				analyzer_item: frm.doc.analyzer_pid,
+				consumable_item: row.item_code,
+			},
+			callback(r) {
+				if (r.message && (r.message.consumption_qty || r.message.default_cogs_per_unit)) {
+					if (r.message.consumption_qty) {
+						frappe.model.set_value(
+							cdt,
+							cdn,
+							"consumption_qty",
+							r.message.consumption_qty
+						);
+					}
+					if (r.message.consumption_frequency) {
+						frappe.model.set_value(
+							cdt,
+							cdn,
+							"consumption_frequency",
+							r.message.consumption_frequency
+						);
+					}
+					if (r.message.services_per_year) {
+						frappe.model.set_value(
+							cdt,
+							cdn,
+							"services_per_year",
+							r.message.services_per_year
+						);
+					}
+					if (r.message.default_cogs_per_unit) {
+						frappe.model.set_value(
+							cdt,
+							cdn,
+							"cogs_per_unit",
+							r.message.default_cogs_per_unit
+						);
+					}
+				} else {
+					_fetch_consumable_defaults(cdt, cdn, row.item_code);
+				}
+			},
+		});
+		return;
+	}
+	_fetch_consumable_defaults(cdt, cdn, row.item_code);
+}
+
+function _fetch_consumable_defaults(cdt, cdn, item_code) {
 	frappe.call({
 		method: "frappe.client.get_value",
 		args: {
 			doctype: "Reagent Specification",
-			filters: { item: row.item_code },
+			filters: { item: item_code },
 			fieldname: [
 				"default_consumption_qty",
 				"default_consumption_frequency",
@@ -245,34 +418,12 @@ function _fetch_analyzer_landed_cost(frm) {
 	if (!frm.doc.analyzer_pid) return;
 
 	frappe.call({
-		method: "frappe.client.get_value",
-		args: {
-			doctype: "Item",
-			filters: { name: frm.doc.analyzer_pid },
-			fieldname: "last_purchase_rate",
-		},
+		method: "nbs_customization.utils.placement.spec_lines.get_analyzer_landed_cost",
+		args: { analyzer_item: frm.doc.analyzer_pid },
 		callback(r) {
-			if (r.message && r.message.last_purchase_rate > 0) {
-				frm.set_value("analyzer_landed_cost", r.message.last_purchase_rate);
-				return;
+			if (r.message && r.message.rate > 0) {
+				frm.set_value("analyzer_landed_cost", r.message.rate);
 			}
-
-			frappe.call({
-				method: "frappe.client.get_value",
-				args: {
-					doctype: "Item Price",
-					filters: {
-						item_code: frm.doc.analyzer_pid,
-						price_list: "Standard Buying",
-					},
-					fieldname: "price_list_rate",
-				},
-				callback(r2) {
-					if (r2.message?.price_list_rate) {
-						frm.set_value("analyzer_landed_cost", r2.message.price_list_rate);
-					}
-				},
-			});
 		},
 	});
 }

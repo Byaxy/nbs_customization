@@ -11,8 +11,13 @@ frappe.ui.form.on("Reagent Specification", {
 		_toggle_sections(frm);
 	},
 
+	item(frm) {
+		_fetch_product_landed_cost(frm);
+	},
+
 	reagent_role(frm) {
 		_toggle_sections(frm);
+		_fetch_product_landed_cost(frm);
 	},
 });
 
@@ -25,4 +30,23 @@ function _toggle_sections(frm) {
 	} else {
 		frm.set_df_property("test_panel_group", "reqd", 0);
 	}
+}
+
+function _fetch_product_landed_cost(frm) {
+	if (!frm.doc.item || !frm.doc.reagent_role) return;
+
+	frappe.call({
+		method: "nbs_customization.utils.placement.spec_lines.get_analyzer_landed_cost",
+		args: { analyzer_item: frm.doc.item },
+		callback(r) {
+			if (!r.message || !(r.message.rate > 0)) return;
+			if (frm.doc.reagent_role === "Test Reagent") {
+				frm.set_value("default_cogs_per_pack", r.message.rate);
+				frm.set_value("default_cogs_per_unit", null);
+			} else {
+				frm.set_value("default_cogs_per_unit", r.message.rate);
+				frm.set_value("default_cogs_per_pack", null);
+			}
+		},
+	});
 }

@@ -49,7 +49,7 @@ class TestRRAWorksheet(FrappeTestCase):
 
 	def _setup_spec(self):
 		param = frappe.get_doc(
-			{"doctype": "Test Parameter", "parameter_name": "_TST ALB", "parameter_code": "ALB"}
+			{"doctype": "Test Parameter", "parameter_name": "_TST RRA Param", "parameter_code": "RRA"}
 		).insert(ignore_if_duplicate=True)
 		at = frappe.get_doc({"doctype": "Analyzer Type", "title": "_TST Chemistry"}).insert(
 			ignore_if_duplicate=True

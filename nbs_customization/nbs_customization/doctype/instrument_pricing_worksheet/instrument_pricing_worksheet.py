@@ -5,6 +5,7 @@ from math import ceil
 
 import frappe
 from frappe.model.document import Document
+from frappe.utils import flt
 
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
 
@@ -39,21 +40,47 @@ class InstrumentPricingWorksheet(Document):
 	def _validate_reagent_items(self):
 		if not self.analyzer_pid:
 			return
+		spec = frappe.db.get_value("Instrument Specification", {"item": self.analyzer_pid}, "name")
+		spec_params = set()
+		if spec:
+			spec_params = set(
+				frappe.db.get_all("Instrument Test Method", filters={"parent": spec}, pluck="test_parameter")
+			)
+		spec_consumables = set()
+		if spec:
+			spec_consumables = set(
+				frappe.db.get_all(
+					"Instrument Consumable Requirement",
+					filters={"parent": spec},
+					pluck="consumable_item",
+				)
+			)
 		item_codes = []
 		for row in self.reagent_lines:
+			if row.test_parameter and row.test_parameter not in spec_params:
+				frappe.throw(
+					frappe._("Test Parameter {0} is not on this analyzer's specification.").format(
+						frappe.bold(row.test_parameter)
+					)
+				)
 			if row.item_code:
 				item_codes.append(row.item_code)
 		for row in self.consumable_lines:
+			if not row.consumption_frequency:
+				frappe.throw(frappe._("Row {0}: Consumption Frequency is required.").format(row.idx))
+			if row.item_code and row.item_code not in spec_consumables:
+				frappe.throw(
+					frappe._("Item {0} is not on this analyzer's Required Consumables.").format(
+						frappe.bold(row.item_code)
+					)
+				)
 			if row.item_code:
 				item_codes.append(row.item_code)
 		validate_items_belong_to_analyzer(self.analyzer_pid, item_codes, throw=True)
 
 	def _validate_annual_interest(self):
-		if self.contract_type == "RLO":
-			if self.annual_interest_rate is None or self.annual_interest_rate <= 0:
-				frappe.throw(frappe._("Annual Interest Rate is required for RLO contracts."))
-		else:
-			self.annual_interest_rate = 0
+		if self.contract_type == "RLO" and flt(self.annual_interest_rate) <= 0:
+			frappe.throw(frappe._("Annual Interest Rate is required for RLO contracts."))
 
 	def _run_calculation(self):
 		_compute_lines(self)
@@ -161,10 +188,11 @@ class InstrumentPricingWorksheet(Document):
 
 
 def _compute_lines(ws):
+	years = flt(ws.contract_years) or 1
 	for line in ws.reagent_lines:
-		line.total_tests_over_term = (line.monthly_test_volume or 0) * 12 * (ws.contract_years or 1)
-		if line.tests_per_pack:
-			line.packs_needed = ceil(line.total_tests_over_term / line.tests_per_pack)
+		line.total_tests_over_term = flt(line.monthly_test_volume) * 12 * years
+		if flt(line.tests_per_pack):
+			line.packs_needed = ceil(line.total_tests_over_term / flt(line.tests_per_pack))
 		else:
 			line.packs_needed = 0
 			frappe.msgprint(
@@ -172,37 +200,38 @@ def _compute_lines(ws):
 				alert=True,
 				indicator="orange",
 			)
-		line.total_cost_line = (line.packs_needed or 0) * (line.cogs_per_pack or 0)
+		line.total_cost_line = flt(line.packs_needed) * flt(line.cogs_per_pack)
 
-		if ws.calculation_output_type == "Revenue Share Percentage" and line.price_per_test:
-			line.total_gross_revenue_line = line.total_tests_over_term * line.price_per_test
+		if ws.calculation_output_type == "Revenue Share Percentage" and flt(line.price_per_test):
+			line.total_gross_revenue_line = flt(line.total_tests_over_term) * flt(line.price_per_test)
 		else:
 			line.total_gross_revenue_line = 0
 
 	for line in ws.consumable_lines:
-		years = ws.contract_years
 		freq = line.consumption_frequency
-		qty = line.consumption_qty or 0
+		qty = flt(line.consumption_qty)
 
 		if freq == "Per Month":
 			line.total_units_over_term = qty * 12 * years
 		elif freq == "Per Service Interval":
-			line.total_units_over_term = 0
-			frappe.msgprint(
-				frappe._(
-					"Line {0}: Consumption frequency is 'Per Service Interval' but no "
-					"service event count is available to compute total consumption. "
-					"Set total_units_over_term manually or change the frequency."
-				).format(line.idx),
-				alert=True,
-				indicator="orange",
-			)
+			services = flt(line.services_per_year)
+			line.total_units_over_term = qty * services * years
+			if not services:
+				frappe.msgprint(
+					frappe._(
+						"Line {0}: Consumption frequency is 'Per Service Interval' but "
+						"No. of Services per Year is zero. Set it to include this "
+						"consumable in recovery."
+					).format(line.idx),
+					alert=True,
+					indicator="orange",
+				)
 		elif freq == "Per Year":
 			line.total_units_over_term = qty * years
 		else:
 			line.total_units_over_term = 0
 
-		line.total_cost_line = line.total_units_over_term * (line.cogs_per_unit or 0)
+		line.total_cost_line = flt(line.total_units_over_term) * flt(line.cogs_per_unit)
 
 
 def _compute_rollups(ws):
@@ -210,27 +239,26 @@ def _compute_rollups(ws):
 	total_consumable_cost = 0
 
 	for line in ws.reagent_lines:
-		total_reagent_cogs += line.total_cost_line or 0
+		total_reagent_cogs += flt(line.total_cost_line)
 	for line in ws.consumable_lines:
-		total_consumable_cost += line.total_cost_line or 0
+		total_consumable_cost += flt(line.total_cost_line)
 
 	ws.total_test_reagent_cogs = total_reagent_cogs
 	ws.total_consumable_cost = total_consumable_cost
 
-	interest_factor = 1 + (ws.annual_interest_rate or 0) / 100 * ws.contract_years
-	landed = ws.analyzer_landed_cost or 0
+	years = flt(ws.contract_years)
+	interest_factor = 1 + flt(ws.annual_interest_rate) / 100 * years
+	landed = flt(ws.analyzer_landed_cost)
 
-	if ws.annual_maintenance_cost_rate and ws.analyzer_landed_cost:
-		ws.total_maintenance_cost = (
-			(ws.annual_maintenance_cost_rate / 100) * ws.analyzer_landed_cost * ws.contract_years
-		)
+	if flt(ws.annual_maintenance_cost_rate) and landed:
+		ws.total_maintenance_cost = (flt(ws.annual_maintenance_cost_rate) / 100) * landed * years
 
 	ws.fixed_cost_to_recover = (
-		landed * interest_factor + (ws.total_maintenance_cost or 0) + total_consumable_cost
+		landed * interest_factor + flt(ws.total_maintenance_cost) + total_consumable_cost
 	)
 
 	ws.total_cost_base = ws.fixed_cost_to_recover + total_reagent_cogs
-	ws.profit_amount = (ws.profit_margin_pct or 0) / 100 * ws.total_cost_base
+	ws.profit_amount = flt(ws.profit_margin_pct) / 100 * flt(ws.total_cost_base)
 	ws.final_revenue_target = ws.total_cost_base + ws.profit_amount
 
 
@@ -248,9 +276,9 @@ def _compute_markup_or_revenue_share(ws):
 
 		for line in ws.reagent_lines:
 			line.markup_factor_applied = ws.markup_factor
-			line.selling_price_per_pack = (line.cogs_per_pack or 0) * ws.markup_factor
-			if line.tests_per_pack:
-				line.selling_price_per_test = line.selling_price_per_pack / line.tests_per_pack
+			line.selling_price_per_pack = flt(line.cogs_per_pack) * flt(ws.markup_factor)
+			if flt(line.tests_per_pack):
+				line.selling_price_per_test = flt(line.selling_price_per_pack) / flt(line.tests_per_pack)
 			else:
 				line.selling_price_per_test = 0
 

@@ -146,13 +146,12 @@
    "fieldname": "column_break_hjfi",
    "fieldtype": "Column Break"
   },
-  {
-   "depends_on": "eval:doc.contract_type==\"RLO\";",
-   "fieldname": "annual_interest_rate",
-   "fieldtype": "Percent",
-   "label": "Annual Interest Rate %",
-   "non_negative": 1
-  },
+   {
+    "fieldname": "annual_interest_rate",
+    "fieldtype": "Percent",
+    "label": "Annual Interest Rate %",
+    "non_negative": 1
+   },
   {
    "fieldname": "contract_years",
    "fieldtype": "Int",
@@ -161,12 +160,13 @@
    "non_negative": 1,
    "reqd": 1
   },
-  {
-   "fieldname": "annual_maintenance_cost_rate",
-   "fieldtype": "Percent",
-   "label": "Annual Maintenance Cost Rate %",
-   "non_negative": 1
-  },
+   {
+    "default": "10",
+    "fieldname": "annual_maintenance_cost_rate",
+    "fieldtype": "Percent",
+    "label": "Annual Maintenance Cost Rate %",
+    "non_negative": 1
+   },
   {
    "default": "0",
    "fieldname": "profit_margin_pct",

@@ -7,10 +7,10 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "test_parameter",
   "item_code",
   "description",
   "column_break_drdk",
-  "test_parameter",
   "pack_volume_ml",
   "tests_per_pack",
   "monthly_test_volume",
@@ -33,13 +33,13 @@
    "fieldname": "item_code",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Product",
+   "label": "Reagent",
    "options": "Item",
    "reqd": 1
   },
   {
+   "columns": 6,
    "fetch_from": "item_code.description",
-   "fetch_if_empty": 1,
    "fieldname": "description",
    "fieldtype": "Small Text",
    "in_list_view": 1,
@@ -85,6 +85,7 @@
   {
    "fieldname": "cogs_per_pack",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "COGS per Pack",
    "non_negative": 1
   },
@@ -102,12 +103,14 @@
   {
    "fieldname": "selling_price_per_pack",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Selling Price per Pack",
    "read_only": 1
   },
   {
    "fieldname": "selling_price_per_test",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Selling Price per Test",
    "read_only": 1
   },
@@ -157,7 +160,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-29 20:26:50.434999",
+ "modified": "2026-10-03 02:11:28.916361",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Worksheet Test Reagent Line",
