@@ -58,6 +58,64 @@ def get_reagent_items_for_analyzer(analyzer_item):
 	return result
 
 
+def _get_panel_for_parameter(test_parameter):
+	"""Return the Test Panel Group for a Test Parameter, or None."""
+	if not test_parameter:
+		return None
+	return frappe.db.get_value("Test Parameter", test_parameter, "test_panel_group")
+
+
+def _restrict_items_to_panel(item_codes, panel):
+	"""Keep items whose Reagent Spec panel matches *panel*, plus universals."""
+	if not panel or not item_codes:
+		return set(item_codes)
+	rs_rows = frappe.db.get_all(
+		"Reagent Specification",
+		filters={"item": ("in", list(item_codes))},
+		fields=["item", "test_panel_group"],
+	)
+	return {r["item"] for r in rs_rows if not r["test_panel_group"] or r["test_panel_group"] == panel}
+
+
+def _build_reagent_labels(item_codes):
+	"""Map item code -> rich dropdown label with name, description, panel."""
+	if not item_codes:
+		return {}
+	codes = list(item_codes)
+	items = {
+		r["name"]: r
+		for r in frappe.db.get_all(
+			"Item",
+			filters={"name": ("in", codes)},
+			fields=["name", "item_name", "description"],
+		)
+	}
+	rs_map = dict(
+		frappe.db.get_all(
+			"Reagent Specification",
+			filters={"item": ("in", codes)},
+			fields=["item", "test_panel_group"],
+			as_list=True,
+		)
+	)
+	labels = {}
+	for code in codes:
+		item = items.get(code, {})
+		name = (item.get("item_name") or "").strip()
+		desc = " ".join((item.get("description") or "").split())[:60]
+		panel = rs_map.get(code)
+		panel_txt = panel or "Universal"
+		if name and desc:
+			labels[code] = f"{name} — {desc} | Panel: {panel_txt}"
+		elif name:
+			labels[code] = f"{name} | Panel: {panel_txt}"
+		elif desc:
+			labels[code] = f"{desc} | Panel: {panel_txt}"
+		else:
+			labels[code] = f"Panel: {panel_txt}"
+	return labels
+
+
 def _get_items_for_role(role, analyzer_type=None):
 	"""
 	Return a set of item codes whose Reagent Specification matches *role*
@@ -99,45 +157,61 @@ def get_valid_reagent_items(doctype, txt, searchfield, start, page_len, filters)
 	"""
 	Frappe search-query function for Link fields pointing to reagent/consumable items.
 
-	Accepts three filter modes via the *filters* dict (passed from JS):
+	Accepts filter modes via the *filters* dict (passed from JS):
 	- ``analyzer_item`` — return only items valid for that analyzer's Instrument Specification
 	- ``reagent_role`` — return only items whose Reagent Specification matches the given role
 	- ``analyzer_type`` — further restrict to items whose Test Panel Group matches this type
 	                     or is universal (no panel / no type).
+	- ``test_parameter`` — keep only reagents usable for that test (same panel, plus
+	                       universal reagents with no panel).
 
-	Returns a list of ``[item_code, item_name]`` tuples for the search widget.
+	Returns ``[item_code, label]`` tuples where label carries item name,
+	description, and panel for a richer dropdown.
 	"""
 	filters = frappe.parse_json(filters) if isinstance(filters, str) else filters or {}
 	analyzer_item = filters.get("analyzer_item")
 	reagent_role = filters.get("reagent_role")
 	analyzer_type = filters.get("analyzer_type")
+	test_parameter = filters.get("test_parameter")
 
 	if analyzer_item:
 		items = get_reagent_items_for_analyzer(analyzer_item)
-		valid = {i["item_code"]: i["item_name"] for i in items}
-		if analyzer_type and valid:
+		codes = {i["item_code"] for i in items}
+		if analyzer_type and codes:
 			restrict = _get_items_for_role(reagent_role or None, analyzer_type)
-			valid = {k: v for k, v in valid.items() if k in restrict}
+			codes = {c for c in codes if c in restrict}
+	elif reagent_role or analyzer_type:
+		codes = _get_items_for_role(reagent_role or None, analyzer_type)
 	else:
-		role = reagent_role or None
-		items = _get_items_for_role(role, analyzer_type)
-		if not items:
-			return []
-		valid = dict(
-			frappe.db.get_all(
-				"Item",
-				filters={"name": ("in", list(items))},
-				fields=["name", "item_name"],
-				as_list=True,
-			)
-		)
+		codes = set()
+		if txt:
+			for field in ("name", "item_name"):
+				try:
+					rows = frappe.db.get_all(
+						"Item", filters={field: ("like", f"%{txt}%")}, pluck="name", limit=50
+					)
+					codes.update(rows)
+				except Exception:
+					continue
+		if codes:
+			rs = frappe.db.get_all("Reagent Specification", pluck="item", limit=1000)
+			codes = codes.intersection(set(rs))
 
-	codes = list(valid.keys())
+	if not codes:
+		return []
+
+	if test_parameter:
+		panel = _get_panel_for_parameter(test_parameter)
+		codes = _restrict_items_to_panel(codes, panel)
+
+	labels = _build_reagent_labels(codes)
+
+	codes = sorted(codes)
 	if txt:
 		txt_lower = txt.lower()
-		codes = [c for c in codes if txt_lower in c.lower() or txt_lower in valid.get(c, "").lower()]
+		codes = [c for c in codes if txt_lower in c.lower() or txt_lower in labels.get(c, "").lower()]
 
-	return [[c, valid.get(c, c)] for c in codes[start : start + page_len]]
+	return [[c, labels.get(c, c)] for c in codes[start : start + page_len]]
 
 
 @frappe.whitelist()
@@ -146,31 +220,51 @@ def get_test_parameters_for_analyzer_type(doctype, txt, searchfield, start, page
 	"""
 	Frappe search-query function for Test Parameter Link fields.
 	Restricts to parameters whose Test Panel Group matches the given analyzer_type,
-	or whose panel has no type (universal). Returns all parameters when
-	no analyzer_type filter is provided.
+	plus universal parameters with no panel. Matches typed text against both
+	parameter code (name) and parameter name. Returns ``[name, parameter_name]``
+	so the dropdown shows code plus name.
 	"""
 	filters = frappe.parse_json(filters) if isinstance(filters, str) else filters or {}
 	analyzer_type = filters.get("analyzer_type")
 
-	tp_filters = {"parameter_name": ("like", f"%{txt}%")}
+	or_filters = None
+	if txt:
+		like = f"%{txt}%"
+		or_filters = [
+			["Test Parameter", "name", "like", like],
+			["Test Parameter", "parameter_name", "like", like],
+		]
+
+	rows = frappe.db.get_all(
+		"Test Parameter",
+		filters=None,
+		or_filters=or_filters,
+		fields=["name", "parameter_name", "test_panel_group"],
+		limit=500,
+	)
 
 	if analyzer_type:
 		all_panels = frappe.db.get_all("Test Panel Group", fields=["name", "analyzer_type"])
-		panel_names = [
+		matching = {
 			p["name"] for p in all_panels if not p.get("analyzer_type") or p["analyzer_type"] == analyzer_type
-		]
-		if not panel_names:
-			return []
-		tp_filters["test_panel_group"] = ("in", panel_names)
+		}
+		rows = [r for r in rows if not r.get("test_panel_group") or r["test_panel_group"] in matching]
 
-	return frappe.db.get_all(
-		"Test Parameter",
-		filters=tp_filters,
-		fields=["name", "parameter_name"],
-		as_list=True,
-		offset=start,
-		limit=page_len,
-	)
+	rows = sorted(rows, key=lambda r: r["name"])
+	page = rows[start : start + page_len]
+	return [[r["name"], r["parameter_name"]] for r in page]
+
+
+@frappe.whitelist()
+def is_reagent_valid_for_parameter(reagent_item, test_parameter):
+	"""True when *reagent_item* may be used for *test_parameter* (same panel or universal)."""
+	if not reagent_item or not test_parameter:
+		return True
+	panel = _get_panel_for_parameter(test_parameter)
+	if not panel:
+		return True
+	kept = _restrict_items_to_panel({reagent_item}, panel)
+	return reagent_item in kept
 
 
 def validate_items_belong_to_analyzer(analyzer_item, item_codes, throw=True):

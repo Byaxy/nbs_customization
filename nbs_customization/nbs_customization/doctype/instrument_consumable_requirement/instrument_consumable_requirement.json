@@ -6,13 +6,14 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": [
-  "consumable_item",
-  "consumption_frequency",
-  "column_break_rwnb",
-  "consumption_qty",
-  "default_cogs_per_unit"
- ],
+  "field_order": [
+   "consumable_item",
+   "consumption_frequency",
+   "services_per_year",
+   "column_break_rwnb",
+   "consumption_qty",
+   "default_cogs_per_unit"
+  ],
  "fields": [
   {
    "fieldname": "consumable_item",
@@ -31,13 +32,22 @@
    "in_list_view": 1,
    "label": "Consumption Qty"
   },
-  {
-   "fieldname": "consumption_frequency",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Consumption Frequency",
-   "options": "Per Month\nPer Service Interval\nPer Year"
-  },
+   {
+    "default": "Per Month",
+    "fieldname": "consumption_frequency",
+    "fieldtype": "Select",
+    "in_list_view": 1,
+    "label": "Consumption Frequency",
+    "options": "Per Month\nPer Service Interval\nPer Year"
+   },
+   {
+    "depends_on": "eval:doc.consumption_frequency==\"Per Service Interval\";",
+    "fieldname": "services_per_year",
+    "fieldtype": "Float",
+    "label": "No. of Services per Year",
+    "mandatory_depends_on": "eval:doc.consumption_frequency==\"Per Service Interval\";",
+    "non_negative": 1
+   },
   {
    "fieldname": "default_cogs_per_unit",
    "fieldtype": "Currency",

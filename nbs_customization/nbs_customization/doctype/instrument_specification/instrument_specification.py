@@ -7,9 +7,22 @@ from frappe.model.document import Document
 
 class InstrumentSpecification(Document):
 	def validate(self):
+		self._validate_item_is_not_reagent()
 		self._validate_no_duplicate_test_parameters()
 		self._validate_reagent_is_test_reagent()
+		self._validate_reagent_matches_parameter_panel()
 		self._validate_analyzer_type_consistency()
+
+	def _validate_item_is_not_reagent(self):
+		if not self.item:
+			return
+		reagent_spec = frappe.db.get_value("Item", self.item, "custom_reagent_specification")
+		if reagent_spec:
+			frappe.throw(
+				frappe._("Item {0} is a reagent and cannot have an Instrument Specification.").format(
+					frappe.bold(self.item)
+				)
+			)
 
 	def _validate_no_duplicate_test_parameters(self):
 		seen = set()
@@ -49,6 +62,25 @@ class InstrumentSpecification(Document):
 						"Item {0} has Reagent Role '{1}', but only items with "
 						"Reagent Role 'Test Reagent' are allowed in Supported Test Methods."
 					).format(frappe.bold(row.required_reagent), rs)
+				)
+
+	def _validate_reagent_matches_parameter_panel(self):
+		for row in self.get("supported_test_methods") or []:
+			if not row.test_parameter or not row.required_reagent:
+				continue
+			panel = frappe.db.get_value("Test Parameter", row.test_parameter, "test_panel_group")
+			if not panel:
+				continue
+			reagent_panel = frappe.db.get_value(
+				"Reagent Specification", {"item": row.required_reagent}, "test_panel_group"
+			)
+			if reagent_panel and reagent_panel != panel:
+				frappe.throw(
+					frappe._("Item {0} cannot be used for Test Parameter {1} (Panel: {2}).").format(
+						frappe.bold(row.required_reagent),
+						frappe.bold(row.test_parameter),
+						frappe.bold(panel),
+					)
 				)
 
 	def _validate_analyzer_type_consistency(self):

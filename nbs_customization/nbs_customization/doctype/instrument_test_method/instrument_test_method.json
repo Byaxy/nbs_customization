@@ -9,10 +9,11 @@
  "field_order": [
   "test_parameter",
   "required_reagent",
-  "default_pack_volume_ml",
+  "description",
   "column_break_sahh",
   "default_tests_per_pack",
-  "default_cogs_per_pack"
+  "default_cogs_per_pack",
+  "default_pack_volume_ml"
  ],
  "fields": [
   {
@@ -52,13 +53,22 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Default COGS per Pack"
+  },
+  {
+   "columns": 6,
+   "fetch_from": "required_reagent.description",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Description",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-07-20 18:04:52.602458",
+ "modified": "2026-10-01 16:27:17.081630",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Instrument Test Method",

@@ -4,10 +4,12 @@ frappe.ui.form.on("Instrument Specification", {
 			filters: {
 				custom_is_placement_item: 1,
 				is_stock_item: 1,
+				custom_reagent_specification: ["is", "not set"],
 			},
 		}));
 		_filter_reagent_queries(frm);
 		_filter_consumable_queries(frm);
+		_filter_test_parameter_queries(frm);
 	},
 });
 
@@ -68,6 +70,7 @@ frappe.ui.form.on("Instrument Test Method", {
 
 	test_parameter(frm, cdt, cdn) {
 		_check_duplicate_parameter(frm, cdt, cdn);
+		_clear_stale_reagent(frm, cdt, cdn);
 	},
 });
 
@@ -129,11 +132,28 @@ frappe.ui.form.on("Instrument Consumable Requirement", {
 	},
 });
 
+function _filter_test_parameter_queries(frm) {
+	frm.set_query("test_parameter", "supported_test_methods", function (doc) {
+		const filters = {};
+		if (doc.analyzer_type) {
+			filters.analyzer_type = doc.analyzer_type;
+		}
+		return {
+			query: "nbs_customization.utils.placement.valid_items.get_test_parameters_for_analyzer_type",
+			filters: filters,
+		};
+	});
+}
+
 function _filter_reagent_queries(frm) {
-	frm.set_query("required_reagent", "supported_test_methods", function () {
+	frm.set_query("required_reagent", "supported_test_methods", function (doc, cdt, cdn) {
+		const row = locals[cdt] && locals[cdt][cdn];
 		const filters = { reagent_role: "Test Reagent" };
-		if (frm.doc.analyzer_type) {
-			filters.analyzer_type = frm.doc.analyzer_type;
+		if (doc.analyzer_type) {
+			filters.analyzer_type = doc.analyzer_type;
+		}
+		if (row && row.test_parameter) {
+			filters.test_parameter = row.test_parameter;
 		}
 		return {
 			query: "nbs_customization.utils.placement.valid_items.get_valid_reagent_items",
@@ -152,6 +172,32 @@ function _filter_consumable_queries(frm) {
 			query: "nbs_customization.utils.placement.valid_items.get_valid_reagent_items",
 			filters: filters,
 		};
+	});
+}
+
+function _clear_stale_reagent(frm, cdt, cdn) {
+	const row = locals[cdt][cdn];
+	if (!row.test_parameter || !row.required_reagent) return;
+
+	frappe.call({
+		method: "nbs_customization.utils.placement.valid_items.is_reagent_valid_for_parameter",
+		args: {
+			reagent_item: row.required_reagent,
+			test_parameter: row.test_parameter,
+		},
+		callback(r) {
+			if (r.message === false) {
+				frappe.msgprint({
+					title: __("Reagent Cleared"),
+					message: __(
+						"Item {0} cannot be used for Test Parameter {1}. Please pick another reagent.",
+						[row.required_reagent, row.test_parameter]
+					),
+					indicator: "orange",
+				});
+				frappe.model.set_value(cdt, cdn, "required_reagent", null);
+			}
+		},
 	});
 }
 

@@ -6,18 +6,19 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": [
-  "item_code",
-  "description",
-  "column_break_letc",
-  "consumption_qty",
-  "consumption_frequency",
-  "cogs_per_unit",
-  "section_break_lqts",
-  "total_units_over_term",
-  "column_break_brts",
-  "total_cost_line"
- ],
+  "field_order": [
+   "item_code",
+   "description",
+   "column_break_letc",
+   "consumption_qty",
+   "consumption_frequency",
+   "services_per_year",
+   "cogs_per_unit",
+   "section_break_lqts",
+   "total_units_over_term",
+   "column_break_brts",
+   "total_cost_line"
+  ],
  "fields": [
   {
    "fieldname": "item_code",
@@ -47,13 +48,22 @@
    "label": "Consumption Qty",
    "non_negative": 1
   },
-  {
-   "fieldname": "consumption_frequency",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Consumption Frequency",
-   "options": "Per Month\nPer Service Interval\nPer Year"
-  },
+   {
+    "default": "Per Month",
+    "fieldname": "consumption_frequency",
+    "fieldtype": "Select",
+    "in_list_view": 1,
+    "label": "Consumption Frequency",
+    "options": "Per Month\nPer Service Interval\nPer Year"
+   },
+   {
+    "depends_on": "eval:doc.consumption_frequency==\"Per Service Interval\";",
+    "fieldname": "services_per_year",
+    "fieldtype": "Float",
+    "label": "No. of Services per Year",
+    "mandatory_depends_on": "eval:doc.consumption_frequency==\"Per Service Interval\";",
+    "non_negative": 1
+   },
   {
    "fieldname": "cogs_per_unit",
    "fieldtype": "Currency",
