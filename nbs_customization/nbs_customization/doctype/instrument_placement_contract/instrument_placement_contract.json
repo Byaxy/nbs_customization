@@ -59,8 +59,18 @@
   "contract_lines_section",
   "contract_reagent_lines",
   "contract_consumable_line_section",
-  "contract_consumable_lines",
-  "admin_section",
+   "contract_consumable_lines",
+   "contract_terms_section",
+   "contract_template",
+   "contract_terms",
+   "signatures_section",
+   "signee",
+   "signed_on",
+   "column_break_sigm",
+   "ip_address",
+   "signee_company",
+   "signed_by_company",
+   "admin_section",
   "approved_by",
   "column_break_ijqj",
   "approval_date",
@@ -388,11 +398,69 @@
    "fieldtype": "Section Break",
    "label": "Contract Test Reagent Lines"
   },
-  {
-   "fieldname": "admin_section",
-   "fieldtype": "Section Break",
-   "label": "Admin"
-  },
+   {
+    "fieldname": "contract_terms_section",
+    "fieldtype": "Section Break",
+    "label": "Contract Terms"
+   },
+   {
+    "fieldname": "contract_template",
+    "fieldtype": "Link",
+    "label": "Contract Template",
+    "options": "Contract Template"
+   },
+   {
+    "fieldname": "contract_terms",
+    "fieldtype": "Text Editor",
+    "label": "Contract Terms"
+   },
+   {
+    "fieldname": "signatures_section",
+    "fieldtype": "Section Break",
+    "label": "Signatures"
+   },
+   {
+    "fieldname": "signee",
+    "fieldtype": "Data",
+    "label": "Signee",
+    "no_copy": 1
+   },
+   {
+    "fieldname": "signed_on",
+    "fieldtype": "Datetime",
+    "label": "Signed On",
+    "no_copy": 1
+   },
+   {
+    "fieldname": "column_break_sigm",
+    "fieldtype": "Column Break"
+   },
+   {
+    "fieldname": "ip_address",
+    "fieldtype": "Data",
+    "label": "IP Address",
+    "no_copy": 1,
+    "read_only": 1
+   },
+   {
+    "fieldname": "signee_company",
+    "fieldtype": "Signature",
+    "label": "Company Signature",
+    "no_copy": 1
+   },
+   {
+    "fieldname": "signed_by_company",
+    "fieldtype": "Link",
+    "label": "Signed by (Company)",
+    "no_copy": 1,
+    "options": "User",
+    "read_only": 1
+   },
+   {
+    "fieldname": "admin_section",
+    "fieldtype": "Section Break",
+    "label": "Admin"
+   },
   {
    "fieldname": "approved_by",
    "fieldtype": "Link",

@@ -7,6 +7,13 @@ from frappe.model.document import Document
 
 class AnalyzerDeployment(Document):
 	def validate(self):
+		if not self.asset_storage_location:
+			from nbs_customization.utils.placement.assets import get_company_store_location
+
+			company = None
+			if self.asset:
+				company = frappe.db.get_value("Asset", self.asset, "company")
+			self.asset_storage_location = get_company_store_location(company)
 		self._detect_status_transition()
 
 	def _detect_status_transition(self):

@@ -437,6 +437,7 @@ def after_migrate():
 	4. Create cheque clearing accounts + the Check Mode of Payment.
 	5. Ensure pricing tier Price Lists (Standard Selling = 30% reuse).
 	6. Seed placement billing/capital items (Others brand, fee items, Equipment category).
+	7. Seed one `{abbr} - Store` Location per company for placement assets.
 	Idempotent — only writes when a change is actually needed.
 	"""
 
@@ -495,6 +496,9 @@ def after_migrate():
 	create_revenue_share_fee_item()
 	create_shortfall_penalty_item()
 	create_nbs_capital_asset_item()
+
+	# ── Company store Locations for placement assets ───────────────────────
+	_ensure_company_store_locations()
 
 
 def _ensure_brand_others():
@@ -627,3 +631,22 @@ def create_nbs_capital_asset_item():
 			}
 		)
 		item.insert(ignore_permissions=True)
+
+
+def _ensure_company_store_locations():
+	"""Idempotent: ensure one `{abbr} - Store` Location per company.
+
+	Newly capitalized placement analyzers start here with Warehouse
+	status; deployment moves them to the customer site from here.
+	"""
+	for company in frappe.get_all("Company", pluck="name"):
+		abbr = frappe.db.get_value("Company", company, "abbr") or company
+		name = f"{abbr} - Store"
+		if frappe.db.exists("Location", name):
+			continue
+		frappe.get_doc(
+			{
+				"doctype": "Location",
+				"location_name": name,
+			}
+		).insert(ignore_permissions=True)

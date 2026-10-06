@@ -26,6 +26,10 @@ frappe.ui.form.on("Instrument Placement Contract", {
 		_on_pricing_worksheet_change(frm);
 	},
 
+	contract_template(frm) {
+		_fetch_contract_terms(frm);
+	},
+
 	asset(frm) {
 		_fetch_serial_no(frm);
 	},
@@ -169,6 +173,22 @@ function _on_pricing_worksheet_change(frm) {
 			frm.refresh_field("contract_reagent_lines");
 			frm.refresh_field("contract_consumable_lines");
 			_set_default_contract_title(frm);
+		},
+	});
+}
+
+function _fetch_contract_terms(frm) {
+	if (!frm.doc.contract_template) return;
+	frappe.call({
+		method: "erpnext.crm.doctype.contract_template.contract_template.get_contract_template",
+		args: {
+			template_name: frm.doc.contract_template,
+			doc: frm.doc,
+		},
+		callback(r) {
+			if (r.message && r.message.contract_terms) {
+				frm.set_value("contract_terms", r.message.contract_terms);
+			}
 		},
 	});
 }

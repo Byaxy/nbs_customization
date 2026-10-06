@@ -65,6 +65,14 @@ def _get_panel_for_parameter(test_parameter):
 	return frappe.db.get_value("Test Parameter", test_parameter, "test_panel_group")
 
 
+def require_analyzer_item_read(analyzer_item):
+	"""Throw PermissionError unless the caller may read the analyzer Item."""
+	if analyzer_item and not frappe.has_permission("Item", "read", analyzer_item):
+		frappe.throw(
+			frappe._("Not permitted to read Item {0}.").format(analyzer_item), frappe.PermissionError
+		)
+
+
 def _restrict_items_to_panel(item_codes, panel):
 	"""Keep items whose Reagent Spec panel matches *panel*, plus universals."""
 	if not panel or not item_codes:
@@ -74,7 +82,14 @@ def _restrict_items_to_panel(item_codes, panel):
 		filters={"item": ("in", list(item_codes))},
 		fields=["item", "test_panel_group"],
 	)
-	return {r["item"] for r in rs_rows if not r["test_panel_group"] or r["test_panel_group"] == panel}
+	panel_by_item = {r["item"]: r.get("test_panel_group") for r in rs_rows}
+	kept = {
+		code
+		for code in item_codes
+		# No Reagent Specification row: panel unknown, keep (spec permits with warning).
+		if code not in panel_by_item or not panel_by_item[code] or panel_by_item[code] == panel
+	}
+	return kept
 
 
 def _build_reagent_labels(item_codes):
@@ -175,6 +190,7 @@ def get_valid_reagent_items(doctype, txt, searchfield, start, page_len, filters)
 	test_parameter = filters.get("test_parameter")
 
 	if analyzer_item:
+		require_analyzer_item_read(analyzer_item)
 		items = get_reagent_items_for_analyzer(analyzer_item)
 		codes = {i["item_code"] for i in items}
 		if analyzer_type and codes:
@@ -235,20 +251,27 @@ def get_test_parameters_for_analyzer_type(doctype, txt, searchfield, start, page
 			["Test Parameter", "parameter_name", "like", like],
 		]
 
-	rows = frappe.db.get_all(
-		"Test Parameter",
-		filters=None,
-		or_filters=or_filters,
-		fields=["name", "parameter_name", "test_panel_group"],
-		limit=500,
-	)
+	def _fetch(tp_filters):
+		return frappe.db.get_all(
+			"Test Parameter",
+			filters=tp_filters,
+			or_filters=or_filters,
+			fields=["name", "parameter_name", "test_panel_group"],
+			order_by="name asc",
+		)
 
 	if analyzer_type:
 		all_panels = frappe.db.get_all("Test Panel Group", fields=["name", "analyzer_type"])
 		matching = {
 			p["name"] for p in all_panels if not p.get("analyzer_type") or p["analyzer_type"] == analyzer_type
 		}
-		rows = [r for r in rows if not r.get("test_panel_group") or r["test_panel_group"] in matching]
+		# Panel filter runs in the DB (two queries OR-ed in Python) so valid
+		# parameters are never truncated by an unfiltered row limit.
+		rows = _fetch({"test_panel_group": ("is", "not set")})
+		if matching:
+			rows += _fetch({"test_panel_group": ("in", list(matching))})
+	else:
+		rows = _fetch(None)
 
 	rows = sorted(rows, key=lambda r: r["name"])
 	page = rows[start : start + page_len]
