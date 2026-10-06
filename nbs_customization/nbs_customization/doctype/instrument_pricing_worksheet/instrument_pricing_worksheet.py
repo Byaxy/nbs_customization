@@ -5,6 +5,7 @@ from math import ceil
 
 import frappe
 from frappe.model.document import Document
+from frappe.model.mapper import get_mapped_doc
 from frappe.utils import flt
 
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
@@ -42,10 +43,16 @@ class InstrumentPricingWorksheet(Document):
 			return
 		spec = frappe.db.get_value("Instrument Specification", {"item": self.analyzer_pid}, "name")
 		spec_params = set()
+		param_reagent_map = {}
 		if spec:
-			spec_params = set(
-				frappe.db.get_all("Instrument Test Method", filters={"parent": spec}, pluck="test_parameter")
-			)
+			for m in frappe.db.get_all(
+				"Instrument Test Method",
+				filters={"parent": spec},
+				fields=["test_parameter", "required_reagent"],
+			):
+				if m.get("test_parameter"):
+					spec_params.add(m["test_parameter"])
+					param_reagent_map[m["test_parameter"]] = m.get("required_reagent")
 		spec_consumables = set()
 		if spec:
 			spec_consumables = set(
@@ -63,6 +70,14 @@ class InstrumentPricingWorksheet(Document):
 						frappe.bold(row.test_parameter)
 					)
 				)
+			if row.test_parameter and row.item_code:
+				mapped = param_reagent_map.get(row.test_parameter)
+				if mapped and row.item_code != mapped:
+					frappe.throw(
+						frappe._(
+							"Item {0} is not mapped to Test Parameter {1} on this analyzer's specification."
+						).format(frappe.bold(row.item_code), frappe.bold(row.test_parameter))
+					)
 			if row.item_code:
 				item_codes.append(row.item_code)
 		for row in self.consumable_lines:
@@ -79,7 +94,11 @@ class InstrumentPricingWorksheet(Document):
 		validate_items_belong_to_analyzer(self.analyzer_pid, item_codes, throw=True)
 
 	def _validate_annual_interest(self):
-		if self.contract_type == "RLO" and flt(self.annual_interest_rate) <= 0:
+		if self.contract_type != "RLO":
+			# Interest applies to RLO only; clear stale values so stored data matches calculation.
+			self.annual_interest_rate = 0
+			return
+		if flt(self.annual_interest_rate) <= 0:
 			frappe.throw(frappe._("Annual Interest Rate is required for RLO contracts."))
 
 	def _run_calculation(self):
@@ -100,91 +119,114 @@ class InstrumentPricingWorksheet(Document):
 			self.status = "Approved"
 
 	@frappe.whitelist()
-	def apply_worksheet_to_contract(self, asset, customer_site):
-		if self.docstatus != 1:
-			frappe.throw(frappe._("Worksheet must be submitted before applying to a Contract."))
-		if self.linked_contract:
-			frappe.throw(frappe._("Worksheet already applied to Contract {0}.").format(self.linked_contract))
+	def capitalize_analyzer(self, warehouse: str, serial_no: str):
+		"""Create an unlinked placement Asset for this worksheet's analyzer."""
+		from nbs_customization.utils.placement.assets import capitalize_serial_for_placement
 
-		start = frappe.utils.today()
-		end = frappe.utils.add_years(start, self.contract_years or 1)
-
-		min_monthly_val = 0
-		for line in self.reagent_lines:
-			if line.selling_price_per_pack:
-				min_qty = ceil((line.monthly_test_volume or 0) / (line.tests_per_pack or 1))
-				min_monthly_val += min_qty * line.selling_price_per_pack
-
-		serial_no = frappe.db.get_value("Asset", asset, "custom_serial_no")
-		analyzer_desc = frappe.db.get_value("Item", self.analyzer_pid, "description") or ""
-		customer_name = frappe.db.get_value("Customer", self.customer, "customer_name") or ""
-
-		contract = frappe.get_doc(
-			{
-				"doctype": "Instrument Placement Contract",
-				"naming_series": "NBSIPC-.YYYY./.####",
-				"contract_title": f"{customer_name} - {self.contract_type} Placement Contract",
-				"contract_type": self.contract_type,
-				"customer": self.customer,
-				"customer_site": customer_site,
-				"asset": asset,
-				"serial_no": serial_no or "",
-				"analyzer_pid": self.analyzer_pid,
-				"analyzer_description": analyzer_desc,
-				"start_date": start,
-				"end_date": end,
-				"pricing_worksheet": self.name,
-				"total_recovery_target": self.final_revenue_target,
-				"min_monthly_value": min_monthly_val,
-				"breach_threshold": 3,
-				"grace_period_days": 30,
-				"revenue_share_pct": self.required_revenue_share_pct if self.contract_type == "CPT" else 0,
-			}
+		if not self.analyzer_pid:
+			frappe.throw(frappe._("An Analyzer PID must be set before capitalizing."))
+		return capitalize_serial_for_placement(
+			customer=self.customer,
+			customer_name=frappe.db.get_value("Customer", self.customer, "customer_name"),
+			analyzer_pid=self.analyzer_pid,
+			warehouse=warehouse,
+			serial_no=serial_no,
 		)
 
-		for line in self.reagent_lines:
-			uom = frappe.db.get_value("Item", line.item_code, "stock_uom")
-			min_qty = ceil(line.monthly_test_volume / line.tests_per_pack) if line.tests_per_pack else 0
-			contract.append(
-				"contract_reagent_lines",
-				{
-					"test_parameter": line.test_parameter,
-					"item_code": line.item_code,
-					"uom": uom,
-					"standard_price": line.cogs_per_pack,
-					"contract_price": line.selling_price_per_pack or 0,
-					"qty_required_total": line.packs_needed or 0,
-					"min_monthly_qty": min_qty,
-					"cogs_per_unit": line.cogs_per_pack,
-					"monthly_test_volume": line.monthly_test_volume,
-					"agreed_test_price": line.price_per_test or 0,
+
+@frappe.whitelist()
+def make_instrument_placement_contract(source_name: str, target_doc=None):
+	"""Map a submitted worksheet to an unsaved Instrument Placement Contract."""
+	ws = frappe.get_doc("Instrument Pricing Worksheet", source_name)
+	if ws.docstatus != 1:
+		frappe.throw(frappe._("Worksheet must be submitted before applying to a Contract."))
+	if ws.linked_contract:
+		frappe.throw(frappe._("Worksheet already applied to Contract {0}.").format(ws.linked_contract))
+
+	args = frappe.flags.args or {}
+	if isinstance(args, str):
+		args = frappe.parse_json(args)
+	asset = args.get("asset") or ""
+	customer_site = args.get("customer_site")
+
+	def set_missing_values(source, target):
+		target.pricing_worksheet = source.name
+		target.contract_title = "{0} - {1} Placement Contract".format(
+			source.customer_name or source.customer, source.contract_type
+		)
+		target.contract_type = source.contract_type
+		target.customer = source.customer
+		target.customer_site = customer_site
+		target.asset = asset
+		if asset:
+			target.serial_no = frappe.db.get_value("Asset", asset, "custom_serial_no") or ""
+		else:
+			target.serial_no = ""
+		target.analyzer_pid = source.analyzer_pid
+		target.analyzer_description = frappe.db.get_value("Item", source.analyzer_pid, "description") or ""
+		target.start_date = frappe.utils.today()
+		target.end_date = frappe.utils.add_years(target.start_date, source.contract_years or 1)
+		target.total_recovery_target = source.final_revenue_target
+		target.min_monthly_value = _worksheet_min_monthly(source)
+		target.breach_threshold = 3
+		target.grace_period_days = 30
+		target.revenue_share_pct = source.required_revenue_share_pct if source.contract_type == "CPT" else 0
+
+	def update_reagent_row(source_row, target_row, source_parent):
+		target_row.uom = frappe.db.get_value("Item", source_row.item_code, "stock_uom")
+		# Contract amendments gate the pack-size lookup on this field; without
+		# it the divisor falls back to 1 and monthly charges inflate.
+		target_row.cogs_per_unit = source_row.cogs_per_pack
+		target_row.min_monthly_qty = (
+			ceil(flt(source_row.monthly_test_volume) / flt(source_row.tests_per_pack))
+			if flt(source_row.tests_per_pack)
+			else 0
+		)
+
+	def update_consumable_row(source_row, target_row, source_parent):
+		target_row.uom = frappe.db.get_value("Item", source_row.item_code, "stock_uom")
+		target_row.contract_price = 0
+
+	return get_mapped_doc(
+		"Instrument Pricing Worksheet",
+		source_name,
+		{
+			"Instrument Pricing Worksheet": {
+				"doctype": "Instrument Placement Contract",
+				"validation": {"docstatus": ["=", 1]},
+			},
+			"Worksheet Test Reagent Line": {
+				"doctype": "Contract Test Reagent Line",
+				"field_map": {
+					"cogs_per_pack": "standard_price",
+					"selling_price_per_pack": "contract_price",
+					"packs_needed": "qty_required_total",
+					"price_per_test": "agreed_test_price",
 				},
-			)
-
-		for line in self.consumable_lines:
-			uom = frappe.db.get_value("Item", line.item_code, "stock_uom")
-			contract.append(
-				"contract_consumable_lines",
-				{
-					"item_code": line.item_code,
-					"uom": uom,
-					"standard_price": line.cogs_per_unit,
-					"contract_price": 0,
-					"qty_required_total": line.total_units_over_term or 0,
-					"cogs_per_unit": line.cogs_per_unit,
+				"postprocess": update_reagent_row,
+			},
+			"Worksheet Consumable Line": {
+				"doctype": "Contract Consumable Line",
+				"field_map": {
+					"cogs_per_unit": "standard_price",
+					"total_units_over_term": "qty_required_total",
 				},
+				"postprocess": update_consumable_row,
+			},
+		},
+		target_doc,
+		set_missing_values,
+	)
+
+
+def _worksheet_min_monthly(source):
+	total = 0
+	for line in source.reagent_lines:
+		if flt(line.selling_price_per_pack) and flt(line.tests_per_pack):
+			total += ceil(flt(line.monthly_test_volume) / flt(line.tests_per_pack)) * flt(
+				line.selling_price_per_pack
 			)
-
-		contract.insert(ignore_permissions=True)
-
-		price_list = _create_contract_price_list(contract, self)
-		contract.contract_price_list = price_list.name
-		contract.save(ignore_permissions=True)
-
-		self.linked_contract = contract.name
-		self.save(ignore_permissions=True)
-
-		return contract.name
+	return total
 
 
 def _compute_lines(ws):
@@ -247,7 +289,10 @@ def _compute_rollups(ws):
 	ws.total_consumable_cost = total_consumable_cost
 
 	years = flt(ws.contract_years)
-	interest_factor = 1 + flt(ws.annual_interest_rate) / 100 * years
+	if ws.contract_type == "RLO":
+		interest_factor = 1 + flt(ws.annual_interest_rate) / 100 * years
+	else:
+		interest_factor = 1
 	landed = flt(ws.analyzer_landed_cost)
 
 	if flt(ws.annual_maintenance_cost_rate) and landed:
@@ -289,32 +334,3 @@ def _compute_markup_or_revenue_share(ws):
 			ws.required_revenue_share_pct = (ws.final_revenue_target / total_gross) * 100
 		else:
 			ws.required_revenue_share_pct = 0
-
-
-def _create_contract_price_list(contract, ws):
-	pl = frappe.get_doc(
-		{
-			"doctype": "Price List",
-			"price_list_name": f"Contract Pricing - {contract.name}",
-			"currency": frappe.db.get_single_value("Global Defaults", "default_currency"),
-			"selling": 1,
-			"enabled": 1,
-			"buying": 0,
-		}
-	).insert(ignore_permissions=True)
-
-	for line in ws.reagent_lines:
-		if (line.selling_price_per_pack or 0) > 0:
-			frappe.get_doc(
-				{
-					"doctype": "Item Price",
-					"price_list": pl.name,
-					"item_code": line.item_code,
-					"price_list_rate": line.selling_price_per_pack,
-					"uom": frappe.db.get_value("Item", line.item_code, "stock_uom"),
-					"selling": 1,
-					"valid_from": frappe.utils.today(),
-				}
-			).insert(ignore_permissions=True)
-
-	return pl

@@ -2,6 +2,7 @@ frappe.ui.form.on("Instrument Pricing Worksheet", {
 	refresh(frm) {
 		_setup_queries(frm);
 		_add_apply_button(frm);
+		_add_capitalize_button(frm);
 		frm.trigger("update_indicators");
 		_customize_submit_message(frm);
 	},
@@ -126,71 +127,131 @@ function _auto_set_calculation_output(frm) {
 }
 
 function _add_apply_button(frm) {
-	const $btn = frm.add_custom_button(__("Apply to Contract"), () => {
-		const d = new frappe.ui.Dialog({
-			title: __("Apply Worksheet to Contract"),
-			fields: [
-				{
-					fieldname: "asset",
-					label: __("Asset"),
-					fieldtype: "Link",
-					options: "Asset",
-					description: __(
-						"Optional — leave blank to capitalize from stock on the Contract later."
-					),
-					get_query() {
-						return {
-							filters: {
-								custom_current_deployment_status: "Warehouse",
-								custom_current_placement_contract: ["is", "not set"],
-							},
-						};
+	if (frm.doc.docstatus !== 1 || frm.doc.linked_contract) return;
+
+	frm.add_custom_button(
+		__("Instrument Placement Contract"),
+		() => {
+			const d = new frappe.ui.Dialog({
+				title: __("Apply Worksheet to Contract"),
+				fields: [
+					{
+						fieldname: "asset",
+						label: __("Asset"),
+						fieldtype: "Link",
+						options: "Asset",
+						description: __(
+							"Optional — leave blank to capitalize from stock on the Contract later."
+						),
+						get_query() {
+							return {
+								filters: {
+									custom_current_deployment_status: "Warehouse",
+									custom_current_placement_contract: ["is", "not set"],
+								},
+							};
+						},
 					},
+					{
+						fieldname: "customer_site",
+						label: __("Customer Site"),
+						fieldtype: "Link",
+						options: "Address",
+						reqd: 1,
+						get_query() {
+							return {
+								query: "frappe.contacts.doctype.address.address.address_query",
+								filters: {
+									link_doctype: "Customer",
+									link_name: frm.doc.customer,
+								},
+							};
+						},
+					},
+				],
+				primary_action({ asset, customer_site }) {
+					d.hide();
+					frappe.model.open_mapped_doc({
+						method: "nbs_customization.nbs_customization.doctype.instrument_pricing_worksheet.instrument_pricing_worksheet.make_instrument_placement_contract",
+						frm: frm,
+						args: {
+							// Blank asset = capitalize later on the Contract.
+							asset: asset || "",
+							customer_site: customer_site,
+						},
+					});
 				},
-				{
-					fieldname: "customer_site",
-					label: __("Customer Site"),
-					fieldtype: "Link",
-					options: "Address",
-					reqd: 1,
-					get_query() {
-						return {
-							query: "frappe.contacts.doctype.address.address.address_query",
-							filters: {
-								link_doctype: "Customer",
-								link_name: frm.doc.customer,
-							},
-						};
-					},
-				},
-			],
-			primary_action({ asset, customer_site }) {
-				d.hide();
-				frappe.call({
-					method: "apply_worksheet_to_contract",
-					doc: frm.doc,
-					args: {
-						// Blank asset = capitalize later; server tolerates "".
-						asset: asset || "",
-						customer_site: customer_site,
-					},
-					freeze: true,
-					freeze_message: __("Creating contract..."),
-					callback(r) {
-						if (r.message) {
-							frappe.set_route("Form", "Instrument Placement Contract", r.message);
-						}
-					},
-				});
-			},
-		});
-		d.show();
-	});
-	_toggle_apply_button(frm, $btn);
+			});
+			d.show();
+		},
+		__("Create")
+	);
+	frm.page.set_inner_btn_group_as_primary(__("Create"));
 }
 
-function _toggle_apply_button(frm, $btn) {
-	$btn.toggle(frm.doc.docstatus === 1 && !frm.doc.linked_contract);
+function _add_capitalize_button(frm) {
+	if (frm.doc.docstatus === 2 || frm.doc.linked_contract) return;
+	if (!frm.doc.analyzer_pid) return;
+
+	frm.add_custom_button(
+		__("Capitalize Analyzer"),
+		() => {
+			const d = new frappe.ui.Dialog({
+				title: __("Capitalize Analyzer from Stock"),
+				fields: [
+					{
+						label: __("Warehouse"),
+						fieldname: "warehouse",
+						fieldtype: "Link",
+						options: "Warehouse",
+						reqd: 1,
+					},
+					{
+						label: __("Serial No"),
+						fieldname: "serial_no",
+						fieldtype: "Link",
+						options: "Serial No",
+						reqd: 1,
+						get_query() {
+							return {
+								filters: {
+									item_code: frm.doc.analyzer_pid,
+									status: "Active",
+								},
+							};
+						},
+					},
+				],
+				primary_action_label: __("Create Asset"),
+				primary_action(values) {
+					d.hide();
+					frm.call({
+						method: "capitalize_analyzer",
+						// doc: required — routes via run_doc_method; without it the
+						// client prefixes the module path and get_attr fails (see 4776504).
+						doc: frm.doc,
+						args: {
+							warehouse: values.warehouse,
+							serial_no: values.serial_no,
+						},
+						freeze: true,
+						freeze_message: __("Creating Asset..."),
+						callback(r) {
+							if (r.message) {
+								frappe.msgprint(
+									__("Asset {0} created. Pick it when creating the contract.", [
+										r.message,
+									])
+								);
+							}
+						},
+					});
+				},
+			});
+			d.show();
+		},
+		__("Create")
+	);
 }
 
 function _apply_parameter_mapping(frm, cdt, cdn) {
@@ -201,6 +262,9 @@ function _apply_parameter_mapping(frm, cdt, cdn) {
 
 	if (!frm.doc.analyzer_pid) return;
 
+	const requested_param = row.test_parameter;
+	const requested_analyzer = frm.doc.analyzer_pid;
+
 	frappe.call({
 		method: "nbs_customization.utils.placement.spec_lines.get_spec_test_method_details",
 		args: {
@@ -208,6 +272,9 @@ function _apply_parameter_mapping(frm, cdt, cdn) {
 			test_parameter: row.test_parameter,
 		},
 		callback(r) {
+			const cur = locals[cdt] && locals[cdt][cdn];
+			if (!cur || cur.test_parameter !== requested_param) return;
+			if (frm.doc.analyzer_pid !== requested_analyzer) return;
 			if (!r.message || !r.message.required_reagent) {
 				frappe.msgprint({
 					title: __("Unknown Parameter"),
@@ -266,6 +333,9 @@ function _fetch_reagent_details(frm, cdt, cdn) {
 	if (!row.item_code) return;
 
 	if (row.test_parameter && frm.doc.analyzer_pid) {
+		const requested_param = row.test_parameter;
+		const requested_item = row.item_code;
+		const requested_analyzer = frm.doc.analyzer_pid;
 		frappe.call({
 			method: "nbs_customization.utils.placement.spec_lines.get_spec_test_method_details",
 			args: {
@@ -273,6 +343,14 @@ function _fetch_reagent_details(frm, cdt, cdn) {
 				test_parameter: row.test_parameter,
 			},
 			callback(r) {
+				const cur = locals[cdt] && locals[cdt][cdn];
+				if (
+					!cur ||
+					cur.test_parameter !== requested_param ||
+					cur.item_code !== requested_item
+				)
+					return;
+				if (frm.doc.analyzer_pid !== requested_analyzer) return;
 				if (r.message && r.message.required_reagent) {
 					frappe.model.set_value(
 						cdt,
@@ -315,11 +393,19 @@ function _fetch_reagent_defaults(cdt, cdn, item_code) {
 			],
 		},
 		callback(r) {
-			if (!r.message) return;
+			const cur = locals[cdt] && locals[cdt][cdn];
+			if (!cur || cur.item_code !== item_code) return;
+			if (!r.message) {
+				// No spec row: clear so the previous item's pack values never linger.
+				frappe.model.set_value(cdt, cdn, "pack_volume_ml", 0);
+				frappe.model.set_value(cdt, cdn, "tests_per_pack", 0);
+				frappe.model.set_value(cdt, cdn, "cogs_per_pack", 0);
+				return;
+			}
 			const spec = r.message;
-			frappe.model.set_value(cdt, cdn, "pack_volume_ml", spec.default_pack_volume_ml);
-			frappe.model.set_value(cdt, cdn, "tests_per_pack", spec.default_tests_per_pack);
-			frappe.model.set_value(cdt, cdn, "cogs_per_pack", spec.default_cogs_per_pack);
+			frappe.model.set_value(cdt, cdn, "pack_volume_ml", spec.default_pack_volume_ml || 0);
+			frappe.model.set_value(cdt, cdn, "tests_per_pack", spec.default_tests_per_pack || 0);
+			frappe.model.set_value(cdt, cdn, "cogs_per_pack", spec.default_cogs_per_pack || 0);
 		},
 	});
 }
@@ -329,6 +415,8 @@ function _fetch_consumable_details(frm, cdt, cdn) {
 	if (!row.item_code) return;
 
 	if (frm.doc.analyzer_pid) {
+		const requested_item = row.item_code;
+		const requested_analyzer = frm.doc.analyzer_pid;
 		frappe.call({
 			method: "nbs_customization.utils.placement.spec_lines.get_spec_consumable_details",
 			args: {
@@ -336,41 +424,37 @@ function _fetch_consumable_details(frm, cdt, cdn) {
 				consumable_item: row.item_code,
 			},
 			callback(r) {
-				if (r.message && (r.message.consumption_qty || r.message.default_cogs_per_unit)) {
-					if (r.message.consumption_qty) {
-						frappe.model.set_value(
-							cdt,
-							cdn,
-							"consumption_qty",
-							r.message.consumption_qty
-						);
-					}
-					if (r.message.consumption_frequency) {
-						frappe.model.set_value(
-							cdt,
-							cdn,
-							"consumption_frequency",
-							r.message.consumption_frequency
-						);
-					}
-					if (r.message.services_per_year) {
-						frappe.model.set_value(
-							cdt,
-							cdn,
-							"services_per_year",
-							r.message.services_per_year
-						);
-					}
-					if (r.message.default_cogs_per_unit) {
-						frappe.model.set_value(
-							cdt,
-							cdn,
-							"cogs_per_unit",
-							r.message.default_cogs_per_unit
-						);
-					}
+				const cur = locals[cdt] && locals[cdt][cdn];
+				if (!cur || cur.item_code !== requested_item) return;
+				if (frm.doc.analyzer_pid !== requested_analyzer) return;
+				if (r.message && Object.keys(r.message).length) {
+					// Always overwrite so replacing the item never keeps the old item's values.
+					frappe.model.set_value(
+						cdt,
+						cdn,
+						"consumption_qty",
+						r.message.consumption_qty || 0
+					);
+					frappe.model.set_value(
+						cdt,
+						cdn,
+						"consumption_frequency",
+						r.message.consumption_frequency || null
+					);
+					frappe.model.set_value(
+						cdt,
+						cdn,
+						"services_per_year",
+						r.message.services_per_year || 0
+					);
+					frappe.model.set_value(
+						cdt,
+						cdn,
+						"cogs_per_unit",
+						r.message.default_cogs_per_unit || 0
+					);
 				} else {
-					_fetch_consumable_defaults(cdt, cdn, row.item_code);
+					_fetch_consumable_defaults(cdt, cdn, requested_item);
 				}
 			},
 		});
@@ -392,16 +476,26 @@ function _fetch_consumable_defaults(cdt, cdn, item_code) {
 			],
 		},
 		callback(r) {
-			if (!r.message) return;
+			const cur = locals[cdt] && locals[cdt][cdn];
+			if (!cur || cur.item_code !== item_code) return;
+			if (!r.message) {
+				// No spec row: clear so the previous item's values never linger.
+				frappe.model.set_value(cdt, cdn, "consumption_qty", 0);
+				frappe.model.set_value(cdt, cdn, "consumption_frequency", null);
+				frappe.model.set_value(cdt, cdn, "services_per_year", 0);
+				frappe.model.set_value(cdt, cdn, "cogs_per_unit", 0);
+				return;
+			}
 			const spec = r.message;
-			frappe.model.set_value(cdt, cdn, "consumption_qty", spec.default_consumption_qty);
+			frappe.model.set_value(cdt, cdn, "consumption_qty", spec.default_consumption_qty || 0);
 			frappe.model.set_value(
 				cdt,
 				cdn,
 				"consumption_frequency",
-				spec.default_consumption_frequency
+				spec.default_consumption_frequency || null
 			);
-			frappe.model.set_value(cdt, cdn, "cogs_per_unit", spec.default_cogs_per_unit);
+			frappe.model.set_value(cdt, cdn, "services_per_year", 0);
+			frappe.model.set_value(cdt, cdn, "cogs_per_unit", spec.default_cogs_per_unit || 0);
 		},
 	});
 }

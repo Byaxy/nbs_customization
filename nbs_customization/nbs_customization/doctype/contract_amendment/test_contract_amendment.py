@@ -6,8 +6,12 @@ from frappe.tests import IntegrationTestCase
 from frappe.utils import add_days, today
 
 from nbs_customization.controllers.placement.amendment import mark_effective
+from nbs_customization.nbs_customization.doctype.instrument_pricing_worksheet.instrument_pricing_worksheet import (
+	make_instrument_placement_contract,
+)
 from nbs_customization.tasks import daily_process_amendments
 from nbs_customization.tests.placement_contracts import (
+	make_asset,
 	make_contract_kit,
 	make_worksheet,
 )
@@ -69,6 +73,37 @@ class TestContractAmendment(IntegrationTestCase):
 			self.assertEqual(line.monthly_test_volume, 200)
 			# ceil(200 / tests-per-pack 100) via cogs_per_unit + reagent spec.
 			self.assertEqual(line.min_monthly_qty, 2)
+		am.reload()
+		self.assertEqual(am.status, "Effective")
+
+	def test_apply_volume_on_server_mapped_contract_uses_pack_size(self):
+		# Contracts mapped via make_instrument_placement_contract must carry
+		# cogs_per_unit, or the amendment divisor falls back to 1 and the
+		# monthly charge inflates to the full volume.
+		ctx = make_contract_kit("_TST-AMD7")
+		ws2 = make_worksheet(
+			"_TST-AMD7W",
+			ctx["analyzer"],
+			ctx["reagent"],
+			ctx["analyzer"],
+			ctx["customer"],
+		)
+		# Server mapping copies the analyzer description (mandatory on Contract).
+		frappe.db.set_value("Item", ctx["analyzer"]["item"].name, "description", "Test analyzer")
+		asset2 = make_asset("_TST-AMD7B", ctx["category"], "_TST-AMD7B-SN", ctx["analyzer"]["item"].name)
+		frappe.flags.args = {"asset": asset2.name, "customer_site": ctx["site"].name}
+		try:
+			mapped = make_instrument_placement_contract(ws2.name)
+		finally:
+			frappe.flags.args = {}
+		mapped.insert()
+		mapped.submit()
+		am = self._amendment({"contract": mapped})
+		am.apply_to_contract()
+		ct = frappe.get_doc("Instrument Placement Contract", mapped.name)
+		line = ct.contract_reagent_lines[0]
+		self.assertEqual(line.monthly_test_volume, 200)
+		self.assertEqual(line.min_monthly_qty, 2)
 		am.reload()
 		self.assertEqual(am.status, "Effective")
 

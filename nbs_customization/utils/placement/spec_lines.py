@@ -10,7 +10,7 @@ picking a Test Parameter determines its mapped reagent and pack defaults.
 
 import frappe
 
-from nbs_customization.utils.placement.valid_items import _build_reagent_labels
+from nbs_customization.utils.placement.valid_items import _build_reagent_labels, require_analyzer_item_read
 
 
 def _get_spec_name(analyzer_item):
@@ -61,6 +61,7 @@ def _resolve_pack_defaults(row):
 def get_spec_test_parameters(doctype, txt, searchfield, start, page_len, filters):
 	"""Test Parameters on the analyzer's spec, as ``[code, parameter_name]``."""
 	filters = frappe.parse_json(filters) if isinstance(filters, str) else filters or {}
+	require_analyzer_item_read(filters.get("analyzer_item"))
 	rows = _spec_test_methods(filters.get("analyzer_item"))
 	if not rows:
 		return []
@@ -90,6 +91,7 @@ def get_spec_test_method_details(analyzer_item: str, test_parameter: str):
 	"""Mapped reagent, description + pack defaults for *test_parameter* on the spec."""
 	if not analyzer_item or not test_parameter:
 		return {}
+	require_analyzer_item_read(analyzer_item)
 	for row in _spec_test_methods(analyzer_item):
 		if row["test_parameter"] == test_parameter:
 			details = _resolve_pack_defaults(dict(row))
@@ -105,6 +107,7 @@ def get_spec_test_method_details(analyzer_item: str, test_parameter: str):
 def get_spec_consumables(doctype, txt, searchfield, start, page_len, filters):
 	"""Consumable items on the analyzer's spec, with rich dropdown labels."""
 	filters = frappe.parse_json(filters) if isinstance(filters, str) else filters or {}
+	require_analyzer_item_read(filters.get("analyzer_item"))
 	spec = _get_spec_name(filters.get("analyzer_item"))
 	if not spec:
 		return []
@@ -127,6 +130,7 @@ def get_analyzer_landed_cost(analyzer_item: str):
 	"""Latest valuation/purchase rate for *analyzer_item*; first positive source wins."""
 	if not analyzer_item:
 		return {"rate": 0}
+	require_analyzer_item_read(analyzer_item)
 	incoming = frappe.db.get_all(
 		"Stock Ledger Entry",
 		filters={"item_code": analyzer_item, "actual_qty": [">", 0], "is_cancelled": 0},
@@ -154,6 +158,7 @@ def get_spec_consumable_details(analyzer_item: str, consumable_item: str):
 	"""Qty/frequency/cost for *consumable_item* from the analyzer's spec row."""
 	if not analyzer_item or not consumable_item:
 		return {}
+	require_analyzer_item_read(analyzer_item)
 	spec = _get_spec_name(analyzer_item)
 	row = None
 	if spec:

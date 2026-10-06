@@ -5,6 +5,7 @@ from frappe.tests import IntegrationTestCase
 
 from nbs_customization.setup import (
 	_ensure_brand_others,
+	_ensure_company_store_locations,
 	_ensure_equipment_category,
 	create_nbs_capital_asset_item,
 	create_revenue_share_fee_item,
@@ -13,6 +14,7 @@ from nbs_customization.setup import (
 from nbs_customization.tests.placement_contracts import make_worksheet
 from nbs_customization.tests.placement_fixtures import (
 	COMPANY,
+	SITE_LOCATION,
 	WAREHOUSE,
 	link_reagent_to_spec,
 	make_analyzer,
@@ -30,6 +32,7 @@ def _seed_all():
 	create_revenue_share_fee_item()
 	create_shortfall_penalty_item()
 	create_nbs_capital_asset_item()
+	_ensure_company_store_locations()
 
 
 def _draft_contract(prefix, analyzer, reagent, param, customer, site, worksheet):
@@ -300,3 +303,58 @@ class TestPlacementSetup(IntegrationTestCase):
 		)
 		self.assertEqual(after, bin_qty - 1)
 		self.assertFalse(frappe.db.exists("Asset", {"custom_serial_no": serial.serial_no}))
+
+	def test_company_store_locations_seeded_idempotent(self):
+		_ensure_company_store_locations()
+		_ensure_company_store_locations()
+		abbr = frappe.db.get_value("Company", COMPANY, "abbr")
+		store = f"{abbr} - Store"
+		self.assertTrue(frappe.db.exists("Location", store))
+		self.assertEqual(frappe.db.count("Location", {"location_name": store}), 1)
+
+	def test_capitalize_lands_at_company_store(self):
+		_seed_all()
+		analyzer = make_analyzer("_TST-SET5")
+		reagent = make_reagent("_TST-SET5R")
+		link_reagent_to_spec(analyzer["item"].name, analyzer["param"], reagent)
+		customer = make_customer("_TST-SET5")
+		site = make_site("_TST-SET5")
+		ws = make_worksheet("_TST-SET5", analyzer, reagent, analyzer, customer)
+		serial = make_serial(analyzer["item"].name, WAREHOUSE, "_TST-SET5-SN")
+		ct = _draft_contract("_TST-SET5", analyzer, reagent, analyzer, customer, site, ws)
+		asset_name = ct.create_asset_from_stock(WAREHOUSE, serial.serial_no)
+		company = frappe.db.get_value("Asset", asset_name, "company")
+		abbr = frappe.db.get_value("Company", company, "abbr")
+		self.assertEqual(frappe.db.get_value("Asset", asset_name, "location"), f"{abbr} - Store")
+		self.assertEqual(
+			frappe.db.get_value("Asset", asset_name, "custom_current_deployment_status"), "Warehouse"
+		)
+
+	def test_deployment_defaults_storage_to_company_store(self):
+		_seed_all()
+		analyzer = make_analyzer("_TST-SET6")
+		reagent = make_reagent("_TST-SET6R")
+		link_reagent_to_spec(analyzer["item"].name, analyzer["param"], reagent)
+		customer = make_customer("_TST-SET6")
+		site = make_site("_TST-SET6")
+		ws = make_worksheet("_TST-SET6", analyzer, reagent, analyzer, customer)
+		serial = make_serial(analyzer["item"].name, WAREHOUSE, "_TST-SET6-SN")
+		ct = _draft_contract("_TST-SET6", analyzer, reagent, analyzer, customer, site, ws)
+		asset_name = ct.create_asset_from_stock(WAREHOUSE, serial.serial_no)
+		dep = frappe.get_doc(
+			{
+				"doctype": "Analyzer Deployment",
+				"naming_series": "NBSAD-.YYYY./.####",
+				"contract": ct.name,
+				"asset": asset_name,
+				"customer": customer.name,
+				"customer_site": site.name,
+				"asset_location": SITE_LOCATION,
+				"deployment_date": frappe.utils.today(),
+				"deployment_status": "Under Service",
+			}
+		).insert()
+		dep.reload()
+		company = frappe.db.get_value("Asset", asset_name, "company")
+		abbr = frappe.db.get_value("Company", company, "abbr")
+		self.assertEqual(dep.asset_storage_location, f"{abbr} - Store")

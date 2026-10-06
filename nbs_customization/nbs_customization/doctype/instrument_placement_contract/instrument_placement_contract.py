@@ -12,6 +12,7 @@ from nbs_customization.utils.placement.valid_items import validate_items_belong_
 class InstrumentPlacementContract(Document):
 	def validate(self):
 		self._validate_contract_lines()
+		self._validate_asset_link()
 		self._compute_duration()
 		self._compute_min_monthly_value()
 		self._compute_cpt_fields()
@@ -21,12 +22,16 @@ class InstrumentPlacementContract(Document):
 		self._require_contract_lines()
 		self._require_pricing_worksheet()
 		self._require_asset()
+		if not self.contract_price_list:
+			self.contract_price_list = _create_contract_price_list(self).name
 
 	def on_submit(self):
 		self.approved_by = frappe.session.user
 		self.approval_date = frappe.utils.today()
 		self.db_set("approved_by", self.approved_by)
 		self.db_set("approval_date", self.approval_date)
+		if not self.signed_by_company:
+			self.db_set("signed_by_company", frappe.session.user)
 		self._activate_contract()
 		self.db_set("outstanding_on_contract", self.total_recovery_target or 0)
 		self._link_pricing_worksheet()
@@ -60,6 +65,41 @@ class InstrumentPlacementContract(Document):
 			else:
 				line.price_uplift = 0
 
+	def _validate_asset_link(self):
+		if not self.asset:
+			return
+		if frappe.db.get_value("Asset", self.asset, "docstatus") == 2:
+			frappe.throw(frappe._("Asset {0} is cancelled.").format(frappe.bold(self.asset)))
+		linked = frappe.db.get_value("Asset", self.asset, "custom_current_placement_contract")
+		if linked and linked != self.name:
+			frappe.throw(
+				frappe._("Asset {0} is already linked to Contract {1}.").format(
+					frappe.bold(self.asset), frappe.bold(linked)
+				)
+			)
+		spec = frappe.db.get_value("Asset", self.asset, "custom_instrument_specification")
+		if spec:
+			spec_item = frappe.db.get_value("Instrument Specification", spec, "item")
+			if spec_item and spec_item != self.analyzer_pid:
+				frappe.throw(
+					frappe._("Asset {0} is for analyzer {1}, not {2}.").format(
+						frappe.bold(self.asset), frappe.bold(spec_item), frappe.bold(self.analyzer_pid)
+					)
+				)
+			return
+		serial_no = frappe.db.get_value("Asset", self.asset, "custom_serial_no")
+		if serial_no and frappe.db.exists("Serial No", serial_no):
+			serial_item = frappe.db.get_value("Serial No", serial_no, "item_code")
+			if serial_item and serial_item != self.analyzer_pid:
+				frappe.throw(
+					frappe._("Asset {0} (Serial {1}) is for analyzer {2}, not {3}.").format(
+						frappe.bold(self.asset),
+						frappe.bold(serial_no),
+						frappe.bold(serial_item),
+						frappe.bold(self.analyzer_pid),
+					)
+				)
+
 	def _compute_duration(self):
 		if self.start_date and self.end_date:
 			start = frappe.utils.getdate(self.start_date)
@@ -87,104 +127,35 @@ class InstrumentPlacementContract(Document):
 		self.fixed_monthly_gross_revenue = total_gross
 		self.fixed_monthly_share_amount = total_gross * pct
 
-	def _resolve_asset_location(self):
-		if self.customer_site and frappe.db.exists("Location", self.customer_site):
-			return self.customer_site
-		fallback = frappe.db.get_value("Location", {}, "name")
-		if not fallback:
-			frappe.throw(_("No Location found — create one before capitalizing an analyzer."))
-		return fallback
-
 	@frappe.whitelist()
 	def recompute_recovery(self):
 		_recompute(self.name)
 		self.reload()
 
 	@frappe.whitelist()
-	def create_asset_from_stock(self, warehouse, serial_no):
+	def create_asset_from_stock(self, warehouse: str, serial_no: str):
+		from nbs_customization.utils.placement.assets import capitalize_serial_for_placement
+
 		if self.asset:
 			frappe.throw(_("Contract already has an Asset linked."))
 		if self.docstatus != 0:
 			frappe.throw(_("Contract must be in Draft to create an Asset."))
 		if not serial_no:
 			frappe.throw(_("A Serial No is required to capitalize an analyzer for placement."))
-		if not frappe.db.get_value("Item", self.analyzer_pid, "has_serial_no"):
-			frappe.throw(
-				_("Analyzer Item {0} must have Serial No tracking enabled (has_serial_no=1).").format(
-					self.analyzer_pid
-				)
-			)
 
-		serial_doc = frappe.get_doc("Serial No", serial_no)
-		if serial_doc.item_code != self.analyzer_pid:
-			frappe.throw(_("Serial No {0} does not match analyzer {1}.").format(serial_no, self.analyzer_pid))
-		if serial_doc.status != "Active" or serial_doc.warehouse != warehouse:
-			frappe.throw(_("Serial No {0} is not available in warehouse {1}.").format(serial_no, warehouse))
-
-		capital_item = "Capital Asset"
-		if not frappe.db.exists("Item", capital_item):
-			frappe.throw(
-				_("Capital asset item '{0}' not found. Run migrate to create it.").format(capital_item)
-			)
-
-		company = frappe.defaults.get_defaults().get("company") or frappe.db.get_value("Company", {}, "name")
-
-		asset_category = frappe.db.get_value("Item", capital_item, "asset_category")
-		if not asset_category:
-			frappe.throw(
-				_("Item {0} has no Asset Category set. Set one on the Item master.").format(capital_item)
-			)
-
-		instrument_spec = frappe.db.get_value("Item", self.analyzer_pid, "custom_instrument_specification")
-
-		asset = frappe.get_doc(
-			{
-				"doctype": "Asset",
-				"asset_name": "{0} - {1}".format(self.customer_name or self.customer, serial_doc.serial_no),
-				"item_code": capital_item,
-				"company": company,
-				"asset_category": asset_category,
-				"location": self._resolve_asset_location(),
-				"custom_serial_no": serial_no,
-				"custom_instrument_specification": instrument_spec,
-				"custom_current_deployment_status": "Warehouse",
-				"gross_purchase_amount": serial_doc.purchase_rate or 0,
-				"net_purchase_amount": serial_doc.purchase_rate or 0,
-				"purchase_date": frappe.utils.today(),
-				"available_for_use_date": frappe.utils.today(),
-				"asset_type": "Composite Asset",
-			}
-		).insert(ignore_permissions=True)
-
-		cap = frappe.get_doc(
-			{
-				"doctype": "Asset Capitalization",
-				"company": company,
-				"target_item_code": capital_item,
-				"target_asset": asset.name,
-				"posting_date": frappe.utils.today(),
-				"stock_items": [
-					{
-						"item_code": self.analyzer_pid,
-						"warehouse": warehouse,
-						"stock_qty": 1,
-						"use_serial_batch_fields": 1,
-						"serial_no": serial_doc.serial_no,
-					}
-				],
-			}
+		asset_name = capitalize_serial_for_placement(
+			customer=self.customer,
+			customer_name=self.customer_name,
+			analyzer_pid=self.analyzer_pid,
+			warehouse=warehouse,
+			serial_no=serial_no,
 		)
-		cap.insert(ignore_permissions=True)
-		cap.submit()
 
-		asset.reload()
-		asset.submit()
-
-		self.db_set("asset", asset.name)
-		self.db_set("serial_no", serial_doc.serial_no)
+		self.db_set("asset", asset_name)
+		self.db_set("serial_no", serial_no)
 		self.reload()
 
-		return asset.name
+		return asset_name
 
 	def _validate_pricing_worksheet_link(self):
 		if not self.pricing_worksheet:
@@ -275,3 +246,32 @@ class InstrumentPlacementContract(Document):
 		if ws.linked_contract == self.name:
 			ws.db_set("status", "Approved")
 			ws.db_set("linked_contract", None)
+
+
+def _create_contract_price_list(contract):
+	pl = frappe.get_doc(
+		{
+			"doctype": "Price List",
+			"price_list_name": f"Contract Pricing - {contract.name}",
+			"currency": frappe.db.get_single_value("Global Defaults", "default_currency"),
+			"selling": 1,
+			"enabled": 1,
+			"buying": 0,
+		}
+	).insert(ignore_permissions=True)
+
+	for line in contract.contract_reagent_lines:
+		if (line.contract_price or 0) > 0:
+			frappe.get_doc(
+				{
+					"doctype": "Item Price",
+					"price_list": pl.name,
+					"item_code": line.item_code,
+					"price_list_rate": line.contract_price,
+					"uom": frappe.db.get_value("Item", line.item_code, "stock_uom"),
+					"selling": 1,
+					"valid_from": frappe.utils.today(),
+				}
+			).insert(ignore_permissions=True)
+
+	return pl

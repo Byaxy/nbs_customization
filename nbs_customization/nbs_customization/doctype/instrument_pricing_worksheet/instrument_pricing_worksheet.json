@@ -146,12 +146,13 @@
    "fieldname": "column_break_hjfi",
    "fieldtype": "Column Break"
   },
-   {
-    "fieldname": "annual_interest_rate",
-    "fieldtype": "Percent",
-    "label": "Annual Interest Rate %",
-    "non_negative": 1
-   },
+    {
+     "depends_on": "eval:doc.contract_type==\"RLO\";",
+     "fieldname": "annual_interest_rate",
+     "fieldtype": "Percent",
+     "label": "Annual Interest Rate %",
+     "non_negative": 1
+    },
   {
    "fieldname": "contract_years",
    "fieldtype": "Int",
