@@ -179,6 +179,7 @@ function _on_pricing_worksheet_change(frm) {
 
 function _fetch_contract_terms(frm) {
 	if (!frm.doc.contract_template) return;
+	const requested_template = frm.doc.contract_template;
 	frappe.call({
 		method: "erpnext.crm.doctype.contract_template.contract_template.get_contract_template",
 		args: {
@@ -186,6 +187,8 @@ function _fetch_contract_terms(frm) {
 			doc: frm.doc,
 		},
 		callback(r) {
+			// Ignore stale responses after a rapid template switch.
+			if (frm.doc.contract_template !== requested_template) return;
 			if (r.message && r.message.contract_terms) {
 				frm.set_value("contract_terms", r.message.contract_terms);
 			}

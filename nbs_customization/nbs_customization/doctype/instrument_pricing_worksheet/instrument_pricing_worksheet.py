@@ -174,6 +174,9 @@ def make_instrument_placement_contract(source_name: str, target_doc=None):
 
 	def update_reagent_row(source_row, target_row, source_parent):
 		target_row.uom = frappe.db.get_value("Item", source_row.item_code, "stock_uom")
+		# Contract amendments gate the pack-size lookup on this field; without
+		# it the divisor falls back to 1 and monthly charges inflate.
+		target_row.cogs_per_unit = source_row.cogs_per_pack
 		target_row.min_monthly_qty = (
 			ceil(flt(source_row.monthly_test_volume) / flt(source_row.tests_per_pack))
 			if flt(source_row.tests_per_pack)

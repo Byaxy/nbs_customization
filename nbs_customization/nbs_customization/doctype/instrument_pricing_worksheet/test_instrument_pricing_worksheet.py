@@ -306,6 +306,9 @@ class TestApplyWorksheet(FrappeTestCase):
 		self.assertEqual(cl.test_parameter, "APLY")
 		self.assertEqual(cl.standard_price, 50)
 		self.assertEqual(cl.contract_price, self.ws.reagent_lines[0].selling_price_per_pack)
+		# Amendments gate the pack-size lookup on this field; it must mirror
+		# the worksheet pack cost or monthly charges inflate (divisor falls to 1).
+		self.assertEqual(cl.cogs_per_unit, self.ws.reagent_lines[0].cogs_per_pack)
 
 	def test_price_list_created_on_submit(self):
 		asset, site = self._setup_asset_and_address()
