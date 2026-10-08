@@ -47,39 +47,47 @@
    "fieldname": "column_break_aoln",
    "fieldtype": "Column Break"
   },
-  {
-   "fieldname": "standard_price",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Standard Price",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "contract_price",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Contract Price",
-   "non_negative": 1,
-   "reqd": 1
-  },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "standard_price",
+    "fieldtype": "Currency",
+    "in_list_view": 1,
+    "label": "Standard Price",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "contract_price",
+    "fieldtype": "Currency",
+    "in_list_view": 1,
+    "label": "Contract Price",
+    "non_negative": 1,
+    "read_only": 1,
+    "reqd": 1
+   },
   {
    "fieldname": "price_uplift",
    "fieldtype": "Currency",
    "label": "Price Uplift",
    "read_only": 1
   },
-  {
-   "fieldname": "qty_required_total",
-   "fieldtype": "Float",
-   "label": "Total Qty Required Over Term",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "cogs_per_unit",
-   "fieldtype": "Currency",
-   "label": "COGS per Pack/Unit",
-   "non_negative": 1
-  }
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "qty_required_total",
+    "fieldtype": "Float",
+    "label": "Total Qty Required Over Term",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "cogs_per_unit",
+    "fieldtype": "Currency",
+    "label": "COGS per Pack/Unit",
+    "non_negative": 1,
+    "read_only": 1
+   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,

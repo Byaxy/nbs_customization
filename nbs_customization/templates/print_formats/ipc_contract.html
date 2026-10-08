@@ -1,0 +1,158 @@
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_footer, pdf_signature -%}
+{%- from "nbs_customization/templates/print_formats/placement_matrix.html" import
+	pbs_header, contract_schedule_b -%}
+{%- set _company = frappe.db.get_single_value("Global Defaults", "default_company") -%}
+{%- set company_doc = frappe.get_doc("Company", _company) if _company
+	and frappe.db.exists("Company", _company) else None -%}
+{%- set watermark_src = (company_doc.custom_pdf_water_mark if company_doc else None)
+	or (company_doc.company_logo if company_doc else None) -%}
+{%- set site = frappe.get_doc("Address", doc.customer_site)
+	if doc.customer_site and frappe.db.exists("Address", doc.customer_site) else None -%}
+
+<style>
+	.print-format { margin: 5mm 8mm 10mm; padding: 0 0 10mm; }
+	.print-format td, .print-format th { padding: 3px 4px !important; }
+	.nbs-watermark { position: fixed; top: 28%; left: 15%; width: 480px;
+		height: 440px; opacity: 0.1; z-index: 0; pointer-events: none; }
+	.nbs-body { font-family: "Times New Roman", Times, serif; font-size: 11px;
+		color: #000; position: relative; z-index: 1; }
+	.nbs-title { text-align: center; font-weight: bold; font-size: 15px;
+		margin: 8px 0 2px; }
+	.nbs-subtitle { text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 10px; }
+	.nbs-section { page-break-inside: avoid; break-inside: avoid; margin-bottom: 10px; }
+	@media print {
+		* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+	}
+</style>
+
+{# Placement prints carry their own PBS header/footer (company-less DocTypes
+cannot use the default Letter Head, which requires doc.company). #}
+{{ pbs_header(company_doc) }}
+{% if watermark_src %}
+	<img class="nbs-watermark" src="{{ frappe.utils.get_url(watermark_src) }}" alt="" />
+{% endif %}
+
+<div class="nbs-body">
+	<div class="nbs-title">CONTRACT FOR THE PLACEMENT OF MEDICAL EQUIPMENT</div>
+	<div class="nbs-subtitle">({{ ipc_subtitle }} for {{ doc.analyzer_pid }})</div>
+
+	<p><b>AGREEMENT NUMBER:</b> {{ doc.name }}<br>
+	<b>DATE:</b> {{ frappe.utils.formatdate(doc.start_date) if doc.start_date else "" }}</p>
+
+	<p><b>BETWEEN:</b></p>
+	<p><b>{{ (company_doc.company_name if company_doc else "") | upper }}</b>,
+	{{ company_doc.custom_address_line_1 or "" }},
+	{{ company_doc.custom_address_line_2 or "" }}.
+	{{ company_doc.phone_no or "" }} | {{ company_doc.custom_phone_no_2 or "" }}.
+	{{ company_doc.email or "" }}. {{ company_doc.website or "" }}.
+	(Hereinafter “the Supplier”).</p>
+	<p><b>AND</b></p>
+	<p><b>{{ (doc.customer_name or doc.customer or "") | upper }}</b>
+	{% if site %}, {{ site.address_line1 or "" }}, {{ site.city or "" }},
+	{{ site.country or "" }}{% endif %}. (Hereinafter “the Customer”).</p>
+
+	<div class="nbs-section">
+		<table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+			<tr><td style="border: 1px solid #000; padding: 3px 8px; width: 50%;">
+				<b>Instrument:</b> {{ doc.analyzer_pid }}</td>
+				<td style="border: 1px solid #000; padding: 3px 8px;">
+				<b>Serial No:</b> {{ doc.serial_no or "" }}</td></tr>
+			<tr><td style="border: 1px solid #000; padding: 3px 8px;">
+				<b>Term:</b> {{ doc.contract_duration_months or 0 }} months
+				({{ frappe.utils.formatdate(doc.start_date) if doc.start_date else "" }} –
+				{{ frappe.utils.formatdate(doc.end_date) if doc.end_date else "" }})</td>
+				<td style="border: 1px solid #000; padding: 3px 8px;">
+				<b>Total Recovery Target:</b> {{ doc.total_recovery_target or 0 }}</td></tr>
+			{% if doc.contract_type == "CPT" %}
+			<tr><td style="border: 1px solid #000; padding: 3px 8px;">
+				<b>Revenue Share:</b> {{ doc.revenue_share_pct or 0 }}%</td>
+				<td style="border: 1px solid #000; padding: 3px 8px;">
+				<b>Monthly Share:</b> {{ doc.fixed_monthly_share_amount or 0 }}
+				(of {{ doc.fixed_monthly_gross_revenue or 0 }} gross)</td></tr>
+			{% else %}
+			<tr><td style="border: 1px solid #000; padding: 3px 8px;">
+				<b>Minimum Monthly Value:</b> {{ doc.min_monthly_value or 0 }}</td>
+				<td style="border: 1px solid #000; padding: 3px 8px;">
+				<b>Grace:</b> {{ doc.grace_period_days or 0 }} days |
+				<b>Breach:</b> {{ doc.breach_threshold or 0 }} months</td></tr>
+			{% endif %}
+		</table>
+	</div>
+
+	<div class="nbs-section">{{ doc.contract_terms or "" }}</div>
+
+	<div class="nbs-section">
+		<h4>Schedule A – Authorized Consumables</h4>
+		<table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+			<tr style="background-color: #0a2351; color: #fff;
+				-webkit-print-color-adjust: exact; print-color-adjust: exact;">
+				<th style="border: 1px solid #000; padding: 3px 4px;">Product</th>
+				<th style="border: 1px solid #000; padding: 3px 4px;">Parameter</th>
+				<th style="border: 1px solid #000; padding: 3px 4px;">Contract Price</th>
+				<th style="border: 1px solid #000; padding: 3px 4px;">Qty (Term)</th>
+			</tr>
+			{% for l in doc.contract_reagent_lines %}
+			<tr><td style="border: 1px solid #000; padding: 3px 4px;">{{ l.item_code }}</td>
+				<td style="border: 1px solid #000; padding: 3px 4px;">{{ l.test_parameter or "" }}</td>
+				<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
+					{% if doc.contract_type == "CPT" %}{{ l.agreed_test_price or 0 }}
+					{% else %}{{ l.contract_price or 0 }}{% endif %}</td>
+				<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
+					{{ l.qty_required_total or 0 }}</td></tr>
+			{% endfor %}
+			{% for l in doc.contract_consumable_lines %}
+			<tr><td style="border: 1px solid #000; padding: 3px 4px;">{{ l.item_code }}</td>
+				<td style="border: 1px solid #000; padding: 3px 4px;">Consumable</td>
+				<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
+					{{ l.contract_price or 0 }}</td>
+				<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
+					{{ l.qty_required_total or 0 }}</td></tr>
+			{% endfor %}
+		</table>
+	</div>
+
+	<div class="nbs-section">
+		<h4>Schedule B – Price Matrix</h4>
+		{{ contract_schedule_b(doc) }}
+	</div>
+
+	<div class="nbs-section">
+		<h4>Schedule C – Service Level Agreement</h4>
+		<p>Acknowledge within 2 working hours; on site within 48 hours for critical
+		failures; restore within 5 business days. Preventive maintenance quarterly.
+		Downtime beyond 7 consecutive business days attributable to the Supplier
+		credits 10% of the average monthly value per extra week. Signed maintenance
+		log after each visit.</p>
+		<h4>Schedule D – Site Preparation</h4>
+		<p>Suitable clean secure environment; stable supply with surge protection and
+		adequate UPS; per-manual temperature, humidity and space requirements.</p>
+		<h4>Schedule E – Acceptance Certificate</h4>
+		<p>Joint Installation &amp; Acceptance Report confirming installation,
+		calibration and performance to manufacturer specification; deemed accepted
+		after 5 business days without valid technical objection.</p>
+		<h4>Schedule F – Monthly Count Confirmation</h4>
+		<p>Joint month-end instrument counter reading confirming reportable tests
+		for the period {{ doc.name }}.</p>
+	</div>
+
+	<div class="nbs-section">
+		<p><b>IN WITNESS WHEREOF</b>, the Parties execute this Agreement. The signed
+		original is scanned and attached to contract {{ doc.name }} in the system.</p>
+		<table style="width: 100%; margin-top: 10px;">
+			<tr>
+				<td style="width: 5%"></td>
+				{{ pdf_signature("For the Supplier") }}
+				<td style="width: 30%;"></td>
+				{{ pdf_signature("For the Customer") }}
+			</tr>
+		</table>
+		<table style="width: 100%; margin-top: 6px; font-size: 11px;">
+			<tr><td style="width: 5%"></td>
+				<td>Name: ___________________ &nbsp; Date: __________</td>
+				<td style="width: 30%;"></td>
+				<td>Name: ___________________ &nbsp; Date: __________</td></tr>
+		</table>
+	</div>
+</div>
+
+{{ pdf_footer() }}

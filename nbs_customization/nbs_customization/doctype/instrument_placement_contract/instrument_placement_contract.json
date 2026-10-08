@@ -20,19 +20,20 @@
   "start_date",
   "end_date",
   "column_break_uudr",
-  "contract_price_list",
-  "contract_duration_months",
-  "contract_status",
-  "section_break_rvnv",
+   "contract_price_list",
+   "contract_duration_months",
+   "avg_samples_per_day",
+   "column_break_volbasis",
+   "operational_days_per_month",
+   "contract_status",
+   "section_break_rvnv",
   "asset",
   "analyzer_pid",
   "analyzer_description",
   "column_break_gmvt",
-  "serial_no",
-  "section_break_osor",
-  "signed_contract",
-  "column_break_bzwc",
-  "recovery_tracking_section",
+   "serial_no",
+   "section_break_osor",
+   "recovery_tracking_section",
   "total_recovery_target",
   "cumulative_collected",
   "recovery_pct_invoiced",
@@ -61,16 +62,9 @@
   "contract_consumable_line_section",
    "contract_consumable_lines",
    "contract_terms_section",
-   "contract_template",
-   "contract_terms",
-   "signatures_section",
-   "signee",
-   "signed_on",
-   "column_break_sigm",
-   "ip_address",
-   "signee_company",
-   "signed_by_company",
-   "admin_section",
+    "contract_template",
+    "contract_terms",
+    "admin_section",
   "approved_by",
   "column_break_ijqj",
   "approval_date",
@@ -218,12 +212,32 @@
    "label": "Contract End Date",
    "reqd": 1
   },
-  {
-   "fieldname": "contract_duration_months",
-   "fieldtype": "Int",
-   "label": "Contract Duration (Months)",
-   "read_only": 1
-  },
+   {
+    "fieldname": "contract_duration_months",
+    "fieldtype": "Int",
+    "label": "Contract Duration (Months)",
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet volume basis (matrix preamble).",
+    "fieldname": "avg_samples_per_day",
+    "fieldtype": "Float",
+    "label": "Average Samples / Day",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "fieldname": "column_break_volbasis",
+    "fieldtype": "Column Break"
+   },
+   {
+    "description": "Mirror of the linked worksheet volume basis (matrix preamble).",
+    "fieldname": "operational_days_per_month",
+    "fieldtype": "Int",
+    "label": "Operational Days / Month",
+    "non_negative": 1,
+    "read_only": 1
+   },
   {
    "allow_on_submit": 1,
    "default": "Draft",
@@ -234,17 +248,12 @@
    "read_only": 1,
    "reqd": 1
   },
-  {
-   "fieldname": "section_break_osor",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "signed_contract",
-   "fieldtype": "Attach",
-   "label": "Signed Contract Attachment"
-  },
-  {
-   "fieldname": "recovery_tracking_section",
+   {
+    "fieldname": "section_break_osor",
+    "fieldtype": "Section Break"
+   },
+   {
+    "fieldname": "recovery_tracking_section",
    "fieldtype": "Section Break",
    "label": "Recovery Tracking"
   },
@@ -299,12 +308,13 @@
    "fieldtype": "Section Break",
    "label": "RRA / RLO Terms"
   },
-  {
-   "fieldname": "min_monthly_value",
-   "fieldtype": "Currency",
-   "label": "Minimum Monthly Purchase Value",
-   "non_negative": 1
-  },
+   {
+    "fieldname": "min_monthly_value",
+    "fieldtype": "Currency",
+    "label": "Minimum Monthly Purchase Value",
+    "non_negative": 1,
+    "read_only": 1
+   },
   {
    "fieldname": "column_break_zcpc",
    "fieldtype": "Column Break"
@@ -359,12 +369,14 @@
    "fieldtype": "Date",
    "label": "Estimated Transfer Date"
   },
-  {
-   "fieldname": "revenue_share_pct",
-   "fieldtype": "Percent",
-   "label": "Required Revenue Share %",
-   "non_negative": 1
-  },
+   {
+    "description": "Mirror of the linked worksheet calculation. Change the worksheet, not this field.",
+    "fieldname": "revenue_share_pct",
+    "fieldtype": "Percent",
+    "label": "Required Revenue Share %",
+    "non_negative": 1,
+    "read_only": 1
+   },
   {
    "depends_on": "eval:doc.contract_type==\"RLO\";",
    "fieldname": "rlo_ownership_transfer_secction",
@@ -415,48 +427,6 @@
     "label": "Contract Terms"
    },
    {
-    "fieldname": "signatures_section",
-    "fieldtype": "Section Break",
-    "label": "Signatures"
-   },
-   {
-    "fieldname": "signee",
-    "fieldtype": "Data",
-    "label": "Signee",
-    "no_copy": 1
-   },
-   {
-    "fieldname": "signed_on",
-    "fieldtype": "Datetime",
-    "label": "Signed On",
-    "no_copy": 1
-   },
-   {
-    "fieldname": "column_break_sigm",
-    "fieldtype": "Column Break"
-   },
-   {
-    "fieldname": "ip_address",
-    "fieldtype": "Data",
-    "label": "IP Address",
-    "no_copy": 1,
-    "read_only": 1
-   },
-   {
-    "fieldname": "signee_company",
-    "fieldtype": "Signature",
-    "label": "Company Signature",
-    "no_copy": 1
-   },
-   {
-    "fieldname": "signed_by_company",
-    "fieldtype": "Link",
-    "label": "Signed by (Company)",
-    "no_copy": 1,
-    "options": "User",
-    "read_only": 1
-   },
-   {
     "fieldname": "admin_section",
     "fieldtype": "Section Break",
     "label": "Admin"
@@ -486,12 +456,8 @@
    "fieldtype": "Small Text",
    "label": "Notes"
   },
-  {
-   "fieldname": "column_break_bzwc",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "contract_reagent_lines",
+   {
+    "fieldname": "contract_reagent_lines",
    "fieldtype": "Table",
    "options": "Contract Test Reagent Line",
    "reqd": 1

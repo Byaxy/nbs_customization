@@ -1,9 +1,12 @@
 # Copyright (c) 2026, Charles Byakutaga/NBS and contributors
 # For license information, please see license.txt
 
+from math import ceil
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
 
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery as _recompute
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
@@ -17,6 +20,7 @@ class InstrumentPlacementContract(Document):
 		self._compute_min_monthly_value()
 		self._compute_cpt_fields()
 		self._validate_pricing_worksheet_link()
+		self._assert_matches_worksheet()
 
 	def before_submit(self):
 		self._require_contract_lines()
@@ -30,8 +34,6 @@ class InstrumentPlacementContract(Document):
 		self.approval_date = frappe.utils.today()
 		self.db_set("approved_by", self.approved_by)
 		self.db_set("approval_date", self.approval_date)
-		if not self.signed_by_company:
-			self.db_set("signed_by_company", frappe.session.user)
 		self._activate_contract()
 		self.db_set("outstanding_on_contract", self.total_recovery_target or 0)
 		self._link_pricing_worksheet()
@@ -126,6 +128,92 @@ class InstrumentPlacementContract(Document):
 			total_gross += gross
 		self.fixed_monthly_gross_revenue = total_gross
 		self.fixed_monthly_share_amount = total_gross * pct
+
+	def _assert_matches_worksheet(self):
+		"""Block drift: commercial mirrors must equal the linked worksheet.
+
+		The worksheet is the single source of truth. Amendments are the only
+		authorized mutation path and save with
+		ignore_validate_update_after_submit, which exempts this check.
+		"""
+		if self.flags.ignore_validate_update_after_submit or not self.pricing_worksheet:
+			return
+		ws = frappe.get_cached_doc("Instrument Pricing Worksheet", self.pricing_worksheet)
+		if ws.docstatus != 1:
+			return
+		if self.contract_type == "CPT" and not _close(self.revenue_share_pct, ws.required_revenue_share_pct):
+			frappe.throw(
+				_("Revenue Share % {0} does not match worksheet {1} ({2}).").format(
+					frappe.bold(self.revenue_share_pct or 0),
+					frappe.bold(ws.name),
+					frappe.bold(ws.required_revenue_share_pct or 0),
+				)
+			)
+		for field in ("avg_samples_per_day", "operational_days_per_month"):
+			if not _close(self.get(field), ws.get(field)):
+				frappe.throw(
+					_("{0} does not match worksheet {1}. Change the worksheet, not the contract.").format(
+						frappe.bold(self.meta.get_label(field)), frappe.bold(ws.name)
+					)
+				)
+		expected = {(line.item_code, line.test_parameter): line for line in ws.reagent_lines}
+		actual = {(line.item_code, line.test_parameter) for line in self.contract_reagent_lines}
+		if actual != set(expected):
+			frappe.throw(
+				_("Contract reagent lines do not match worksheet {0} lines.").format(frappe.bold(ws.name))
+			)
+		for line in self.contract_reagent_lines:
+			src = expected[(line.item_code, line.test_parameter)]
+			pairs = [
+				("standard_price", src.cogs_per_pack),
+				("contract_price", src.selling_price_per_pack),
+				("qty_required_total", src.packs_needed),
+				("cogs_per_unit", src.cogs_per_pack),
+				("agreed_test_price", src.price_per_test or 0),
+				("pack_volume_ml", src.pack_volume_ml),
+				("bg_consumption_ml_day", src.bg_consumption_ml_day),
+				("bg_consumption_ml_month", src.bg_consumption_ml_month),
+				("consumption_ml_per_test", src.consumption_ml_per_test),
+				("total_consumption_ml_month", src.total_consumption_ml_month),
+			]
+			for field, want in pairs:
+				if not _close(line.get(field), want):
+					frappe.throw(
+						_("Row {0} ({1}): {2} does not match worksheet {3}.").format(
+							line.idx, frappe.bold(line.item_code), frappe.bold(field), frappe.bold(ws.name)
+						)
+					)
+			want_min = (
+				ceil(flt(src.monthly_test_volume) / flt(src.tests_per_pack)) if flt(src.tests_per_pack) else 0
+			)
+			if flt(line.monthly_test_volume) != flt(src.monthly_test_volume) or flt(
+				line.min_monthly_qty
+			) != flt(want_min):
+				frappe.throw(
+					_("Row {0} ({1}): volume does not match worksheet {2}.").format(
+						line.idx, frappe.bold(line.item_code), frappe.bold(ws.name)
+					)
+				)
+		expected_cons = {line.item_code: line for line in ws.consumable_lines}
+		actual_cons = {line.item_code for line in self.contract_consumable_lines}
+		if actual_cons != set(expected_cons):
+			frappe.throw(
+				_("Contract consumable lines do not match worksheet {0} lines.").format(frappe.bold(ws.name))
+			)
+		for line in self.contract_consumable_lines:
+			src = expected_cons[line.item_code]
+			for field, want in [
+				("standard_price", src.cogs_per_unit),
+				("contract_price", 0),
+				("qty_required_total", src.total_units_over_term),
+				("cogs_per_unit", src.cogs_per_unit),
+			]:
+				if not _close(line.get(field), want):
+					frappe.throw(
+						_("Consumable {0}: {1} does not match worksheet {2}.").format(
+							frappe.bold(line.item_code), frappe.bold(field), frappe.bold(ws.name)
+						)
+					)
 
 	@frappe.whitelist()
 	def recompute_recovery(self):
@@ -246,6 +334,11 @@ class InstrumentPlacementContract(Document):
 		if ws.linked_contract == self.name:
 			ws.db_set("status", "Approved")
 			ws.db_set("linked_contract", None)
+
+
+def _close(a, b, tol=0.01):
+	"""Numeric equality within print rounding."""
+	return abs(flt(a) - flt(b)) <= tol
 
 
 def _create_contract_price_list(contract):

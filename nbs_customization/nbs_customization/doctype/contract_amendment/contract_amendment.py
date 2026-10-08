@@ -23,6 +23,9 @@ class ContractAmendment(Document):
 		contract = frappe.get_doc("Instrument Placement Contract", self.contract)
 		self._validate_amendment_terms(contract)
 
+		if self.new_pricing_worksheet:
+			_remap_lines_from_worksheet(contract, self.new_pricing_worksheet)
+
 		if self.new_declared_volume and contract.contract_reagent_lines:
 			for line in contract.contract_reagent_lines:
 				line.monthly_test_volume = self.new_declared_volume
@@ -93,3 +96,75 @@ class ContractAmendment(Document):
 						ws_analyzer, contract.analyzer_pid
 					)
 				)
+			ws_type = frappe.db.get_value(
+				"Instrument Pricing Worksheet", self.new_pricing_worksheet, "contract_type"
+			)
+			if ws_type and ws_type != contract.contract_type:
+				frappe.throw(
+					frappe._("Worksheet type {0} does not match contract type {1}.").format(
+						ws_type, contract.contract_type
+					)
+				)
+
+
+def _remap_lines_from_worksheet(contract, ws_name):
+	"""Rebuild contract mirrors from a newly linked worksheet.
+
+	Same mapping as make_instrument_placement_contract, applied to a saved
+	contract. Explicit amendment overrides are applied afterwards by the
+	caller, so a negotiated figure still wins over the recompute.
+	"""
+	from frappe.utils import flt
+
+	ws = frappe.get_doc("Instrument Pricing Worksheet", ws_name)
+	if ws.docstatus != 1:
+		frappe.throw(frappe._("Worksheet {0} must be submitted before applying.").format(ws_name))
+	old_ws = contract.pricing_worksheet
+	contract.pricing_worksheet = ws.name
+	contract.total_recovery_target = ws.final_revenue_target
+	contract.avg_samples_per_day = ws.avg_samples_per_day
+	contract.operational_days_per_month = ws.operational_days_per_month
+	contract.revenue_share_pct = ws.required_revenue_share_pct if ws.contract_type == "CPT" else 0
+	contract.set("contract_reagent_lines", [])
+	for src in ws.reagent_lines:
+		contract.append(
+			"contract_reagent_lines",
+			{
+				"item_code": src.item_code,
+				"test_parameter": src.test_parameter,
+				"uom": frappe.db.get_value("Item", src.item_code, "stock_uom"),
+				"standard_price": src.cogs_per_pack,
+				"contract_price": src.selling_price_per_pack or 0,
+				"qty_required_total": src.packs_needed or 0,
+				"min_monthly_qty": ceil(flt(src.monthly_test_volume) / flt(src.tests_per_pack))
+				if flt(src.tests_per_pack)
+				else 0,
+				"cogs_per_unit": src.cogs_per_pack,
+				"monthly_test_volume": src.monthly_test_volume,
+				"pack_volume_ml": src.pack_volume_ml,
+				"bg_consumption_ml_day": src.bg_consumption_ml_day,
+				"bg_consumption_ml_month": src.bg_consumption_ml_month,
+				"consumption_ml_per_test": src.consumption_ml_per_test,
+				"total_consumption_ml_month": src.total_consumption_ml_month,
+				"agreed_test_price": src.price_per_test or 0,
+			},
+		)
+	contract.set("contract_consumable_lines", [])
+	for src in ws.consumable_lines:
+		contract.append(
+			"contract_consumable_lines",
+			{
+				"item_code": src.item_code,
+				"uom": frappe.db.get_value("Item", src.item_code, "stock_uom"),
+				"standard_price": src.cogs_per_unit,
+				"contract_price": 0,
+				"qty_required_total": src.total_units_over_term or 0,
+				"cogs_per_unit": src.cogs_per_unit,
+			},
+		)
+	if old_ws and old_ws != ws.name:
+		old = frappe.get_doc("Instrument Pricing Worksheet", old_ws)
+		old.db_set("status", "Approved")
+		old.db_set("linked_contract", None)
+	ws.db_set("status", "Applied to Contract")
+	ws.db_set("linked_contract", contract.name)

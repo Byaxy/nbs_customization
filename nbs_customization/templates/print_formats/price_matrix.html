@@ -1,0 +1,40 @@
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_footer -%}
+{%- from "nbs_customization/templates/print_formats/placement_matrix.html" import
+	pbs_header, worksheet_matrix_table -%}
+{%- set _company = frappe.db.get_single_value("Global Defaults", "default_company") -%}
+{%- set company_doc = frappe.get_doc("Company", _company) if _company
+	and frappe.db.exists("Company", _company) else None -%}
+{%- set watermark_src = (company_doc.custom_pdf_water_mark if company_doc else None)
+	or (company_doc.company_logo if company_doc else None) -%}
+
+<style>
+	.print-format { margin: 5mm 8mm 10mm; padding: 0 0 10mm; }
+	.print-format td, .print-format th { padding: 3px 4px !important; }
+	.nbs-watermark { position: fixed; top: 28%; left: 15%; width: 480px;
+		height: 440px; opacity: 0.1; z-index: 0; pointer-events: none; }
+	.nbs-body { font-family: "Times New Roman", Times, serif; font-size: 11px;
+		color: #000; position: relative; z-index: 1; }
+	.nbs-title { text-align: center; font-weight: bold; font-size: 15px;
+		margin: 8px 0 10px; }
+	@media print {
+		* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+	}
+</style>
+
+{# Placement prints carry their own PBS header/footer (company-less DocTypes
+cannot use the default Letter Head, which requires doc.company). #}
+{{ pbs_header(company_doc) }}
+{% if watermark_src %}
+	<img class="nbs-watermark" src="{{ frappe.utils.get_url(watermark_src) }}" alt="" />
+{% endif %}
+
+<div class="nbs-body">
+	<div class="nbs-title">Price Matrix for {{ doc.analyzer_pid }}
+	({{ doc.contract_type }} – {{ doc.name }})</div>
+	<p>Customer: <b>{{ doc.customer_name or doc.customer }}</b> |
+	Term: {{ doc.contract_years or 0 }} years |
+	Status: {{ doc.status }}</p>
+	{{ worksheet_matrix_table(doc) }}
+</div>
+
+{{ pdf_footer() }}
