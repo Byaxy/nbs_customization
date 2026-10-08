@@ -111,6 +111,9 @@ class TestContractLifecycle(FrappeTestCase):
 		frappe.db.rollback()
 
 	def _make_contract(self, **overrides):
+		from math import ceil
+
+		ws_line = self.worksheet.reagent_lines[0]
 		data = {
 			"doctype": "Instrument Placement Contract",
 			"contract_title": "_TST Contract",
@@ -123,13 +126,23 @@ class TestContractLifecycle(FrappeTestCase):
 			"pricing_worksheet": self.worksheet.name,
 			"start_date": "2026-01-01",
 			"end_date": "2027-12-31",
+			"avg_samples_per_day": self.worksheet.avg_samples_per_day,
+			"operational_days_per_month": self.worksheet.operational_days_per_month,
 			"contract_reagent_lines": [
 				{
 					"item_code": self.reagent.item_code,
 					"test_parameter": self.param.name,
-					"contract_price": 150,
-					"standard_price": 50,
-					"monthly_test_volume": 100,
+					"pack_volume_ml": ws_line.pack_volume_ml,
+					"contract_price": ws_line.selling_price_per_pack,
+					"standard_price": ws_line.cogs_per_pack,
+					"monthly_test_volume": ws_line.monthly_test_volume,
+					"qty_required_total": ws_line.packs_needed,
+					"min_monthly_qty": ceil(ws_line.monthly_test_volume / (ws_line.tests_per_pack or 1)),
+					"cogs_per_unit": ws_line.cogs_per_pack,
+					"bg_consumption_ml_day": ws_line.bg_consumption_ml_day,
+					"bg_consumption_ml_month": ws_line.bg_consumption_ml_month,
+					"consumption_ml_per_test": ws_line.consumption_ml_per_test,
+					"total_consumption_ml_month": ws_line.total_consumption_ml_month,
 				}
 			],
 		}
@@ -168,3 +181,15 @@ class TestContractLifecycle(FrappeTestCase):
 		doc.submit()
 		doc.cancel()
 		self.assertEqual(doc.docstatus, 2)
+
+	def test_worksheet_mirror_tie_out_blocks_drift(self):
+		doc = self._make_contract()
+		doc.contract_reagent_lines[0].contract_price += 10
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()
+
+	def test_worksheet_mirror_tie_out_blocks_share_drift(self):
+		doc = self._make_contract(contract_type="CPT")
+		doc.revenue_share_pct = 45
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()

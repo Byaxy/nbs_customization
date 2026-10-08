@@ -5,7 +5,6 @@ frappe.ui.form.on("Instrument Placement Contract", {
 		_add_deployment_button(frm);
 		_add_retrieve_button(frm);
 		_add_refresh_recovery_button(frm);
-		_show_recovery_progress(frm);
 		_show_dashboard_alert(frm);
 		_set_default_contract_title(frm);
 	},
@@ -44,15 +43,11 @@ frappe.ui.form.on("Instrument Placement Contract", {
 });
 
 frappe.ui.form.on("Contract Test Reagent Line", {
-	item_code(frm, cdt, cdn) {
-		_fetch_line_details(frm, cdt, cdn);
-	},
+	// Lines mirror the linked worksheet (read-only); no per-row fetching.
 });
 
 frappe.ui.form.on("Contract Consumable Line", {
-	item_code(frm, cdt, cdn) {
-		_fetch_consumable_line_details(frm, cdt, cdn);
-	},
+	// Lines mirror the linked worksheet (read-only); no per-row fetching.
 });
 
 function _setup_queries(frm) {
@@ -130,6 +125,8 @@ function _on_pricing_worksheet_change(frm) {
 			frm.set_value("contract_type", ws.contract_type);
 			frm.set_value("analyzer_pid", ws.analyzer_pid);
 			frm.set_value("total_recovery_target", ws.final_revenue_target);
+			frm.set_value("avg_samples_per_day", ws.avg_samples_per_day || 0);
+			frm.set_value("operational_days_per_month", ws.operational_days_per_month || 0);
 			frm.set_value("min_monthly_value", ws.min_monthly_value || 0);
 			frm.set_value("breach_threshold", 3);
 			frm.set_value("grace_period_days", 30);
@@ -150,6 +147,7 @@ function _on_pricing_worksheet_change(frm) {
 				const child = frm.add_child("contract_reagent_lines");
 				child.item_code = line.item_code;
 				child.test_parameter = line.test_parameter;
+				child.pack_volume_ml = line.pack_volume_ml || 0;
 				child.standard_price = line.cogs_per_pack;
 				child.monthly_test_volume = line.monthly_test_volume;
 				child.contract_price = line.selling_price_per_pack || 0;
@@ -159,6 +157,10 @@ function _on_pricing_worksheet_change(frm) {
 				);
 				child.cogs_per_unit = line.cogs_per_pack;
 				child.agreed_test_price = line.price_per_test || 0;
+				child.bg_consumption_ml_day = line.bg_consumption_ml_day || 0;
+				child.bg_consumption_ml_month = line.bg_consumption_ml_month || 0;
+				child.consumption_ml_per_test = line.consumption_ml_per_test || 0;
+				child.total_consumption_ml_month = line.total_consumption_ml_month || 0;
 			});
 
 			(ws.consumable_lines || []).forEach((line) => {
@@ -203,42 +205,6 @@ function _set_default_contract_title(frm) {
 		"contract_title",
 		`${frm.doc.customer_name} - ${frm.doc.contract_type} Placement Contract`
 	);
-}
-
-function _fetch_line_details(frm, cdt, cdn) {
-	const row = locals[cdt][cdn];
-	if (!row.item_code) return;
-
-	frappe.call({
-		method: "frappe.client.get_value",
-		args: {
-			doctype: "Reagent Specification",
-			filters: { item: row.item_code },
-			fieldname: ["default_cogs_per_pack"],
-		},
-		callback(r) {
-			if (!r.message) return;
-			frappe.model.set_value(cdt, cdn, "cogs_per_unit", r.message.default_cogs_per_pack);
-		},
-	});
-}
-
-function _fetch_consumable_line_details(frm, cdt, cdn) {
-	const row = locals[cdt][cdn];
-	if (!row.item_code) return;
-
-	frappe.call({
-		method: "frappe.client.get_value",
-		args: {
-			doctype: "Reagent Specification",
-			filters: { item: row.item_code },
-			fieldname: ["default_cogs_per_unit"],
-		},
-		callback(r) {
-			if (!r.message) return;
-			frappe.model.set_value(cdt, cdn, "cogs_per_unit", r.message.default_cogs_per_unit);
-		},
-	});
 }
 
 function _add_capitalize_button(frm) {
@@ -377,64 +343,6 @@ function _add_refresh_recovery_button(frm) {
 		},
 		__("Actions")
 	);
-}
-
-function _progress_color(pct) {
-	if (pct <= 0) return "#6c757d";
-	if (pct < 50) return "#dc3545";
-	if (pct < 75) return "#fd7e14";
-	if (pct < 100) return "#ffc107";
-	return "#28a745";
-}
-
-function _show_recovery_progress(frm) {
-	const target = frm.doc.total_recovery_target;
-	if (!target) return;
-
-	frm.dashboard.progress_area.body.empty();
-
-	const collected = frm.doc.recovery_pct_collected || 0;
-	const invoiced = frm.doc.recovery_pct_invoiced || 0;
-
-	frm.dashboard.progress_area.body.append(`
-		<div class="row" style="margin: 0 -5px;">
-			<div class="col-sm-6" style="padding: 0 5px;">
-				<div class="progress-chart">
-					<h6 style="margin: 5px 0 2px; font-weight: 600; font-size: 12px;">${__("Invoiced")}</h6>
-					<div class="progress" style="height: 18px;">
-						<div class="progress-bar" style="width: ${Math.max(
-							invoiced,
-							3
-						)}%; background-color: ${_progress_color(invoiced)};">
-							${invoiced > 8 ? `${Math.round(invoiced)}%` : ""}
-						</div>
-					</div>
-					<p style="margin: 2px 0 0; font-size: 11px; color: #888;">${Math.round(invoiced)}% ${__(
-		"of target recovered"
-	)}</p>
-				</div>
-			</div>
-			<div class="col-sm-6" style="padding: 0 5px;">
-				<div class="progress-chart">
-					<h6 style="margin: 5px 0 2px; font-weight: 600; font-size: 12px;">${__("Collected / Paid")}</h6>
-					<div class="progress" style="height: 18px;">
-						<div class="progress-bar" style="width: ${Math.max(
-							collected,
-							3
-						)}%; background-color: ${_progress_color(collected)};">
-							${collected > 8 ? `${Math.round(collected)}%` : ""}
-						</div>
-					</div>
-					<p style="margin: 2px 0 0; font-size: 11px; color: #888;">${Math.round(collected)}% ${__(
-		"of target collected"
-	)}</p>
-				</div>
-			</div>
-		</div>
-	`);
-
-	frm.dashboard.progress_area.show();
-	frm.dashboard.show();
 }
 
 function _show_dashboard_alert(frm) {

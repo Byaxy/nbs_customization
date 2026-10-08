@@ -44,7 +44,14 @@ class TestMonthlyReconciliation(IntegrationTestCase):
 			generate_monthly_reconciliation(cpt["contract"].name, "2026-07")
 
 	def test_shortfall_increments_breach(self):
-		ctx = make_contract_kit("_TST-MRC2", target=50000, breach=3, grace=0, minqty=100)
+		ctx = make_contract_kit(
+			"_TST-MRC2",
+			target=50000,
+			breach=3,
+			grace=0,
+			monthly_test_volume=10000,
+			analyzer_landed_cost=150000,
+		)
 		frappe.db.set_value(
 			"Instrument Placement Contract",
 			ctx["contract"].name,
@@ -83,7 +90,14 @@ class TestMonthlyReconciliation(IntegrationTestCase):
 		)
 
 	def test_threshold_auto_creates_repossession(self):
-		ctx = make_contract_kit("_TST-MRC4", target=50000, breach=1, grace=0, minqty=100)
+		ctx = make_contract_kit(
+			"_TST-MRC4",
+			target=50000,
+			breach=1,
+			grace=0,
+			monthly_test_volume=10000,
+			analyzer_landed_cost=150000,
+		)
 		make_deployed(ctx)
 		make_si(ctx, 2, 200, "2026-07-15", "Contract Reagent Sale")
 
@@ -100,7 +114,14 @@ class TestMonthlyReconciliation(IntegrationTestCase):
 		self.assertEqual(rrs[0].breach_count, mrc.consecutive_breach_count)
 
 		# Below threshold → none; existing open RR → no duplicate; regenerate idempotent.
-		ctx2 = make_contract_kit("_TST-MRC5", target=50000, breach=5, grace=0, minqty=100)
+		ctx2 = make_contract_kit(
+			"_TST-MRC5",
+			target=50000,
+			breach=5,
+			grace=0,
+			monthly_test_volume=10000,
+			analyzer_landed_cost=150000,
+		)
 		make_deployed(ctx2)
 		make_si(ctx2, 2, 200, "2026-07-15", "Contract Reagent Sale")
 		generate_monthly_reconciliation(ctx2["contract"].name, "2026-07")
@@ -116,7 +137,14 @@ class TestMonthlyReconciliation(IntegrationTestCase):
 		)
 
 	def test_penalty_invoice_guards(self):
-		ctx = make_contract_kit("_TST-MRC6", target=50000, breach=3, grace=0, minqty=100)
+		ctx = make_contract_kit(
+			"_TST-MRC6",
+			target=50000,
+			breach=3,
+			grace=0,
+			monthly_test_volume=10000,
+			analyzer_landed_cost=150000,
+		)
 		make_si(ctx, 2, 200, "2026-07-15", "Contract Reagent Sale")
 		short = frappe.get_doc(
 			"Monthly Reconciliation",
@@ -137,7 +165,14 @@ class TestMonthlyReconciliation(IntegrationTestCase):
 		from nbs_customization.setup import create_shortfall_penalty_item
 
 		create_shortfall_penalty_item()
-		ctx = make_contract_kit("_TST-MRC8", target=50000, breach=3, grace=0, minqty=100)
+		ctx = make_contract_kit(
+			"_TST-MRC8",
+			target=50000,
+			breach=3,
+			grace=0,
+			monthly_test_volume=10000,
+			analyzer_landed_cost=150000,
+		)
 		make_si(ctx, 2, 200, "2026-07-15", "Contract Reagent Sale")
 		short = frappe.get_doc(
 			"Monthly Reconciliation",

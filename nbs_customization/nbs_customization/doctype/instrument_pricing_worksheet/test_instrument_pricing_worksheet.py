@@ -118,6 +118,26 @@ class TestRRAWorksheet(FrappeTestCase):
 		# calculated fields should be set by validate() on insert
 		self.assertIsNotNone(self.ws.calculated_by)
 		self.assertIsNotNone(self.ws.calculated_date)
+
+	def test_bg_consumption_monthly_total(self):
+		# Background per month falls back to per-day x operational days.
+		self.ws.operational_days_per_month = 20
+		line = self.ws.reagent_lines[0]
+		line.bg_consumption_ml_day = 191.71
+		line.consumption_ml_per_test = 19
+		self.ws.save()
+		self.ws.reload()
+		line = self.ws.reagent_lines[0]
+		self.assertAlmostEqual(line.total_consumption_ml_month, 191.71 * 20 + 19 * 102, places=2)
+		# Explicit monthly figure wins over the per-day fallback.
+		line.bg_consumption_ml_month = 3823.4
+		self.ws.save()
+		self.ws.reload()
+		self.assertAlmostEqual(
+			self.ws.reagent_lines[0].total_consumption_ml_month,
+			3823.4 + 19 * 102,
+			places=2,
+		)
 		self.assertGreater(self.ws.final_revenue_target, 0)
 
 	def test_submit_sets_approval_fields(self):

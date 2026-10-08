@@ -22,12 +22,15 @@ class TestRevenueShareStatement(IntegrationTestCase):
 		super().setUpClass()
 
 	def _cpt(self, prefix):
+		# Worksheet economics tuned so the computed share is exactly 20%:
+		# final 288000 on 1440000 gross (T=100, price 600, Ca 199000).
 		ctx = make_contract_kit(
 			prefix,
 			contract_type="CPT",
 			target=60000,
-			agreed_price=600,
-			share_pct=20,
+			monthly_test_volume=100,
+			price_per_test=600,
+			analyzer_landed_cost=199000,
 		)
 		ensure_stock(ctx["reagent"].name, qty=50)
 		return ctx

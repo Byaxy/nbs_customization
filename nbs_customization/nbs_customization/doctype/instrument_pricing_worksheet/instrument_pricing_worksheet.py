@@ -231,6 +231,7 @@ def _worksheet_min_monthly(source):
 
 def _compute_lines(ws):
 	years = flt(ws.contract_years) or 1
+	ops_days = flt(ws.operational_days_per_month)
 	for line in ws.reagent_lines:
 		line.total_tests_over_term = flt(line.monthly_test_volume) * 12 * years
 		if flt(line.tests_per_pack):
@@ -243,6 +244,7 @@ def _compute_lines(ws):
 				indicator="orange",
 			)
 		line.total_cost_line = flt(line.packs_needed) * flt(line.cogs_per_pack)
+		line.total_consumption_ml_month = _monthly_consumption_ml(line, ops_days)
 
 		if ws.calculation_output_type == "Revenue Share Percentage" and flt(line.price_per_test):
 			line.total_gross_revenue_line = flt(line.total_tests_over_term) * flt(line.price_per_test)
@@ -274,6 +276,19 @@ def _compute_lines(ws):
 			line.total_units_over_term = 0
 
 		line.total_cost_line = flt(line.total_units_over_term) * flt(line.cogs_per_unit)
+
+
+def _monthly_consumption_ml(line, ops_days):
+	"""Total reagent ml per month: background + per-test x volume.
+
+	Background per month falls back to per-day x operational days when the
+	explicit monthly figure is blank. All three inputs are optional manual
+	figures from the analyzer manual (any analyzer type).
+	"""
+	bg_month = flt(line.bg_consumption_ml_month)
+	if not bg_month:
+		bg_month = flt(line.bg_consumption_ml_day) * flt(ops_days)
+	return bg_month + flt(line.consumption_ml_per_test) * flt(line.monthly_test_volume)
 
 
 def _compute_rollups(ws):

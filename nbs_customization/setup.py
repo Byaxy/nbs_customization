@@ -438,6 +438,7 @@ def after_migrate():
 	5. Ensure pricing tier Price Lists (Standard Selling = 30% reuse).
 	6. Seed placement billing/capital items (Others brand, fee items, Equipment category).
 	7. Seed one `{abbr} - Store` Location per company for placement assets.
+	8. Seed CPT/RRA/RLO Contract Templates.
 	Idempotent — only writes when a change is actually needed.
 	"""
 
@@ -499,6 +500,11 @@ def after_migrate():
 
 	# ── Company store Locations for placement assets ───────────────────────
 	_ensure_company_store_locations()
+
+	# ── Placement Contract Templates (CPT/RRA/RLO) ─────────────────────────
+	from nbs_customization.placement_contract_templates import ensure_placement_contract_templates
+
+	ensure_placement_contract_templates()
 
 
 def _ensure_brand_others():

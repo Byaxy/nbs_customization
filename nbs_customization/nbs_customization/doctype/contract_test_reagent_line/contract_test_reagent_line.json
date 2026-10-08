@@ -6,22 +6,29 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
- "field_order": [
-  "item_code",
-  "description",
-  "uom",
-  "column_break_aauo",
-  "test_parameter",
-  "standard_price",
-  "contract_price",
-  "price_uplift",
-  "section_break_pqtj",
-  "qty_required_total",
-  "cogs_per_unit",
-  "column_break_gdbd",
-  "min_monthly_qty",
-  "monthly_test_volume",
-  "cpt_revenue_share_per_test_section",
+  "field_order": [
+   "item_code",
+   "description",
+   "uom",
+   "column_break_aauo",
+   "test_parameter",
+   "pack_volume_ml",
+   "standard_price",
+   "contract_price",
+   "price_uplift",
+   "section_break_pqtj",
+   "qty_required_total",
+   "cogs_per_unit",
+   "column_break_gdbd",
+   "min_monthly_qty",
+   "monthly_test_volume",
+   "bg_consumption_section",
+   "bg_consumption_ml_day",
+   "bg_consumption_ml_month",
+   "column_break_cbgml",
+   "consumption_ml_per_test",
+   "total_consumption_ml_month",
+   "cpt_revenue_share_per_test_section",
   "agreed_test_price",
   "fixed_monthly_gross_revenue",
   "column_break_kocb",
@@ -65,21 +72,33 @@
    "label": "UOM",
    "options": "UOM"
   },
-  {
-   "fieldname": "standard_price",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Standard Price",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "contract_price",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Contract Price",
-   "non_negative": 1,
-   "reqd": 1
-  },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "pack_volume_ml",
+    "fieldtype": "Float",
+    "label": "Pack Volume (ml)",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "standard_price",
+    "fieldtype": "Currency",
+    "in_list_view": 1,
+    "label": "Standard Price",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "contract_price",
+    "fieldtype": "Currency",
+    "in_list_view": 1,
+    "label": "Contract Price",
+    "non_negative": 1,
+    "read_only": 1,
+    "reqd": 1
+   },
   {
    "fieldname": "price_uplift",
    "fieldtype": "Currency",
@@ -90,45 +109,96 @@
    "fieldname": "section_break_pqtj",
    "fieldtype": "Section Break"
   },
-  {
-   "fieldname": "qty_required_total",
-   "fieldtype": "Float",
-   "label": "Total Qty Required Over Term",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "column_break_gdbd",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "min_monthly_qty",
-   "fieldtype": "Float",
-   "label": "Minimum Monthly Qty",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "cogs_per_unit",
-   "fieldtype": "Currency",
-   "label": "COGS per Pack/Unit",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "monthly_test_volume",
-   "fieldtype": "Int",
-   "label": "Declared Monthly Test Volume",
-   "non_negative": 1
-  },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "qty_required_total",
+    "fieldtype": "Float",
+    "label": "Total Qty Required Over Term",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "fieldname": "column_break_gdbd",
+    "fieldtype": "Column Break"
+   },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "min_monthly_qty",
+    "fieldtype": "Float",
+    "label": "Minimum Monthly Qty",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "cogs_per_unit",
+    "fieldtype": "Currency",
+    "label": "COGS per Pack/Unit",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "monthly_test_volume",
+    "fieldtype": "Int",
+    "label": "Declared Monthly Test Volume",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "fieldname": "bg_consumption_section",
+    "fieldtype": "Section Break",
+    "label": "Background Consumption (from worksheet)"
+   },
+   {
+    "description": "Mirror of the linked worksheet.",
+    "fieldname": "bg_consumption_ml_day",
+    "fieldtype": "Float",
+    "label": "Background Consumption (ml)/Day",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet.",
+    "fieldname": "bg_consumption_ml_month",
+    "fieldtype": "Float",
+    "label": "Background Consumption (ml)/Month",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "fieldname": "column_break_cbgml",
+    "fieldtype": "Column Break"
+   },
+   {
+    "description": "Mirror of the linked worksheet.",
+    "fieldname": "consumption_ml_per_test",
+    "fieldtype": "Float",
+    "label": "Consumption (ml)/Test",
+    "non_negative": 1,
+    "read_only": 1
+   },
+   {
+    "description": "Mirror of the linked worksheet.",
+    "fieldname": "total_consumption_ml_month",
+    "fieldtype": "Float",
+    "label": "Total Consumption (ml)/Month",
+    "non_negative": 1,
+    "read_only": 1
+   },
   {
    "fieldname": "cpt_revenue_share_per_test_section",
    "fieldtype": "Section Break",
    "label": "CPT Revenue Share (per test)"
   },
-  {
-   "fieldname": "agreed_test_price",
-   "fieldtype": "Currency",
-   "label": "Agreed Price per Test",
-   "non_negative": 1
-  },
+   {
+    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+    "fieldname": "agreed_test_price",
+    "fieldtype": "Currency",
+    "label": "Agreed Price per Test",
+    "non_negative": 1,
+    "read_only": 1
+   },
   {
    "fieldname": "fixed_monthly_gross_revenue",
    "fieldtype": "Currency",

@@ -1,0 +1,169 @@
+{# Shared placement print helpers: PBS header, matrix preamble, Schedule B. #}
+{% macro pbs_header(company_doc) %}
+<table style="width: 100%; border-collapse: collapse; color: #002060;
+	-webkit-print-color-adjust: exact; print-color-adjust: exact;">
+	<tr>
+		<td style="width: 25%; text-align: center; vertical-align: top;">
+			{% if company_doc and company_doc.company_logo %}
+			<img src="{{ company_doc.company_logo }}"
+				style="width: 140px; height: 120px; display: block; margin: 0 auto" />
+			{% endif %}
+			<div style="font-size: 10px; font-weight: bold; white-space: nowrap;">
+				Legacy of Quality Par Excellence</div>
+		</td>
+		<td style="width: 75%; vertical-align: bottom;">
+			<div style="font-size: 25px; font-weight: bold; text-transform: uppercase;">
+				{{ company_doc.company_name if company_doc else "" }}</div>
+			{% if company_doc %}
+			<div style="font-size: 14px; line-height: 1.4;">{{ company_doc.custom_address_line_1 or "" }}</div>
+			<div style="font-size: 14px; line-height: 1.4;">{{ company_doc.custom_address_line_2 or "" }}</div>
+			<div style="font-size: 14px; line-height: 1.4;">
+				{{ company_doc.phone_no or "" }} | {{ company_doc.custom_phone_no_2 or "" }}</div>
+			<div style="font-size: 14px; line-height: 1.4;">{{ company_doc.email or "" }}</div>
+			<div style="font-size: 14px; line-height: 1.4;">{{ company_doc.website or "" }}</div>
+			{% endif %}
+		</td>
+	</tr>
+</table>
+<div style="height: 6px; background-color: #00a651;
+	-webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+<div style="height: 6px; background-color: #002060;
+	-webkit-print-color-adjust: exact; print-color-adjust: exact; margin-bottom: 10px;"></div>
+{% endmacro %}
+
+{% macro matrix_preamble(avg_day, ops_days, monthly_tests, term_months, price_label, price_value) %}
+<table style="border-collapse: collapse; margin-bottom: 12px; font-size: 11px;">
+	<tr style="background-color: #0a2351; color: #fff;
+		-webkit-print-color-adjust: exact; print-color-adjust: exact;">
+		<th style="border: 1px solid #000; padding: 3px 8px; text-align: left;">Preamble</th>
+		<th style="border: 1px solid #000; padding: 3px 8px;"></th>
+	</tr>
+	<tr><td style="border: 1px solid #000; padding: 3px 8px;">Average Samples / Day</td>
+		<td style="border: 1px solid #000; padding: 3px 8px; text-align: center;">{{ avg_day or 0 }}</td></tr>
+	<tr><td style="border: 1px solid #000; padding: 3px 8px;">Operational Days / Month</td>
+		<td style="border: 1px solid #000; padding: 3px 8px; text-align: center;">{{ ops_days or 0 }}</td></tr>
+	<tr><td style="border: 1px solid #000; padding: 3px 8px;">Average Samples Test / Month</td>
+		<td style="border: 1px solid #000; padding: 3px 8px; text-align: center;">{{ monthly_tests }}</td></tr>
+	<tr><td style="border: 1px solid #000; padding: 3px 8px;">Average Samples / Year</td>
+		<td style="border: 1px solid #000; padding: 3px 8px; text-align: center;">{{ monthly_tests * 12 }}</td></tr>
+	<tr><td style="border: 1px solid #000; padding: 3px 8px;">Average Samples / Term</td>
+		<td style="border: 1px solid #000; padding: 3px 8px; text-align: center;">{{ monthly_tests * term_months }}</td></tr>
+	<tr><td style="border: 1px solid #000; padding: 3px 8px;">{{ price_label }}</td>
+		<td style="border: 1px solid #000; padding: 3px 8px; text-align: center;">{{ price_value }}</td></tr>
+</table>
+{% endmacro %}
+
+{# Schedule B on the contract: mirrors of the locked worksheet. Bg columns
+render only when set on at least one line (any analyzer type). #}
+{% macro contract_schedule_b(doc) %}
+{%- set ns = namespace(show_bg=false, total_ml=0, monthly_tests=0) -%}
+{%- for l in doc.contract_reagent_lines -%}
+{%- if l.bg_consumption_ml_day or l.bg_consumption_ml_month or l.consumption_ml_per_test -%}
+{%- set ns.show_bg = true -%}{%- endif -%}
+{%- set ns.total_ml = ns.total_ml + (l.total_consumption_ml_month or 0) -%}
+{%- set ns.monthly_tests = ns.monthly_tests + (l.monthly_test_volume or 0) -%}
+{%- endfor -%}
+{{ matrix_preamble(doc.avg_samples_per_day, doc.operational_days_per_month,
+	ns.monthly_tests, doc.contract_duration_months or 0,
+	"Cost Per Test" if doc.contract_type == "CPT" else "Minimum Monthly Value",
+	(doc.revenue_share_pct|string + "%") if doc.contract_type == "CPT"
+		else doc.min_monthly_value) }}
+<table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+	<tr style="background-color: #0a2351; color: #fff;
+		-webkit-print-color-adjust: exact; print-color-adjust: exact;">
+		<th style="border: 1px solid #000; padding: 3px 4px;">Reagent</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Pack Vol (ml)</th>
+		{%- if ns.show_bg -%}
+		<th style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Day</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Month</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">ml/Test</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Total (ml)/Month</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">% of Total</th>
+		{%- endif -%}
+		<th style="border: 1px solid #000; padding: 3px 4px;">Tests/Month</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Packs (Term)</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">
+			{%- if doc.contract_type == "CPT" -%}Price/Test{%- else -%}Pack Price{%- endif -%}</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Monthly Value</th>
+	</tr>
+	{%- for l in doc.contract_reagent_lines -%}
+	<tr>
+		<td style="border: 1px solid #000; padding: 3px 4px;">{{ l.item_code }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.pack_volume_ml or "" }}</td>
+		{%- if ns.show_bg -%}
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.bg_consumption_ml_day or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.bg_consumption_ml_month or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.consumption_ml_per_test or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.total_consumption_ml_month or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
+			{%- if ns.total_ml -%}{{ ((l.total_consumption_ml_month or 0) * 100 / ns.total_ml) | round(2) }}%{%- endif -%}</td>
+		{%- endif -%}
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.monthly_test_volume or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.qty_required_total or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
+			{%- if doc.contract_type == "CPT" -%}{{ l.agreed_test_price or 0 }}
+			{%- else -%}{{ l.contract_price or 0 }}{%- endif -%}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
+			{%- if doc.contract_type == "CPT" -%}{{ (l.monthly_test_volume or 0) * (l.agreed_test_price or 0) }}
+			{%- else -%}{{ (l.min_monthly_qty or 0) * (l.contract_price or 0) }}{%- endif -%}</td>
+	</tr>
+	{%- endfor -%}
+</table>
+{% endmacro %}
+
+{# Standalone matrix on the worksheet: live calculated values. #}
+{% macro worksheet_matrix_table(doc) %}
+{%- set ns = namespace(show_bg=false, total_ml=0, monthly_tests=0) -%}
+{%- for l in doc.reagent_lines -%}
+{%- if l.bg_consumption_ml_day or l.bg_consumption_ml_month or l.consumption_ml_per_test -%}
+{%- set ns.show_bg = true -%}{%- endif -%}
+{%- set ns.total_ml = ns.total_ml + (l.total_consumption_ml_month or 0) -%}
+{%- set ns.monthly_tests = ns.monthly_tests + (l.monthly_test_volume or 0) -%}
+{%- endfor -%}
+{{ matrix_preamble(doc.avg_samples_per_day, doc.operational_days_per_month,
+	ns.monthly_tests, (doc.contract_years or 0) * 12,
+	"Revenue Share %" if doc.calculation_output_type == "Revenue Share Percentage" else "Markup Factor",
+	doc.required_revenue_share_pct if doc.calculation_output_type == "Revenue Share Percentage"
+		else doc.markup_factor) }}
+<table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+	<tr style="background-color: #0a2351; color: #fff;
+		-webkit-print-color-adjust: exact; print-color-adjust: exact;">
+		<th style="border: 1px solid #000; padding: 3px 4px;">Reagent</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Pack Vol (ml)</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Tests/Pack</th>
+		{%- if ns.show_bg -%}
+		<th style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Day</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Month</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">ml/Test</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Total (ml)/Month</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">% of Total</th>
+		{%- endif -%}
+		<th style="border: 1px solid #000; padding: 3px 4px;">Tests/Month</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Packs (Term)</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">COGS/Pack</th>
+		<th style="border: 1px solid #000; padding: 3px 4px;">Selling/Pack</th>
+	</tr>
+	{%- for l in doc.reagent_lines -%}
+	<tr>
+		<td style="border: 1px solid #000; padding: 3px 4px;">{{ l.item_code }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.pack_volume_ml or "" }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.tests_per_pack or 0 }}</td>
+		{%- if ns.show_bg -%}
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.bg_consumption_ml_day or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.bg_consumption_ml_month or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.consumption_ml_per_test or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.total_consumption_ml_month or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
+			{%- if ns.total_ml -%}{{ ((l.total_consumption_ml_month or 0) * 100 / ns.total_ml) | round(2) }}%{%- endif -%}</td>
+		{%- endif -%}
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.monthly_test_volume or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.packs_needed or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.cogs_per_pack or 0 }}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.selling_price_per_pack or 0 }}</td>
+	</tr>
+	{%- endfor -%}
+</table>
+<p style="font-size: 10px;">Total Reagent COGS: {{ doc.total_test_reagent_cogs or 0 }} |
+Fixed Cost to Recover: {{ doc.fixed_cost_to_recover or 0 }} |
+Final Revenue Target: {{ doc.final_revenue_target or 0 }}</p>
+{% endmacro %}
