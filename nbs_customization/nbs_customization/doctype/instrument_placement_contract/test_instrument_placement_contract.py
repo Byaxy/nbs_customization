@@ -223,3 +223,9 @@ class TestContractLifecycle(FrappeTestCase):
 		doc.contract_reagent_lines[0].pack_volume_ml = 0
 		doc.save()
 		self.assertEqual(doc.contract_reagent_lines[0].pack_volume_ml, 5)
+
+	def test_worksheet_company_mismatch_blocked(self):
+		doc = self._make_contract()
+		frappe.db.set_value("Instrument Pricing Worksheet", self.worksheet.name, "company", "OTHER-CO")
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()

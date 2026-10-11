@@ -77,36 +77,31 @@ class ContractAmendment(Document):
 
 	def _validate_amendment_terms(self, contract):
 		"""Guard history and worksheet eligibility before pushing terms."""
-		effective_target = self.new_recovery_target
-		if not effective_target and self.new_pricing_worksheet:
-			effective_target = frappe.db.get_value(
-				"Instrument Pricing Worksheet", self.new_pricing_worksheet, "final_revenue_target"
-			)
+		effective_target = self._effective_recovery_target()
 		if effective_target and (contract.cumulative_collected or 0) > effective_target:
 			frappe.throw(
 				frappe._(
 					"New recovery target {0} is below cumulative collected {1} — history cannot be invalidated."
 				).format(effective_target, contract.cumulative_collected)
 			)
-		if self.new_pricing_worksheet:
-			ws_status = frappe.db.get_value(
-				"Instrument Pricing Worksheet", self.new_pricing_worksheet, "status"
-			)
-			if ws_status not in ("Approved", "Applied to Contract"):
-				frappe.throw(
-					frappe._(
-						"Pricing Worksheet {0} has status '{1}' — only Approved worksheets apply."
-					).format(self.new_pricing_worksheet, ws_status)
+		if not self.new_pricing_worksheet:
+			return
+		ws_status = frappe.db.get_value("Instrument Pricing Worksheet", self.new_pricing_worksheet, "status")
+		if ws_status not in ("Approved", "Applied to Contract"):
+			frappe.throw(
+				frappe._("Pricing Worksheet {0} has status '{1}' — only Approved worksheets apply.").format(
+					self.new_pricing_worksheet, ws_status
 				)
-			ws_analyzer = frappe.db.get_value(
-				"Instrument Pricing Worksheet", self.new_pricing_worksheet, "analyzer_pid"
 			)
-			if ws_analyzer and ws_analyzer != contract.analyzer_pid:
-				frappe.throw(
-					frappe._("Worksheet analyzer {0} does not match contract analyzer {1}.").format(
-						ws_analyzer, contract.analyzer_pid
-					)
+		ws_analyzer = frappe.db.get_value(
+			"Instrument Pricing Worksheet", self.new_pricing_worksheet, "analyzer_pid"
+		)
+		if ws_analyzer and ws_analyzer != contract.analyzer_pid:
+			frappe.throw(
+				frappe._("Worksheet analyzer {0} does not match contract analyzer {1}.").format(
+					ws_analyzer, contract.analyzer_pid
 				)
+			)
 		ws_type = frappe.db.get_value(
 			"Instrument Pricing Worksheet", self.new_pricing_worksheet, "contract_type"
 		)
@@ -126,6 +121,16 @@ class ContractAmendment(Document):
 					"Unlink it first before applying this amendment."
 				).format(frappe.bold(self.new_pricing_worksheet), frappe.bold(ws_linked))
 			)
+
+	def _effective_recovery_target(self):
+		"""Target that will be saved: explicit override wins, else new ws target."""
+		if self.new_recovery_target:
+			return self.new_recovery_target
+		if self.new_pricing_worksheet:
+			return frappe.db.get_value(
+				"Instrument Pricing Worksheet", self.new_pricing_worksheet, "final_revenue_target"
+			)
+		return None
 
 
 def _remap_lines_from_worksheet(contract, ws_name):

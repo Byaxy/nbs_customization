@@ -287,6 +287,13 @@ class InstrumentPlacementContract(Document):
 					"Only Approved or Applied worksheets can be linked."
 				).format(frappe.bold(self.pricing_worksheet), ws_status)
 			)
+		ws_company = frappe.db.get_value("Instrument Pricing Worksheet", self.pricing_worksheet, "company")
+		if ws_company and self.company and ws_company != self.company:
+			frappe.throw(
+				frappe._("Contract Company {0} does not match Pricing Worksheet {1} company {2}.").format(
+					frappe.bold(self.company), frappe.bold(self.pricing_worksheet), frappe.bold(ws_company)
+				)
+			)
 
 	def _require_pricing_worksheet(self):
 		if not self.pricing_worksheet:

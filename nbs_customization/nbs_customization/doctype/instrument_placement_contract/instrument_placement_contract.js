@@ -125,6 +125,9 @@ function _on_pricing_worksheet_change(frm) {
 			if (!r.message) return;
 			const ws = r.message;
 
+			if (ws.company) {
+				frm.set_value("company", ws.company);
+			}
 			frm.set_value("contract_type", ws.contract_type);
 			frm.set_value("analyzer_pid", ws.analyzer_pid);
 			frm.set_value("total_recovery_target", ws.final_revenue_target);

@@ -216,6 +216,28 @@ class TestContractAmendment(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			am.apply_to_contract()
 
+	def test_volume_amendment_ignores_unrelated_worksheets(self):
+		# Volume-only amendments set no new_pricing_worksheet, so no ws
+		# lookup may run: a conflicting worksheet elsewhere must not block.
+		ctx = make_contract_kit("_TST-AMD12")
+		decoy = make_worksheet(
+			"_TST-AMD12D",
+			ctx["analyzer"],
+			ctx["reagent"],
+			ctx["analyzer"],
+			ctx["customer"],
+			contract_type="CPT",
+			price_per_test=5,
+		)
+		frappe.db.set_value("Instrument Pricing Worksheet", decoy.name, "status", "Applied to Contract")
+		frappe.db.set_value("Instrument Pricing Worksheet", decoy.name, "linked_contract", "OTHER-CT")
+		am = self._amendment(ctx)
+		am.apply_to_contract()
+		ct = frappe.get_doc("Instrument Placement Contract", ctx["contract"].name)
+		self.assertEqual(ct.contract_reagent_lines[0].monthly_test_volume, 200)
+		am.reload()
+		self.assertEqual(am.status, "Effective")
+
 	def test_apply_worksheet_syncs_price_list(self):
 		ctx = make_contract_kit("_TST-AMD11")
 		contract = ctx["contract"]
