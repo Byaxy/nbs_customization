@@ -86,6 +86,14 @@ class ContractAmendment(Document):
 			)
 		if not self.new_pricing_worksheet:
 			return
+		if not self.new_recovery_target:
+			# The worksheet target is what will be saved; zero would wipe history.
+			if not effective_target or effective_target <= 0:
+				frappe.throw(
+					frappe._(
+						"Pricing Worksheet {0} has no revenue target — it cannot replace the contract target."
+					).format(frappe.bold(self.new_pricing_worksheet))
+				)
 		ws_status = frappe.db.get_value("Instrument Pricing Worksheet", self.new_pricing_worksheet, "status")
 		if ws_status not in ("Approved", "Applied to Contract"):
 			frappe.throw(
@@ -145,6 +153,12 @@ def _remap_lines_from_worksheet(contract, ws_name):
 	ws = frappe.get_doc("Instrument Pricing Worksheet", ws_name)
 	if ws.docstatus != 1:
 		frappe.throw(frappe._("Worksheet {0} must be submitted before applying.").format(ws_name))
+	if not ws.final_revenue_target or ws.final_revenue_target <= 0:
+		frappe.throw(
+			frappe._(
+				"Pricing Worksheet {0} has no revenue target — it cannot replace the contract target."
+			).format(frappe.bold(ws_name))
+		)
 	old_ws = contract.pricing_worksheet
 	contract.pricing_worksheet = ws.name
 	contract.total_recovery_target = ws.final_revenue_target

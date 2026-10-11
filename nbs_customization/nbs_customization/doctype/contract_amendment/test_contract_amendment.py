@@ -6,6 +6,9 @@ from frappe.tests import IntegrationTestCase
 from frappe.utils import add_days, today
 
 from nbs_customization.controllers.placement.amendment import mark_effective
+from nbs_customization.nbs_customization.doctype.contract_amendment.contract_amendment import (
+	_remap_lines_from_worksheet,
+)
 from nbs_customization.nbs_customization.doctype.instrument_pricing_worksheet.instrument_pricing_worksheet import (
 	make_instrument_placement_contract,
 )
@@ -237,6 +240,33 @@ class TestContractAmendment(IntegrationTestCase):
 		self.assertEqual(ct.contract_reagent_lines[0].monthly_test_volume, 200)
 		am.reload()
 		self.assertEqual(am.status, "Effective")
+
+	def test_zero_target_worksheet_blocked(self):
+		ctx = make_contract_kit("_TST-AMD13")
+		before = frappe.db.get_value(
+			"Instrument Placement Contract", ctx["contract"].name, "total_recovery_target"
+		)
+		ws2 = make_worksheet(
+			"_TST-AMD13W",
+			ctx["analyzer"],
+			ctx["reagent"],
+			ctx["analyzer"],
+			ctx["customer"],
+		)
+		frappe.db.set_value("Instrument Pricing Worksheet", ws2.name, "final_revenue_target", 0)
+		am = self._amendment(ctx, new_pricing_worksheet=ws2.name)
+		with self.assertRaises(frappe.ValidationError):
+			am.apply_to_contract()
+		self.assertEqual(
+			frappe.db.get_value(
+				"Instrument Placement Contract", ctx["contract"].name, "total_recovery_target"
+			),
+			before,
+		)
+		# Remap layer refuses the same worksheet even when called directly.
+		ct = frappe.get_doc("Instrument Placement Contract", ctx["contract"].name)
+		with self.assertRaises(frappe.ValidationError):
+			_remap_lines_from_worksheet(ct, ws2.name)
 
 	def test_apply_worksheet_syncs_price_list(self):
 		ctx = make_contract_kit("_TST-AMD11")
