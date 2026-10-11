@@ -39,17 +39,16 @@ def apply_patches():
 	_Browser.set_html = _patched_set_html
 
 	# --- Patch 2: prepare_options_for_pdf — fix footer height + body min-height ---
+	# Core (frappe/utils/pdf_generator/browser.py) already folds margin_bottom
+	# into the footer paperHeight AND subtracts it from the body height. An
+	# earlier revision of this patch added margin_bottom a second time, which
+	# made the footer page ~15mm too tall (wide footer-to-bottom gap in PDFs).
+	# Kept as a no-op guard so the pair stays reviewed together: do NOT
+	# re-add margin_bottom here without adjusting the body height to match.
 	_original_prepare_options = _Browser.prepare_options_for_pdf
 
 	def _patched_prepare_options_for_pdf(self):
 		_original_prepare_options(self)
-
-		# 2a: Fix footer paperHeight to include margin_bottom
-		if hasattr(self, "footer_page") and self.footer_page:
-			fp = self.footer_page.options
-			paper_height = fp.get("paperHeight", 0)
-			margin_bottom = fp.get("marginBottom", 0)
-			fp["paperHeight"] = paper_height + margin_bottom
 
 	_Browser.prepare_options_for_pdf = _patched_prepare_options_for_pdf
 

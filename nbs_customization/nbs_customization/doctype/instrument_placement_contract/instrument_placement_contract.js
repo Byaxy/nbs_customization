@@ -7,6 +7,9 @@ frappe.ui.form.on("Instrument Placement Contract", {
 		_add_refresh_recovery_button(frm);
 		_show_dashboard_alert(frm);
 		_set_default_contract_title(frm);
+		if (frm.is_new() && !frm.doc.company) {
+			frm.set_value("company", frappe.defaults.get_user_default("Company"));
+		}
 	},
 
 	customer(frm) {
@@ -152,9 +155,9 @@ function _on_pricing_worksheet_change(frm) {
 				child.monthly_test_volume = line.monthly_test_volume;
 				child.contract_price = line.selling_price_per_pack || 0;
 				child.qty_required_total = line.packs_needed || 0;
-				child.min_monthly_qty = Math.ceil(
-					(line.monthly_test_volume || 0) / (line.tests_per_pack || 1)
-				);
+				child.min_monthly_qty = line.tests_per_pack
+					? Math.ceil((line.monthly_test_volume || 0) / line.tests_per_pack)
+					: 0;
 				child.cogs_per_unit = line.cogs_per_pack;
 				child.agreed_test_price = line.price_per_test || 0;
 				child.bg_consumption_ml_day = line.bg_consumption_ml_day || 0;

@@ -193,3 +193,33 @@ class TestContractLifecycle(FrappeTestCase):
 		doc.revenue_share_pct = 45
 		with self.assertRaises(frappe.ValidationError):
 			doc.save()
+
+	def test_company_defaults_from_site(self):
+		doc = self._make_contract()
+		self.assertEqual(doc.company, frappe.db.get_single_value("Global Defaults", "default_company"))
+
+	def test_duplicate_reagent_lines_blocked(self):
+		doc = self._make_contract()
+		dup = dict(
+			item_code=self.reagent.item_code,
+			test_parameter=self.param.name,
+			pack_volume_ml=doc.contract_reagent_lines[0].pack_volume_ml,
+			contract_price=doc.contract_reagent_lines[0].contract_price,
+			standard_price=doc.contract_reagent_lines[0].standard_price,
+			monthly_test_volume=doc.contract_reagent_lines[0].monthly_test_volume,
+			qty_required_total=doc.contract_reagent_lines[0].qty_required_total,
+			min_monthly_qty=doc.contract_reagent_lines[0].min_monthly_qty,
+			cogs_per_unit=doc.contract_reagent_lines[0].cogs_per_unit,
+		)
+		doc.append("contract_reagent_lines", dup)
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()
+
+	def test_legacy_draft_pack_volume_backfilled(self):
+		frappe.db.set_value(
+			"Worksheet Test Reagent Line", self.worksheet.reagent_lines[0].name, "pack_volume_ml", 5
+		)
+		doc = self._make_contract()
+		doc.contract_reagent_lines[0].pack_volume_ml = 0
+		doc.save()
+		self.assertEqual(doc.contract_reagent_lines[0].pack_volume_ml, 5)

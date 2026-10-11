@@ -13,6 +13,7 @@ from nbs_customization.utils.placement.valid_items import validate_items_belong_
 
 class InstrumentPricingWorksheet(Document):
 	def validate(self):
+		self._set_default_company()
 		if self.docstatus == 0:
 			self._validate_reagent_items()
 			self._validate_annual_interest()
@@ -37,6 +38,13 @@ class InstrumentPricingWorksheet(Document):
 	def validate_update_after_submit(self):
 		self._sync_status()
 		super().validate_update_after_submit()
+
+	def _set_default_company(self):
+		# Company drives the print Letter Head; default it so mapped contracts inherit it.
+		if not self.company:
+			self.company = frappe.db.get_single_value("Global Defaults", "default_company")
+		if not self.company:
+			frappe.throw(frappe._("Company is required. Set a default Company first."))
 
 	def _validate_reagent_items(self):
 		if not self.analyzer_pid:
@@ -63,7 +71,20 @@ class InstrumentPricingWorksheet(Document):
 				)
 			)
 		item_codes = []
+		seen_reagents = set()
 		for row in self.reagent_lines:
+			key = (row.item_code, row.test_parameter)
+			if key in seen_reagents:
+				frappe.throw(
+					frappe._("Row {0}: duplicate reagent line for {1} / {2}.").format(
+						row.idx, frappe.bold(row.item_code), frappe.bold(row.test_parameter)
+					)
+				)
+			seen_reagents.add(key)
+			if flt(row.tests_per_pack) <= 0:
+				frappe.throw(
+					frappe._("Row {0}: Tests Per Pack is required and must be positive.").format(row.idx)
+				)
 			if row.test_parameter and row.test_parameter not in spec_params:
 				frappe.throw(
 					frappe._("Test Parameter {0} is not on this analyzer's specification.").format(
@@ -80,9 +101,17 @@ class InstrumentPricingWorksheet(Document):
 					)
 			if row.item_code:
 				item_codes.append(row.item_code)
+		seen_consumables = set()
 		for row in self.consumable_lines:
 			if not row.consumption_frequency:
 				frappe.throw(frappe._("Row {0}: Consumption Frequency is required.").format(row.idx))
+			if row.item_code in seen_consumables:
+				frappe.throw(
+					frappe._("Row {0}: duplicate consumable line for {1}.").format(
+						row.idx, frappe.bold(row.item_code)
+					)
+				)
+			seen_consumables.add(row.item_code)
 			if row.item_code and row.item_code not in spec_consumables:
 				frappe.throw(
 					frappe._("Item {0} is not on this analyzer's Required Consumables.").format(
@@ -151,6 +180,7 @@ def make_instrument_placement_contract(source_name: str, target_doc=None):
 
 	def set_missing_values(source, target):
 		target.pricing_worksheet = source.name
+		target.company = source.company or frappe.db.get_single_value("Global Defaults", "default_company")
 		target.contract_title = "{0} - {1} Placement Contract".format(
 			source.customer_name or source.customer, source.contract_type
 		)
@@ -237,11 +267,8 @@ def _compute_lines(ws):
 		if flt(line.tests_per_pack):
 			line.packs_needed = ceil(line.total_tests_over_term / flt(line.tests_per_pack))
 		else:
-			line.packs_needed = 0
-			frappe.msgprint(
-				frappe._("Line {0}: tests_per_pack is zero. Set packs_needed to 0.").format(line.idx),
-				alert=True,
-				indicator="orange",
+			frappe.throw(
+				frappe._("Line {0}: Tests Per Pack is required and must be positive.").format(line.idx)
 			)
 		line.total_cost_line = flt(line.packs_needed) * flt(line.cogs_per_pack)
 		line.total_consumption_ml_month = _monthly_consumption_ml(line, ops_days)

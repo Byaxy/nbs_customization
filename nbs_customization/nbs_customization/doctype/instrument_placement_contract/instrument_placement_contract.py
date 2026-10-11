@@ -14,6 +14,7 @@ from nbs_customization.utils.placement.valid_items import validate_items_belong_
 
 class InstrumentPlacementContract(Document):
 	def validate(self):
+		self._set_default_company()
 		self._validate_contract_lines()
 		self._validate_asset_link()
 		self._compute_duration()
@@ -42,6 +43,13 @@ class InstrumentPlacementContract(Document):
 		self._validate_no_deployment()
 		self._clear_asset_link()
 		self._unlink_pricing_worksheet()
+
+	def _set_default_company(self):
+		# Company drives the print Letter Head; default it for mapped and legacy docs.
+		if not self.company:
+			self.company = frappe.db.get_single_value("Global Defaults", "default_company")
+		if not self.company:
+			frappe.throw(frappe._("Company is required. Set a default Company first."))
 
 	def _validate_contract_lines(self):
 		if not self.analyzer_pid:
@@ -141,6 +149,8 @@ class InstrumentPlacementContract(Document):
 		ws = frappe.get_cached_doc("Instrument Pricing Worksheet", self.pricing_worksheet)
 		if ws.docstatus != 1:
 			return
+		if self.docstatus == 0:
+			self._backfill_legacy_mirror_fields(ws)
 		if self.contract_type == "CPT" and not _close(self.revenue_share_pct, ws.required_revenue_share_pct):
 			frappe.throw(
 				_("Revenue Share % {0} does not match worksheet {1} ({2}).").format(
@@ -156,6 +166,12 @@ class InstrumentPlacementContract(Document):
 						frappe.bold(self.meta.get_label(field)), frappe.bold(ws.name)
 					)
 				)
+		ws_reagent_keys = [(line.item_code, line.test_parameter) for line in ws.reagent_lines]
+		if len(ws_reagent_keys) != len(set(ws_reagent_keys)):
+			frappe.throw(_("Worksheet {0} has duplicate reagent lines.").format(frappe.bold(ws.name)))
+		ct_reagent_keys = [(line.item_code, line.test_parameter) for line in self.contract_reagent_lines]
+		if len(ct_reagent_keys) != len(set(ct_reagent_keys)):
+			frappe.throw(_("Contract has duplicate reagent lines."))
 		expected = {(line.item_code, line.test_parameter): line for line in ws.reagent_lines}
 		actual = {(line.item_code, line.test_parameter) for line in self.contract_reagent_lines}
 		if actual != set(expected):
@@ -194,6 +210,12 @@ class InstrumentPlacementContract(Document):
 						line.idx, frappe.bold(line.item_code), frappe.bold(ws.name)
 					)
 				)
+		ws_cons_keys = [line.item_code for line in ws.consumable_lines]
+		if len(ws_cons_keys) != len(set(ws_cons_keys)):
+			frappe.throw(_("Worksheet {0} has duplicate consumable lines.").format(frappe.bold(ws.name)))
+		ct_cons_keys = [line.item_code for line in self.contract_consumable_lines]
+		if len(ct_cons_keys) != len(set(ct_cons_keys)):
+			frappe.throw(_("Contract has duplicate consumable lines."))
 		expected_cons = {line.item_code: line for line in ws.consumable_lines}
 		actual_cons = {line.item_code for line in self.contract_consumable_lines}
 		if actual_cons != set(expected_cons):
@@ -214,6 +236,15 @@ class InstrumentPlacementContract(Document):
 							frappe.bold(line.item_code), frappe.bold(field), frappe.bold(ws.name)
 						)
 					)
+
+	def _backfill_legacy_mirror_fields(self, ws):
+		# pack_volume_ml postdates some drafts; fill blanks from the
+		# worksheet so the next save enforces rather than rejects them.
+		by_key = {(l.item_code, l.test_parameter): l for l in ws.reagent_lines}
+		for line in self.contract_reagent_lines:
+			src = by_key.get((line.item_code, line.test_parameter))
+			if src and not line.pack_volume_ml and src.pack_volume_ml:
+				line.pack_volume_ml = src.pack_volume_ml
 
 	@frappe.whitelist()
 	def recompute_recovery(self):

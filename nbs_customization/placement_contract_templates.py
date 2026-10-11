@@ -152,7 +152,14 @@ at 10%.</p>
 TEMPLATES = {
 	"CPT-Placement-v1": _COMMON_HEAD + _CPT_TERM + _COMMON_TAIL,
 	"RRA-Placement-v1": _COMMON_HEAD + _RRA_TERM + _COMMON_TAIL,
-	"RLO-Placement-v1": _COMMON_HEAD + _RLO_TERM + _COMMON_TAIL,
+	"RLO-Placement-v1": _COMMON_HEAD
+	+ _RLO_TERM
+	+ _COMMON_TAIL.replace(
+		"collection within 7 days during business hours.</p>",
+		"collection within 7 days during business hours. For rent-to-own "
+		"contracts this return obligation falls away once ownership has "
+		"transferred to the Customer under Article 5.</p>",
+	),
 }
 
 

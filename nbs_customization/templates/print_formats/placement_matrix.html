@@ -33,10 +33,10 @@
 
 {% macro matrix_preamble(avg_day, ops_days, monthly_tests, term_months, price_label, price_value) %}
 <table style="border-collapse: collapse; margin-bottom: 12px; font-size: 11px;">
-	<tr style="background-color: #0a2351; color: #fff;
+	<tr style="background-color: #819ac2; color: #000; font-weight: bold;
 		-webkit-print-color-adjust: exact; print-color-adjust: exact;">
-		<th style="border: 1px solid #000; padding: 3px 8px; text-align: left;">Preamble</th>
-		<th style="border: 1px solid #000; padding: 3px 8px;"></th>
+		<td style="border: 1px solid #000; padding: 3px 8px; text-align: left;">Preamble</td>
+		<td style="border: 1px solid #000; padding: 3px 8px;"></td>
 	</tr>
 	<tr><td style="border: 1px solid #000; padding: 3px 8px;">Average Samples / Day</td>
 		<td style="border: 1px solid #000; padding: 3px 8px; text-align: center;">{{ avg_day or 0 }}</td></tr>
@@ -65,26 +65,26 @@ render only when set on at least one line (any analyzer type). #}
 {%- endfor -%}
 {{ matrix_preamble(doc.avg_samples_per_day, doc.operational_days_per_month,
 	ns.monthly_tests, doc.contract_duration_months or 0,
-	"Cost Per Test" if doc.contract_type == "CPT" else "Minimum Monthly Value",
+	"Revenue Share %" if doc.contract_type == "CPT" else "Minimum Monthly Value",
 	(doc.revenue_share_pct|string + "%") if doc.contract_type == "CPT"
 		else doc.min_monthly_value) }}
 <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-	<tr style="background-color: #0a2351; color: #fff;
+	<tr style="background-color: #819ac2; color: #000; font-weight: bold;
 		-webkit-print-color-adjust: exact; print-color-adjust: exact;">
-		<th style="border: 1px solid #000; padding: 3px 4px;">Reagent</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Pack Vol (ml)</th>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Reagent</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Pack Vol (ml)</td>
 		{%- if ns.show_bg -%}
-		<th style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Day</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Month</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">ml/Test</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Total (ml)/Month</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">% of Total</th>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Day</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Month</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">ml/Test</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Total (ml)/Month</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">% of Total</td>
 		{%- endif -%}
-		<th style="border: 1px solid #000; padding: 3px 4px;">Tests/Month</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Packs (Term)</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">
-			{%- if doc.contract_type == "CPT" -%}Price/Test{%- else -%}Pack Price{%- endif -%}</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Monthly Value</th>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Tests/Month</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Packs (Term)</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">
+			{%- if doc.contract_type == "CPT" -%}Price/Test{%- else -%}Pack Price{%- endif -%}</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Monthly Value</td>
 	</tr>
 	{%- for l in doc.contract_reagent_lines -%}
 	<tr>
@@ -126,22 +126,26 @@ render only when set on at least one line (any analyzer type). #}
 	doc.required_revenue_share_pct if doc.calculation_output_type == "Revenue Share Percentage"
 		else doc.markup_factor) }}
 <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-	<tr style="background-color: #0a2351; color: #fff;
+	<tr style="background-color: #819ac2; color: #000; font-weight: bold;
 		-webkit-print-color-adjust: exact; print-color-adjust: exact;">
-		<th style="border: 1px solid #000; padding: 3px 4px;">Reagent</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Pack Vol (ml)</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Tests/Pack</th>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Reagent</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Pack Vol (ml)</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Tests/Pack</td>
 		{%- if ns.show_bg -%}
-		<th style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Day</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Month</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">ml/Test</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Total (ml)/Month</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">% of Total</th>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Day</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Bg (ml)/Month</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">ml/Test</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Total (ml)/Month</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">% of Total</td>
 		{%- endif -%}
-		<th style="border: 1px solid #000; padding: 3px 4px;">Tests/Month</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Packs (Term)</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">COGS/Pack</th>
-		<th style="border: 1px solid #000; padding: 3px 4px;">Selling/Pack</th>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Tests/Month</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">Packs (Term)</td>
+		<td style="border: 1px solid #000; padding: 3px 4px;">COGS/Pack</td>
+		{%- if doc.calculation_output_type == "Revenue Share Percentage" -%}
+		<td style="border: 1px solid #000; padding: 3px 4px;">Price/Test</td>
+		{%- else -%}
+		<td style="border: 1px solid #000; padding: 3px 4px;">Selling/Pack</td>
+		{%- endif -%}
 	</tr>
 	{%- for l in doc.reagent_lines -%}
 	<tr>
@@ -159,7 +163,11 @@ render only when set on at least one line (any analyzer type). #}
 		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.monthly_test_volume or 0 }}</td>
 		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.packs_needed or 0 }}</td>
 		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.cogs_per_pack or 0 }}</td>
+		{%- if doc.calculation_output_type == "Revenue Share Percentage" -%}
+		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.price_per_test or 0 }}</td>
+		{%- else -%}
 		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">{{ l.selling_price_per_pack or 0 }}</td>
+		{%- endif -%}
 	</tr>
 	{%- endfor -%}
 </table>

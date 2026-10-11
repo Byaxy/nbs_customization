@@ -6,10 +6,11 @@
  "creation": "2026-07-10 14:33:43.358492",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
-  "section_break_khtr",
-  "naming_series",
-  "customer",
+  "field_order": [
+   "section_break_khtr",
+   "naming_series",
+   "company",
+   "customer",
   "customer_name",
   "contract_title",
   "column_break_dpxb",
@@ -93,6 +94,13 @@
    "fieldtype": "Select",
    "label": "Series",
    "options": "NBSIPC-.YYYY./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
    "reqd": 1
   },
   {

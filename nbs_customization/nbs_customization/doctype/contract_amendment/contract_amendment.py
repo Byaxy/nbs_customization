@@ -62,20 +62,31 @@ class ContractAmendment(Document):
 		if self.new_min_value:
 			contract.min_monthly_value = self.new_min_value
 
+		contract._compute_min_monthly_value()
+		contract._compute_cpt_fields()
+		if self.new_min_value:
+			contract.min_monthly_value = self.new_min_value
+
 		# Amendments are the authorized mutation path for submitted contracts.
 		contract.flags.ignore_validate_update_after_submit = True
 		contract.save(ignore_permissions=True)
+		_sync_contract_price_list(contract)
 
 		self.status = "Effective"
 		self.db_set("status", "Effective")
 
 	def _validate_amendment_terms(self, contract):
 		"""Guard history and worksheet eligibility before pushing terms."""
-		if self.new_recovery_target and (contract.cumulative_collected or 0) > self.new_recovery_target:
+		effective_target = self.new_recovery_target
+		if not effective_target and self.new_pricing_worksheet:
+			effective_target = frappe.db.get_value(
+				"Instrument Pricing Worksheet", self.new_pricing_worksheet, "final_revenue_target"
+			)
+		if effective_target and (contract.cumulative_collected or 0) > effective_target:
 			frappe.throw(
 				frappe._(
 					"New recovery target {0} is below cumulative collected {1} — history cannot be invalidated."
-				).format(self.new_recovery_target, contract.cumulative_collected)
+				).format(effective_target, contract.cumulative_collected)
 			)
 		if self.new_pricing_worksheet:
 			ws_status = frappe.db.get_value(
@@ -96,15 +107,25 @@ class ContractAmendment(Document):
 						ws_analyzer, contract.analyzer_pid
 					)
 				)
-			ws_type = frappe.db.get_value(
-				"Instrument Pricing Worksheet", self.new_pricing_worksheet, "contract_type"
-			)
-			if ws_type and ws_type != contract.contract_type:
-				frappe.throw(
-					frappe._("Worksheet type {0} does not match contract type {1}.").format(
-						ws_type, contract.contract_type
-					)
+		ws_type = frappe.db.get_value(
+			"Instrument Pricing Worksheet", self.new_pricing_worksheet, "contract_type"
+		)
+		if ws_type and ws_type != contract.contract_type:
+			frappe.throw(
+				frappe._("Worksheet type {0} does not match contract type {1}.").format(
+					ws_type, contract.contract_type
 				)
+			)
+		ws_linked = frappe.db.get_value(
+			"Instrument Pricing Worksheet", self.new_pricing_worksheet, "linked_contract"
+		)
+		if ws_linked and ws_linked != contract.name:
+			frappe.throw(
+				frappe._(
+					"Pricing Worksheet {0} is already linked to Contract {1}. "
+					"Unlink it first before applying this amendment."
+				).format(frappe.bold(self.new_pricing_worksheet), frappe.bold(ws_linked))
+			)
 
 
 def _remap_lines_from_worksheet(contract, ws_name):
@@ -168,3 +189,35 @@ def _remap_lines_from_worksheet(contract, ws_name):
 		old.db_set("linked_contract", None)
 	ws.db_set("status", "Applied to Contract")
 	ws.db_set("linked_contract", contract.name)
+
+
+def _sync_contract_price_list(contract):
+	"""Update Item Price rows in place so new invoices bill amended rates."""
+	if not contract.contract_price_list:
+		return
+	wanted = {}
+	for line in contract.contract_reagent_lines:
+		if (line.contract_price or 0) > 0 and line.item_code:
+			wanted[line.item_code] = line.contract_price
+	existing = frappe.get_all(
+		"Item Price",
+		filters={"price_list": contract.contract_price_list, "selling": 1},
+		fields=["name", "item_code"],
+	)
+	for row in existing:
+		if row.item_code in wanted:
+			frappe.db.set_value("Item Price", row.name, "price_list_rate", wanted.pop(row.item_code))
+		else:
+			frappe.delete_doc("Item Price", row.name, ignore_permissions=True)
+	for item_code, rate in wanted.items():
+		frappe.get_doc(
+			{
+				"doctype": "Item Price",
+				"price_list": contract.contract_price_list,
+				"item_code": item_code,
+				"price_list_rate": rate,
+				"uom": frappe.db.get_value("Item", item_code, "stock_uom"),
+				"selling": 1,
+				"valid_from": frappe.utils.today(),
+			}
+		).insert(ignore_permissions=True)

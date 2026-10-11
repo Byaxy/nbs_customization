@@ -182,3 +182,65 @@ class TestContractAmendment(IntegrationTestCase):
 		am.reload()
 		with self.assertRaises(frappe.ValidationError):
 			am.apply_to_contract()
+
+	def test_worksheet_target_below_collected_blocked(self):
+		ctx = make_contract_kit("_TST-AMD8")
+		frappe.db.set_value(
+			"Instrument Placement Contract", ctx["contract"].name, "cumulative_collected", 5000
+		)
+		ws2 = make_worksheet(
+			"_TST-AMD8W",
+			ctx["analyzer"],
+			ctx["reagent"],
+			ctx["analyzer"],
+			ctx["customer"],
+			analyzer_landed_cost=0,
+		)
+		self.assertLess(ws2.final_revenue_target, 5000)
+		am = self._amendment(ctx, new_pricing_worksheet=ws2.name)
+		with self.assertRaises(frappe.ValidationError):
+			am.apply_to_contract()
+
+	def test_worksheet_linked_to_other_contract_blocked(self):
+		ctx = make_contract_kit("_TST-AMD10")
+		ws2 = make_worksheet(
+			"_TST-AMD10W",
+			ctx["analyzer"],
+			ctx["reagent"],
+			ctx["analyzer"],
+			ctx["customer"],
+		)
+		frappe.db.set_value("Instrument Pricing Worksheet", ws2.name, "status", "Applied to Contract")
+		frappe.db.set_value("Instrument Pricing Worksheet", ws2.name, "linked_contract", "OTHER-CT")
+		am = self._amendment(ctx, new_pricing_worksheet=ws2.name)
+		with self.assertRaises(frappe.ValidationError):
+			am.apply_to_contract()
+
+	def test_apply_worksheet_syncs_price_list(self):
+		ctx = make_contract_kit("_TST-AMD11")
+		contract = ctx["contract"]
+		contract.reload()
+		old_rate = frappe.db.get_value(
+			"Item Price",
+			{"price_list": contract.contract_price_list, "item_code": ctx["reagent"].name},
+			"price_list_rate",
+		)
+		self.assertIsNotNone(old_rate)
+		ws2 = make_worksheet(
+			"_TST-AMD11W",
+			ctx["analyzer"],
+			ctx["reagent"],
+			ctx["analyzer"],
+			ctx["customer"],
+			analyzer_landed_cost=9000,
+		)
+		am = self._amendment(ctx, new_pricing_worksheet=ws2.name)
+		am.apply_to_contract()
+		contract.reload()
+		new_rate = frappe.db.get_value(
+			"Item Price",
+			{"price_list": contract.contract_price_list, "item_code": ctx["reagent"].name},
+			"price_list_rate",
+		)
+		self.assertEqual(new_rate, contract.contract_reagent_lines[0].contract_price)
+		self.assertNotEqual(new_rate, old_rate)

@@ -6,9 +6,10 @@
  "creation": "2026-07-10 16:05:04.281587",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
-  "naming_series",
-  "analyzer_pid",
+  "field_order": [
+   "naming_series",
+   "company",
+   "analyzer_pid",
   "description",
   "customer",
   "customer_name",
@@ -64,6 +65,13 @@
    "fieldtype": "Select",
    "label": "Series",
    "options": "NBSIPWS-.YYYY./.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
    "reqd": 1
   },
   {
