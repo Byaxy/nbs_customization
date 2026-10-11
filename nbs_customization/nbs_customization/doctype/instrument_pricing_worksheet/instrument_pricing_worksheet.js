@@ -5,6 +5,9 @@ frappe.ui.form.on("Instrument Pricing Worksheet", {
 		_add_capitalize_button(frm);
 		frm.trigger("update_indicators");
 		_customize_submit_message(frm);
+		if (frm.is_new() && !frm.doc.company) {
+			frm.set_value("company", frappe.defaults.get_user_default("Company"));
+		}
 	},
 
 	update_indicators(frm) {

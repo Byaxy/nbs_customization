@@ -1,0 +1,82 @@
+{%- from "nbs_customization/templates/print_formats/placement_matrix.html" import
+	contract_schedule_b -%}
+{%- set company_doc = frappe.get_doc("Company", doc.company) -%}
+{%- set watermark_src = company_doc.custom_pdf_water_mark or company_doc.company_logo -%}
+
+<style>
+	body {
+		margin: 0 !important;
+	}
+	.print-format {
+		margin-top: 5mm;
+		margin-bottom: 10mm;
+		margin-left: 10mm;
+		margin-right: 10mm;
+		padding: 0;
+		padding-bottom: 10mm;
+	}
+	.print-format td,
+	.print-format th {
+		padding: 3px 4px !important;
+	}
+	.nbs-watermark {
+		position: fixed;
+		top: 28%;
+		left: 15%;
+		width: 480px;
+		height: 440px;
+		opacity: 0.1;
+		z-index: 0;
+		pointer-events: none;
+	}
+	.nbs-body {
+		font-family: "Times New Roman", Times, serif;
+		font-size: 10px;
+		color: #000;
+		position: relative;
+		z-index: 1;
+	}
+	.nbs-title {
+		text-align: center;
+		font-weight: bold;
+		font-size: 15px;
+		margin: 8px 0 2px;
+	}
+	.nbs-subtitle {
+		text-align: center;
+		font-weight: bold;
+		font-size: 12px;
+		margin-bottom: 10px;
+	}
+	.nbs-section {
+		page-break-inside: avoid;
+		break-inside: avoid;
+		margin-bottom: 10px;
+	}
+	@media print {
+		* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+	}
+</style>
+
+{# HEADER — Letter Head repeats on every page via the Chrome PDF pipeline #}
+{% if letter_head and not no_letterhead %}
+	<div id="header-html">{{ letter_head }}</div>
+{% endif %}
+
+{# Watermark: position:fixed → repeats on every body page automatically #}
+{% if watermark_src %}
+	<img class="nbs-watermark" src="{{ frappe.utils.get_url(watermark_src) }}" alt="" />
+{% endif %}
+
+{% if footer and not no_letterhead %}
+	<div id="footer-html">{{ footer }}</div>
+{% endif %}
+
+<div class="nbs-body">
+	<div class="nbs-title">{{ doc.contract_type }} Price Matrix for {{ doc.analyzer_pid }}</div>
+	<div class="nbs-subtitle">Agreement Number: {{ doc.name }}</div>
+
+	<div class="nbs-section">
+		{{ contract_schedule_b(doc) }}
+	</div>
+</div>

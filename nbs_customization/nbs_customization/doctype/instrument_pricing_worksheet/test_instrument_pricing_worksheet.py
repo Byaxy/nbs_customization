@@ -118,6 +118,26 @@ class TestRRAWorksheet(FrappeTestCase):
 		# calculated fields should be set by validate() on insert
 		self.assertIsNotNone(self.ws.calculated_by)
 		self.assertIsNotNone(self.ws.calculated_date)
+
+	def test_bg_consumption_monthly_total(self):
+		# Background per month falls back to per-day x operational days.
+		self.ws.operational_days_per_month = 20
+		line = self.ws.reagent_lines[0]
+		line.bg_consumption_ml_day = 191.71
+		line.consumption_ml_per_test = 19
+		self.ws.save()
+		self.ws.reload()
+		line = self.ws.reagent_lines[0]
+		self.assertAlmostEqual(line.total_consumption_ml_month, 191.71 * 20 + 19 * 102, places=2)
+		# Explicit monthly figure wins over the per-day fallback.
+		line.bg_consumption_ml_month = 3823.4
+		self.ws.save()
+		self.ws.reload()
+		self.assertAlmostEqual(
+			self.ws.reagent_lines[0].total_consumption_ml_month,
+			3823.4 + 19 * 102,
+			places=2,
+		)
 		self.assertGreater(self.ws.final_revenue_target, 0)
 
 	def test_submit_sets_approval_fields(self):
@@ -289,6 +309,8 @@ class TestApplyWorksheet(FrappeTestCase):
 		self.assertEqual(mapped.pricing_worksheet, self.ws.name)
 		self.assertGreater(len(mapped.contract_reagent_lines), 0)
 		self.assertEqual(mapped.total_recovery_target, self.ws.final_revenue_target)
+		self.assertEqual(mapped.company, self.ws.company)
+		self.assertEqual(self.ws.company, frappe.db.get_single_value("Global Defaults", "default_company"))
 
 	def test_contract_created(self):
 		asset, site = self._setup_asset_and_address()
@@ -461,6 +483,63 @@ class TestWorksheetValidationFixes(FrappeTestCase):
 	def test_mismatched_reagent_throws(self):
 		with self.assertRaises(frappe.ValidationError):
 			self._make_ws("RRA", 0, self.r2.item_code, self.p1.name)
+
+	def test_zero_tests_per_pack_rejected(self):
+		ws = frappe.get_doc(
+			{
+				"doctype": "Instrument Pricing Worksheet",
+				"analyzer_pid": self.analyzer.item_code,
+				"contract_type": "RRA",
+				"calculation_output_type": "Markup Factor on Reagent Price",
+				"customer": self.customer.name,
+				"analyzer_landed_cost": 8000,
+				"contract_years": 3,
+				"profit_margin_pct": 0,
+				"reagent_lines": [
+					{
+						"item_code": self.r1.item_code,
+						"test_parameter": self.p1.name,
+						"monthly_test_volume": 100,
+						"cogs_per_pack": 10,
+						"tests_per_pack": 0,
+					}
+				],
+			}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			ws.insert()
+
+	def test_duplicate_reagent_lines_rejected(self):
+		ws = frappe.get_doc(
+			{
+				"doctype": "Instrument Pricing Worksheet",
+				"analyzer_pid": self.analyzer.item_code,
+				"contract_type": "RRA",
+				"calculation_output_type": "Markup Factor on Reagent Price",
+				"customer": self.customer.name,
+				"analyzer_landed_cost": 8000,
+				"contract_years": 3,
+				"profit_margin_pct": 0,
+				"reagent_lines": [
+					{
+						"item_code": self.r1.item_code,
+						"test_parameter": self.p1.name,
+						"monthly_test_volume": 100,
+						"cogs_per_pack": 10,
+						"tests_per_pack": 100,
+					},
+					{
+						"item_code": self.r1.item_code,
+						"test_parameter": self.p1.name,
+						"monthly_test_volume": 50,
+						"cogs_per_pack": 10,
+						"tests_per_pack": 100,
+					},
+				],
+			}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			ws.insert()
 
 	def test_panel_filter_keeps_items_without_spec(self):
 		panel_at = frappe.get_doc({"doctype": "Analyzer Type", "title": "_TST Fix Panel AT"}).insert(

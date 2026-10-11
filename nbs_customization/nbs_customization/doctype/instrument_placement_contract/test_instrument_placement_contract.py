@@ -111,6 +111,9 @@ class TestContractLifecycle(FrappeTestCase):
 		frappe.db.rollback()
 
 	def _make_contract(self, **overrides):
+		from math import ceil
+
+		ws_line = self.worksheet.reagent_lines[0]
 		data = {
 			"doctype": "Instrument Placement Contract",
 			"contract_title": "_TST Contract",
@@ -123,13 +126,23 @@ class TestContractLifecycle(FrappeTestCase):
 			"pricing_worksheet": self.worksheet.name,
 			"start_date": "2026-01-01",
 			"end_date": "2027-12-31",
+			"avg_samples_per_day": self.worksheet.avg_samples_per_day,
+			"operational_days_per_month": self.worksheet.operational_days_per_month,
 			"contract_reagent_lines": [
 				{
 					"item_code": self.reagent.item_code,
 					"test_parameter": self.param.name,
-					"contract_price": 150,
-					"standard_price": 50,
-					"monthly_test_volume": 100,
+					"pack_volume_ml": ws_line.pack_volume_ml,
+					"contract_price": ws_line.selling_price_per_pack,
+					"standard_price": ws_line.cogs_per_pack,
+					"monthly_test_volume": ws_line.monthly_test_volume,
+					"qty_required_total": ws_line.packs_needed,
+					"min_monthly_qty": ceil(ws_line.monthly_test_volume / (ws_line.tests_per_pack or 1)),
+					"cogs_per_unit": ws_line.cogs_per_pack,
+					"bg_consumption_ml_day": ws_line.bg_consumption_ml_day,
+					"bg_consumption_ml_month": ws_line.bg_consumption_ml_month,
+					"consumption_ml_per_test": ws_line.consumption_ml_per_test,
+					"total_consumption_ml_month": ws_line.total_consumption_ml_month,
 				}
 			],
 		}
@@ -168,3 +181,51 @@ class TestContractLifecycle(FrappeTestCase):
 		doc.submit()
 		doc.cancel()
 		self.assertEqual(doc.docstatus, 2)
+
+	def test_worksheet_mirror_tie_out_blocks_drift(self):
+		doc = self._make_contract()
+		doc.contract_reagent_lines[0].contract_price += 10
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()
+
+	def test_worksheet_mirror_tie_out_blocks_share_drift(self):
+		doc = self._make_contract(contract_type="CPT")
+		doc.revenue_share_pct = 45
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()
+
+	def test_company_defaults_from_site(self):
+		doc = self._make_contract()
+		self.assertEqual(doc.company, frappe.db.get_single_value("Global Defaults", "default_company"))
+
+	def test_duplicate_reagent_lines_blocked(self):
+		doc = self._make_contract()
+		dup = dict(
+			item_code=self.reagent.item_code,
+			test_parameter=self.param.name,
+			pack_volume_ml=doc.contract_reagent_lines[0].pack_volume_ml,
+			contract_price=doc.contract_reagent_lines[0].contract_price,
+			standard_price=doc.contract_reagent_lines[0].standard_price,
+			monthly_test_volume=doc.contract_reagent_lines[0].monthly_test_volume,
+			qty_required_total=doc.contract_reagent_lines[0].qty_required_total,
+			min_monthly_qty=doc.contract_reagent_lines[0].min_monthly_qty,
+			cogs_per_unit=doc.contract_reagent_lines[0].cogs_per_unit,
+		)
+		doc.append("contract_reagent_lines", dup)
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()
+
+	def test_legacy_draft_pack_volume_backfilled(self):
+		frappe.db.set_value(
+			"Worksheet Test Reagent Line", self.worksheet.reagent_lines[0].name, "pack_volume_ml", 5
+		)
+		doc = self._make_contract()
+		doc.contract_reagent_lines[0].pack_volume_ml = 0
+		doc.save()
+		self.assertEqual(doc.contract_reagent_lines[0].pack_volume_ml, 5)
+
+	def test_worksheet_company_mismatch_blocked(self):
+		doc = self._make_contract()
+		frappe.db.set_value("Instrument Pricing Worksheet", self.worksheet.name, "company", "OTHER-CO")
+		with self.assertRaises(frappe.ValidationError):
+			doc.save()

@@ -1,4 +1,4 @@
-{% macro pdf_header(doc) %} {% set company_doc = frappe.get_doc("Company", doc.company) %}
+{% macro pdf_header(doc) %}{% set _company = doc.company if doc.get("company") else frappe.db.get_single_value("Global Defaults", "default_company") %}{% set company_doc = frappe.get_doc("Company", _company) %}
 <table
 	style="
 		width: 100%;

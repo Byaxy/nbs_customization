@@ -18,32 +18,49 @@ from nbs_customization.tests.placement_fixtures import (
 )
 
 
-def make_worksheet(prefix, analyzer, reagent, param, customer, contract_type="RRA"):
-	# Submitted-ready worksheet; submit() flips status to Approved.
+def make_worksheet(
+	prefix,
+	analyzer,
+	reagent,
+	param,
+	customer,
+	contract_type="RRA",
+	monthly_test_volume=50,
+	price_per_test=0,
+	analyzer_landed_cost=5000,
+):
+	# Submitted-ready worksheet; submit() flips status to Approved. Scenario
+	# shaping lives here: the contract only mirrors these computed values.
 	ws = frappe.get_doc(
 		{
 			"doctype": "Instrument Pricing Worksheet",
 			"naming_series": "NBSIPWS-.YYYY./.####",
 			"analyzer_pid": analyzer["item"].name,
 			"contract_type": contract_type,
-			"calculation_output_type": "Markup Factor on Reagent Price",
-			"analyzer_landed_cost": 5000,
+			"calculation_output_type": "Revenue Share Percentage"
+			if contract_type == "CPT"
+			else "Markup Factor on Reagent Price",
+			"analyzer_landed_cost": analyzer_landed_cost,
 			"contract_years": 2,
 			"profit_margin_pct": 20,
 			"customer": customer.name,
 			"annual_interest_rate": 5 if contract_type == "RLO" else 0,
+			"avg_samples_per_day": 15,
+			"operational_days_per_month": 20,
 			"reagent_lines": [
 				{
 					"item_code": reagent.name,
 					"test_parameter": param["param"].name,
-					"monthly_test_volume": 50,
+					"monthly_test_volume": monthly_test_volume,
 					"cogs_per_pack": 50,
 					"tests_per_pack": 100,
+					"price_per_test": price_per_test,
 				}
 			],
 		}
 	).insert()
 	ws.submit()
+	ws.reload()
 	return ws
 
 
@@ -135,14 +152,15 @@ def make_contract(
 	worksheet,
 	serial,
 	contract_type="RRA",
-	target=12000,
+	target=None,
 	breach=3,
 	grace=0,
-	agreed_price=0,
-	share_pct=0,
-	minqty=10,
 ):
-	# Draft contract with one reagent line; submit() activates it.
+	# Draft contract mirroring the submitted worksheet; submit() activates it.
+	# Commercial values come from the worksheet only (SSOT tie-out enforced).
+	from math import ceil
+
+	ws_line = worksheet.reagent_lines[0]
 	ct = frappe.get_doc(
 		{
 			"doctype": "Instrument Placement Contract",
@@ -158,20 +176,28 @@ def make_contract(
 			"pricing_worksheet": worksheet.name,
 			"start_date": "2026-01-01",
 			"end_date": "2027-12-31",
-			"total_recovery_target": target,
+			"total_recovery_target": target if target is not None else worksheet.final_revenue_target,
 			"breach_threshold": breach,
 			"grace_period_days": grace,
-			"revenue_share_pct": share_pct,
+			"revenue_share_pct": worksheet.required_revenue_share_pct if contract_type == "CPT" else 0,
+			"avg_samples_per_day": worksheet.avg_samples_per_day,
+			"operational_days_per_month": worksheet.operational_days_per_month,
 			"contract_reagent_lines": [
 				{
 					"item_code": reagent.name,
 					"test_parameter": param["param"].name,
-					"contract_price": 150,
-					"standard_price": 50,
-					"monthly_test_volume": 100,
-					"min_monthly_qty": minqty,
-					"cogs_per_unit": 50,
-					"agreed_test_price": agreed_price,
+					"pack_volume_ml": ws_line.pack_volume_ml,
+					"contract_price": ws_line.selling_price_per_pack,
+					"standard_price": ws_line.cogs_per_pack,
+					"monthly_test_volume": ws_line.monthly_test_volume,
+					"qty_required_total": ws_line.packs_needed,
+					"min_monthly_qty": ceil(ws_line.monthly_test_volume / (ws_line.tests_per_pack or 1)),
+					"cogs_per_unit": ws_line.cogs_per_pack,
+					"agreed_test_price": ws_line.price_per_test or 0,
+					"bg_consumption_ml_day": ws_line.bg_consumption_ml_day,
+					"bg_consumption_ml_month": ws_line.bg_consumption_ml_month,
+					"consumption_ml_per_test": ws_line.consumption_ml_per_test,
+					"total_consumption_ml_month": ws_line.total_consumption_ml_month,
 				}
 			],
 		}
@@ -182,11 +208,18 @@ def make_contract(
 
 def make_contract_kit(prefix, contract_type="RRA", **overrides):
 	# Full chain in one call; returns dict of every doc for assertions.
+	# Scenario knobs are worksheet inputs (SSOT): monthly_test_volume,
+	# price_per_test (CPT), analyzer_landed_cost, target, breach, grace.
+	ws_kwargs = {
+		k: overrides.pop(k)
+		for k in ("monthly_test_volume", "price_per_test", "analyzer_landed_cost")
+		if k in overrides
+	}
 	analyzer = make_analyzer(prefix)
 	reagent = make_reagent(f"{prefix}-R")
 	link_reagent_to_spec(analyzer["item"].name, analyzer["param"], reagent)
 	customer = make_customer(prefix)
-	worksheet = make_worksheet(prefix, analyzer, reagent, analyzer, customer, contract_type)
+	worksheet = make_worksheet(prefix, analyzer, reagent, analyzer, customer, contract_type, **ws_kwargs)
 	site = make_site(prefix)
 	category = make_asset_category(prefix)
 	serial = f"{prefix}-SN"

@@ -36,6 +36,9 @@ def _seed_all():
 
 
 def _draft_contract(prefix, analyzer, reagent, param, customer, site, worksheet):
+	from math import ceil
+
+	ws_line = worksheet.reagent_lines[0]
 	return frappe.get_doc(
 		{
 			"doctype": "Instrument Placement Contract",
@@ -49,18 +52,26 @@ def _draft_contract(prefix, analyzer, reagent, param, customer, site, worksheet)
 			"pricing_worksheet": worksheet.name,
 			"start_date": "2026-01-01",
 			"end_date": "2027-12-31",
-			"total_recovery_target": 12000,
+			"total_recovery_target": worksheet.final_revenue_target,
 			"breach_threshold": 3,
 			"grace_period_days": 30,
+			"avg_samples_per_day": worksheet.avg_samples_per_day,
+			"operational_days_per_month": worksheet.operational_days_per_month,
 			"contract_reagent_lines": [
 				{
 					"item_code": reagent.name,
 					"test_parameter": param["param"].name,
-					"contract_price": 150,
-					"standard_price": 50,
-					"monthly_test_volume": 100,
-					"min_monthly_qty": 10,
-					"cogs_per_unit": 50,
+					"pack_volume_ml": ws_line.pack_volume_ml,
+					"contract_price": ws_line.selling_price_per_pack,
+					"standard_price": ws_line.cogs_per_pack,
+					"monthly_test_volume": ws_line.monthly_test_volume,
+					"qty_required_total": ws_line.packs_needed,
+					"min_monthly_qty": ceil(ws_line.monthly_test_volume / (ws_line.tests_per_pack or 1)),
+					"cogs_per_unit": ws_line.cogs_per_pack,
+					"bg_consumption_ml_day": ws_line.bg_consumption_ml_day,
+					"bg_consumption_ml_month": ws_line.bg_consumption_ml_month,
+					"consumption_ml_per_test": ws_line.consumption_ml_per_test,
+					"total_consumption_ml_month": ws_line.total_consumption_ml_month,
 				}
 			],
 		}
@@ -81,6 +92,17 @@ class TestPlacementSetup(IntegrationTestCase):
 			self.assertEqual(frappe.db.count("Item", {"item_code": code}), 1)
 		self.assertTrue(frappe.db.exists("Brand", "Others"))
 		self.assertTrue(frappe.db.exists("Asset Category", "Equipment"))
+
+	def test_contract_templates_seeded_idempotent(self):
+		from nbs_customization.placement_contract_templates import ensure_placement_contract_templates
+
+		ensure_placement_contract_templates()
+		ensure_placement_contract_templates()
+		for title in ("CPT-Placement-v1", "RRA-Placement-v1", "RLO-Placement-v1"):
+			self.assertTrue(frappe.db.exists("Contract Template", title))
+			self.assertEqual(frappe.db.count("Contract Template", {"title": title}), 1)
+			terms = frappe.db.get_value("Contract Template", title, "contract_terms")
+			self.assertIn("{{", terms)
 
 	def test_fee_items_invoice_submits(self):
 		_seed_all()
