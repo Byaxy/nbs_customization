@@ -1,262 +1,418 @@
 import frappe
 
-# ─── Selling sidebar items ────────────────────────────────────────────────────
+# ─── Module sidebar placements (v16.50 Sidebar / Custom Sidebar) ───────────────
+#
+# The desk runs on the Apps screen: each module resolves its sidebar from the
+# module's shipped Sidebar plus the site-wide Custom Sidebar layer ("For
+# everyone"). Items below are interleaved flat with the shipped entries — no
+# NBS sections — so they read like native module content.
+#
+# Each entry is (label, link_to, link_type, icon, after) where `after` names
+# the label the item follows. Anchors chain onto earlier spec items where
+# possible, so placements survive upstream renames of base rows; a missing
+# anchor falls back to the end of the list.
+#
+# Note: the "Waybill" row intentionally shares its identity columns with the
+# base "Delivery Note" link (identity ignores the label), so it relabels that
+# entry rather than adding a second one.
 
-NBS_SELLING_SIDEBAR_ITEMS = [
-	{
-		"label": "Customer Delivery Note",
-		"type": "Link",
-		"icon": "file-text",
-		"link_to": "Customer Delivery Note",
-		"link_type": "DocType",
-		"child": 1,
-		"indent": 0,
-		"collapsible": 1,
-		"keep_closed": 0,
-		"open_in_new_tab": 0,
-	},
-	{
-		"label": "Promissory Note",
-		"type": "Link",
-		"icon": "handshake",
-		"link_to": "Promissory Note",
-		"link_type": "DocType",
-		"child": 1,
-		"indent": 0,
-		"collapsible": 1,
-		"keep_closed": 0,
-		"open_in_new_tab": 0,
-	},
-	{
-		"label": "Waybill",
-		"type": "Link",
-		"icon": "truck",
-		"link_to": "Delivery Note",
-		"link_type": "DocType",
-		"child": 1,
-		"indent": 0,
-		"collapsible": 1,
-		"keep_closed": 0,
-		"open_in_new_tab": 0,
-	},
-	{
-		"label": "Loan Waybill",
-		"type": "Link",
-		"icon": "truck-electric",
-		"link_to": "Loan Waybill",
-		"link_type": "DocType",
-		"child": 1,
-		"indent": 0,
-		"collapsible": 1,
-		"keep_closed": 0,
-		"open_in_new_tab": 0,
-	},
-]
+NBS_SIDEBAR_PLACEMENTS = {
+	"Selling": [
+		("Customer Delivery Note", "Customer Delivery Note", "DocType", "file-text", "Sales Invoice"),
+		("Promissory Note", "Promissory Note", "DocType", "notebook-pen", "Customer Delivery Note"),
+		("Waybill", "Delivery Note", "DocType", "truck", "Promissory Note"),
+		("Loan Waybill", "Loan Waybill", "DocType", "truck-electric", "Waybill"),
+		("Sales Commission", "Sales Commission", "DocType", "badge-percent", "Loan Waybill"),
+		("Commission Payout", "Commission Payout", "DocType", "banknote-check", "Sales Commission"),
+		(
+			"Item Pricing Quotation Batch",
+			"Item Pricing Quotation Batch",
+			"DocType",
+			"clipboard-list",
+			"Pricing Rule",
+		),
+		(
+			"Instrument Pricing Worksheet",
+			"Instrument Pricing Worksheet",
+			"DocType",
+			"sheet",
+			"Item Pricing Quotation Batch",
+		),
+	],
+	"Buying": [
+		("Inbound Shipment", "Inbound Shipment", "DocType", "package-check", "Purchase Invoice"),
+		("Carrier", "Carrier", "DocType", "truck", "Inbound Shipment"),
+	],
+	"Stock": [
+		("Item Pricing Settings", "Item Pricing Settings", "DocType", "settings", "Delivery Note"),
+		("Item Type", "Item Type", "DocType", "package", "Unit of Measure (UOM)"),
+		("Instrument Specification", "Instrument Specification", "DocType", "clipboard-check", "Item Type"),
+		(
+			"Reagent Specification",
+			"Reagent Specification",
+			"DocType",
+			"file-text",
+			"Instrument Specification",
+		),
+		("Test Panel Group", "Test Panel Group", "DocType", "table", "Reagent Specification"),
+		("Test Parameter", "Test Parameter", "DocType", "sliders-horizontal", "Test Panel Group"),
+	],
+	"Assets": [
+		(
+			"Instrument Placement Contract",
+			"Instrument Placement Contract",
+			"DocType",
+			"file-text",
+			"Asset Movement",
+		),
+		(
+			"Contract Amendment",
+			"Contract Amendment",
+			"DocType",
+			"notebook-pen",
+			"Instrument Placement Contract",
+		),
+		("Analyzer Deployment", "Analyzer Deployment", "DocType", "monitor", "Contract Amendment"),
+		(
+			"Ownership Transfer Request",
+			"Ownership Transfer Request",
+			"DocType",
+			"arrow-left-right",
+			"Analyzer Deployment",
+		),
+		("Repossession Request", "Repossession Request", "DocType", "move", "Ownership Transfer Request"),
+		("Analyzer Type", "Analyzer Type", "DocType", "package", "Location"),
+	],
+	"Accounts": [
+		("Expense", "Expense", "DocType", "receipt-text", "Journal Entry"),
+		("Receipt", "Receipt", "DocType", "banknote-check", "Expense"),
+		("Monthly Reconciliation", "Monthly Reconciliation", "DocType", "clipboard-check", "Receipt"),
+		(
+			"Revenue Share Statement",
+			"Revenue Share Statement",
+			"DocType",
+			"piggy-bank",
+			"Monthly Reconciliation",
+		),
+		("Daily Income & Expense", "daily_income_expense", "Page", "bar-chart", "Revenue Share Statement"),
+		("Commission Payout", "Commission Payout", "DocType", "banknote-check", "Payment Entry"),
+		("Expense Tax", "Expense Tax", "DocType", "scale", "Tax Withholding Category"),
+		("Expense Category", "Expense Category", "DocType", "table", "Currency Exchange"),
+	],
+}
 
-NBS_LABELS = [item["label"] for item in NBS_SELLING_SIDEBAR_ITEMS]
-NBS_EXPECTED = {item["label"]: item for item in NBS_SELLING_SIDEBAR_ITEMS}
+# Labels of removed items, kept so their rows are cleaned from site layers on
+# the next migrate. Add here (never delete) whenever a spec item is retired.
+NBS_RETIRED_LABELS = {"Commission Recipient"}
 
-
-# ─── Accounting / Invoicing sidebar items ─────────────────────────────────────
-
-NBS_EXPENSE_SIDEBAR_ITEMS = [
-	{
-		"label": "Expenses",
-		"type": "Section Break",
-		"icon": "badge-dollar-sign",
-		"child": 0,
-		"indent": 0,
-		"collapsible": 1,
-		"keep_closed": 1,
-		"link_type": "DocType",
-		"open_in_new_tab": 0,
-	},
-	{
-		"label": "Expense",
-		"type": "Link",
-		"icon": "",
-		"link_to": "Expense",
-		"link_type": "DocType",
-		"child": 1,
-		"indent": 1,
-		"collapsible": 1,
-		"keep_closed": 0,
-		"open_in_new_tab": 0,
-	},
-]
-
-NBS_EXPENSE_LABELS = [item["label"] for item in NBS_EXPENSE_SIDEBAR_ITEMS]
-NBS_EXPENSE_EXPECTED = {item["label"]: item for item in NBS_EXPENSE_SIDEBAR_ITEMS}
-
-# The anchor — inject after this item in both Accounting and Invoicing
-EXPENSE_ANCHOR = "Repost Payment Ledger"
-
-# ─── Daily Income & Expense dashboard link ────────────────────────────────────
-
-NBS_DASHBOARD_SIDEBAR_ITEMS = [
-	{
-		"label": "Daily Income & Expense",
-		"type": "Link",
-		"icon": "bar-chart",
-		"link_to": "daily_income_expense",
-		"link_type": "Page",
-		"child": 0,
-		"indent": 0,
-		"collapsible": 1,
-		"keep_closed": 0,
-		"open_in_new_tab": 0,
-	},
-]
+# Every label this app owns per module, including retired rows and section
+# headers, so renames/removals clean up after themselves. Admin/user rows are
+# never touched.
+NBS_MANAGED_LABELS = {
+	module: {label for label, _to, _type, _icon, _after in items}
+	| {"NBS Sales", "NBS Procurement", "NBS Lab & Pricing", "NBS Placements", "NBS Finance"}
+	| NBS_RETIRED_LABELS
+	for module, items in NBS_SIDEBAR_PLACEMENTS.items()
+}
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 
-def _is_correctly_placed(items):
+def _site_layer_name(module):
+	return frappe.db.exists("Custom Sidebar", {"module": module, "user": ["in", ["", None]]})
+
+
+def _layer_has_foreign_rows(module, managed):
+	"""True when the site layer holds admin-added rows we must not reorder."""
+	name = _site_layer_name(module)
+	if not name:
+		return False
+	layer = frappe.get_doc("Custom Sidebar", name)
+	return any(row.added and row.label not in managed for row in layer.sidebar_items)
+
+
+def _ensure_site_layer(module):
+	"""Idempotently interleave this app's items into the module's site layer.
+
+	Two modes: when the site layer holds admin-added rows, only missing spec
+	rows are appended and stale managed rows dropped (never reorder). Otherwise
+	the layer is rebuilt to the target arrangement — base order with spec rows
+	inserted after their anchors — reusing existing reference rows verbatim so
+	label/icon/hidden overrides survive. Per-user layers are never touched.
 	"""
-	Returns True only if all four NBS selling items are present,
-	in correct order immediately after 'Sales Invoice'.
+	from frappe.desk.doctype.custom_sidebar.custom_sidebar import add_site_sidebar_item
+
+	spec = NBS_SIDEBAR_PLACEMENTS[module]
+	managed = NBS_MANAGED_LABELS[module]
+
+	if _layer_has_foreign_rows(module, managed):
+		_drop_stale_managed_rows(module, managed, {label for label, *_ in spec})
+		_append_missing_spec_rows(module, spec)
+		return
+
+	items = _build_target_arrangement(module, spec)
+	_rebuild_site_layer(module, items)
+
+
+def _base_sidebar_rows(module):
+	"""Ordered base rows for `module` from its shipped Sidebar doc (may be empty)."""
+	if not frappe.db.exists("Sidebar", module):
+		return []
+	return sorted(frappe.get_doc("Sidebar", module).items, key=lambda r: r.idx or 0)
+
+
+def _build_target_arrangement(module, spec):
+	"""Return the full ordered arrangement: base rows with spec rows inserted.
+
+	Each entry is a dict in layer-row shape: base rows as identity references,
+	spec rows as `added: 1` bodies inheriting the anchor's section flags.
 	"""
-	nbs_rows = [row for row in items if row.label in set(NBS_LABELS)]
-	if len(nbs_rows) != len(NBS_LABELS):
-		return False
+	from frappe.desk.doctype.sidebar.sidebar import LINKED_IDENTITY_FIELDS, unlinked_key
 
-	sales_invoice_idx = next((i for i, row in enumerate(items) if row.label == "Sales Invoice"), None)
-	if sales_invoice_idx is None:
-		return False
+	sequence = []  # list of ("base", row) | ("spec", item)
+	placed_labels = {}
+	placed_flags = {}
+	for row in _base_sidebar_rows(module):
+		sequence.append(("base", row))
+		placed_labels[row.label] = row
+		placed_flags[row.label] = (row.get("child") or 0, row.get("indent") or 0)
 
-	for j, expected_label in enumerate(NBS_LABELS):
-		slot_idx = sales_invoice_idx + 1 + j
-		if slot_idx >= len(items):
-			return False
-		row = items[slot_idx]
-		expected = NBS_EXPECTED[expected_label]
-		if (
-			row.label != expected["label"]
-			or row.icon != expected["icon"]
-			or row.link_to != expected["link_to"]
-			or row.link_type != expected["link_type"]
-		):
-			return False
-
-	return True
-
-
-def _is_expense_correctly_placed(items):
-	nbs_rows = [row for row in items if row.label in set(NBS_EXPENSE_LABELS)]
-	if len(nbs_rows) != len(NBS_EXPENSE_LABELS):
-		return False
-
-	anchor_idx = next((i for i, row in enumerate(items) if row.label == EXPENSE_ANCHOR), None)
-	if anchor_idx is None:
-		return False
-
-	for j, expected_label in enumerate(NBS_EXPENSE_LABELS):
-		slot_idx = anchor_idx + 1 + j
-		if slot_idx >= len(items):
-			return False
-		row = items[slot_idx]
-		expected = NBS_EXPENSE_EXPECTED[expected_label]
-
-		# Section break rows don't have link_to — only check label and icon
-		if expected.get("type") == "Section Break":
-			if row.label != expected["label"] or row.icon != expected["icon"]:
-				return False
+	for label, link_to, link_type, icon, after in spec:
+		anchor = placed_labels.get(after)
+		entry = ("spec", (label, link_to, link_type, icon))
+		if anchor is None:
+			sequence.append(entry)  # missing anchor (upstream rename) → end
+			placed_flags[label] = (0, 0)
 		else:
-			if (
-				row.label != expected["label"]
-				or row.icon != expected["icon"]
-				or row.link_to != expected["link_to"]
-				or row.link_type != expected["link_type"]
-			):
-				return False
+			idx = next(i for i, (_kind, row) in enumerate(sequence) if _row_label(row) == after)
+			sequence.insert(idx + 1, entry)
+			placed_flags[label] = placed_flags.get(after, (0, 0))
+		placed_labels[label] = entry[1]
 
-	return True
+	arranged = []
+	for kind, row in sequence:
+		if kind == "base":
+			ref = {field: row.get(field) for field in (*LINKED_IDENTITY_FIELDS, "key", "hidden", "child")}
+			if not row.get("link_to") and not row.get("url"):
+				ref["key"] = row.get("key") or unlinked_key(
+					{"type": row.get("type"), "label": row.get("label")}
+				)
+			arranged.append(ref)
+			continue
+		label, link_to, link_type, icon = row
+		child, indent = placed_flags.get(label, (0, 0))
+		arranged.append(
+			{
+				"type": "Link",
+				"label": label,
+				"link_to": link_to,
+				"link_type": link_type,
+				"icon": icon,
+				"child": child,
+				"indent": indent,
+				"collapsible": 0,
+				"keep_closed": 0,
+				"open_in_new_tab": 0,
+				"added": 1,
+			}
+		)
+	return arranged
 
 
-def _inject_expense_items(sidebar_name):
+def _row_label(row):
+	return row.label if hasattr(row, "label") else row[0]
+
+
+def _rebuild_site_layer(module, items):
+	"""Replace the site layer with `items` via the editor's write path.
+
+	Existing reference rows are reused verbatim where they name the same base
+	item, so admin label/icon/hidden overrides survive the rebuild.
 	"""
-	Injects the Expenses collapsible group after EXPENSE_ANCHOR
-	in the given Workspace Sidebar. Idempotent and upgrade-safe.
-	"""
-	if not frappe.db.exists("Workspace Sidebar", sidebar_name):
+	from frappe.desk.doctype.custom_sidebar.custom_sidebar import _save_customization
+	from frappe.desk.doctype.sidebar.sidebar import item_key
+
+	name = _site_layer_name(module)
+	by_key = {}
+	if name:
+		for row in frappe.get_doc("Custom Sidebar", name).sidebar_items:
+			if not row.added:
+				by_key[item_key(row)] = row
+
+	merged = []
+	for entry in items:
+		if entry.get("added"):
+			merged.append(entry)
+			continue
+		merged.append(by_key.get(item_key(entry), entry))
+
+	_save_customization(module, merged, user=None)
+
+
+def _append_missing_spec_rows(module, spec):
+	"""Append spec rows absent from the layer (conservative mode)."""
+	from frappe.desk.doctype.custom_sidebar.custom_sidebar import add_site_sidebar_item
+
+	name = _site_layer_name(module)
+	present = set()
+	if name:
+		present = {row.label for row in frappe.get_doc("Custom Sidebar", name).sidebar_items}
+	for label, link_to, link_type, icon, _after in spec:
+		if label in present:
+			continue
+		add_site_sidebar_item(
+			module,
+			{
+				"type": "Link",
+				"label": label,
+				"link_to": link_to,
+				"link_type": link_type,
+				"icon": icon,
+				"child": 0,
+				"indent": 0,
+				"collapsible": 0,
+				"keep_closed": 0,
+				"open_in_new_tab": 0,
+			},
+		)
+
+
+def _drop_stale_managed_rows(module, managed, specified_labels):
+	"""Remove managed rows that are no longer specified. Foreign rows stay."""
+	name = _site_layer_name(module)
+	if not name:
 		return
-
-	sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
-
-	if _is_expense_correctly_placed(sidebar.items):
+	layer = frappe.get_doc("Custom Sidebar", name)
+	kept = [row for row in layer.sidebar_items if row.label not in managed or row.label in specified_labels]
+	if len(kept) == len(layer.sidebar_items):
 		return
-
-	# Remove stale NBS expense rows
-	label_set = set(NBS_EXPENSE_LABELS)
-	sidebar.items = [row for row in sidebar.items if row.label not in label_set]
-
-	# Find insertion point — immediately after anchor
-	insert_idx = next(
-		(i + 1 for i, row in enumerate(sidebar.items) if row.label == EXPENSE_ANCHOR),
-		len(sidebar.items),  # fallback: append at end
-	)
-
-	new_items = sidebar.items[:insert_idx]
-
-	for item_data in NBS_EXPENSE_SIDEBAR_ITEMS:
-		new_row = frappe.new_doc("Workspace Sidebar Item")
-		new_row.update(item_data)
-		new_row.parent = sidebar_name
-		new_row.parenttype = "Workspace Sidebar"
-		new_row.parentfield = "items"
-		new_items.append(new_row)
-
-	new_items += sidebar.items[insert_idx:]
-	sidebar.items = new_items
-
-	for i, row in enumerate(sidebar.items):
+	layer.sidebar_items = kept
+	for i, row in enumerate(layer.sidebar_items):
 		row.idx = i + 1
-
-	sidebar.flags.ignore_permissions = True
-	sidebar.flags.ignore_links = True
-	sidebar.save()
+	layer.flags.ignore_permissions = True
+	layer.save()
 	frappe.db.commit()
 
 
-def _inject_dashboard_item(sidebar_name):
-	"""
-	Injects the 'Daily Income & Expense' page link into the given
-	Workspace Sidebar, right after the NBS Expenses group. Idempotent.
-	"""
-	if not frappe.db.exists("Workspace Sidebar", sidebar_name):
-		return
+def _sync_nbs_sidebars():
+	"""Sync every NBS module placement. Idempotent and upgrade-safe."""
+	for module in NBS_SIDEBAR_PLACEMENTS:
+		if frappe.db.exists("Module Def", module):
+			_ensure_site_layer(module)
+	frappe.db.commit()
 
-	sidebar = frappe.get_doc("Workspace Sidebar", sidebar_name)
 
-	if any(row.label == NBS_DASHBOARD_SIDEBAR_ITEMS[0]["label"] for row in sidebar.items):
-		return
+# ─── Dock rail titles, hides & Setup gating (v16.50 Dock) ────────────────────
+#
+# Dock rail labels render the stored row `title`, which never passes through
+# __(), so Translation records cannot rename dock entries. Titles below are
+# sourced from this site's `en` Translation records (stripped) and written as
+# title overrides into the erpnext app's site dock layer. These are
+# single-language renames: they do not switch per user language.
 
-	sidebar.items = [row for row in sidebar.items if row.label != NBS_DASHBOARD_SIDEBAR_ITEMS[0]["label"]]
+NBS_DOCK_TITLE_SOURCES = {"Selling", "Buying", "Stock"}
+NBS_DOCK_HIDDEN_MODULES = {"Manufacturing", "Quality", "Projects"}
+NBS_DOCK_APP = "erpnext"
 
-	insert_idx = next(
-		(i + 1 for i in reversed(range(len(sidebar.items))) if sidebar.items[i].label == "Expense"),
-		next(
-			(i + 1 for i, row in enumerate(sidebar.items) if row.label == EXPENSE_ANCHOR),
-			len(sidebar.items),
-		),
+
+def _dock_title_overrides():
+	"""Map dock entry link_to → title from the site language's translations."""
+	site_lang = frappe.db.get_single_value("System Settings", "language") or "en"
+	rows = frappe.get_all(
+		"Translation",
+		filters={"language": site_lang, "source_text": ["in", sorted(NBS_DOCK_TITLE_SOURCES)]},
+		fields=["source_text", "translated_text"],
 	)
+	return {r.source_text: r.translated_text.strip() for r in rows if (r.translated_text or "").strip()}
 
-	new_row = frappe.new_doc("Workspace Sidebar Item")
-	new_row.update(NBS_DASHBOARD_SIDEBAR_ITEMS[0])
-	new_row.parent = sidebar_name
-	new_row.parenttype = "Workspace Sidebar"
-	new_row.parentfield = "items"
 
-	new_items = [*sidebar.items[:insert_idx], new_row, *sidebar.items[insert_idx:]]
-	sidebar.items = new_items
+def _sync_dock_titles_and_hides():
+	"""Idempotently apply title overrides + hides to the erpnext site dock layer.
 
-	for i, row in enumerate(sidebar.items):
-		row.idx = i + 1
+	The site layer (standard=0) is distinct from the shipped standard doc: it
+	merges over it at resolve time. When no site layer exists yet it is seeded
+	from the standard rows, so nothing upstream is dropped.
+	"""
+	from frappe.desk.doctype.dock.dock import _save_layer, get_dock
 
-	sidebar.flags.ignore_permissions = True
-	sidebar.flags.ignore_links = True
-	sidebar.save()
+	layer = get_dock(NBS_DOCK_APP, user=None)
+	if layer is None:
+		standard = get_dock(NBS_DOCK_APP, standard=1)
+		if standard is None:
+			return
+		source = standard.items
+	else:
+		source = layer.items
+	titles = _dock_title_overrides()
+	changed = layer is None
+	items = []
+	for row in source:
+		entry = {
+			"link_type": row.link_type,
+			"link_to": row.link_to,
+			"url": row.url,
+			"icon": row.icon,
+			"title": row.title,
+			"hidden": row.hidden,
+		}
+		if row.link_type == "Sidebar" and row.link_to in titles and row.title != titles[row.link_to]:
+			entry["title"] = titles[row.link_to]
+			changed = True
+		if row.link_type == "Sidebar" and row.link_to in NBS_DOCK_HIDDEN_MODULES and not row.hidden:
+			entry["hidden"] = 1
+			changed = True
+		items.append(entry)
+	if not changed:
+		_assert_dock_titles(titles)
+		return
+	_save_layer(NBS_DOCK_APP, items, user=None, require_visible=False)
+	_assert_dock_titles(titles)
+
+
+def _assert_dock_titles(titles):
+	"""Re-assert title overrides with a direct write.
+
+	The editor write path blanks any title equal to `_(base title)` as merely
+	echoed back — which also swallows an override identical to a Translation
+	record. A direct save has no such narrowing, so overrides stick.
+	"""
+	if not titles:
+		return
+	name = frappe.db.exists("Dock", {"app": NBS_DOCK_APP, "user": ["in", ["", None]], "standard": 0})
+	if not name:
+		return
+	layer = frappe.get_doc("Dock", name)
+	dirty = False
+	for row in layer.items:
+		if row.link_to in titles and row.title != titles[row.link_to]:
+			row.title = titles[row.link_to]
+			dirty = True
+	if not dirty:
+		return
+	layer.flags.ignore_permissions = True
+	layer.save()
+
+
+def _sync_setup_block():
+	"""Block the Setup module for users without the System Manager role.
+
+	Additive only: entries are never removed, so deliberate unblocks are left
+	for the admin to manage by hand afterwards. Administrator is skipped.
+	"""
+	managers = set(frappe.get_all("Has Role", filters={"role": "System Manager"}, pluck="parent"))
+	users = frappe.get_all(
+		"User", filters={"enabled": 1, "name": ["not in", ["Administrator", "Guest"]]}, pluck="name"
+	)
+	for name in users:
+		if name in managers:
+			continue
+		user = frappe.get_doc("User", name)
+		if any(block.module == "Setup" for block in user.block_modules):
+			continue
+		user.append("block_modules", {"module": "Setup"})
+		user.flags.ignore_permissions = True
+		user.save()
 	frappe.db.commit()
 
 
@@ -432,8 +588,9 @@ def _ensure_tier_price_lists():
 def after_migrate():
 	"""
 	1. Drop leftover legacy `paying_account` columns.
-	2. Inject NBS selling items into the Selling sidebar.
-	3. Inject NBS expense group into both Accounting and Invoicing sidebars.
+	2. Interleave NBS items flat into the site-wide sidebar layers
+	   (Selling, Buying, Stock, Assets, Accounts).
+	3. Rename dock entries + hide unused modules; block Setup for non-System-Managers.
 	4. Create cheque clearing accounts + the Check Mode of Payment.
 	5. Ensure pricing tier Price Lists (Standard Selling = 30% reuse).
 	6. Seed placement billing/capital items (Others brand, fee items, Equipment category).
@@ -444,47 +601,12 @@ def after_migrate():
 
 	drop_paying_account_columns()
 
-	# ── Selling sidebar ──────────────────────────────────────────────────────
-	if frappe.db.exists("Workspace Sidebar", "Selling"):
-		sidebar = frappe.get_doc("Workspace Sidebar", "Selling")
+	# ── NBS module sidebar sections (v16.50 site layers) ────────────────────
+	_sync_nbs_sidebars()
 
-		if not _is_correctly_placed(sidebar.items):
-			nbs_label_set = set(NBS_LABELS)
-			sidebar.items = [row for row in sidebar.items if row.label not in nbs_label_set]
-
-			insert_idx = next(
-				(i + 1 for i, row in enumerate(sidebar.items) if row.label == "Sales Invoice"),
-				len(sidebar.items),
-			)
-
-			new_items = sidebar.items[:insert_idx]
-			for item_data in NBS_SELLING_SIDEBAR_ITEMS:
-				new_row = frappe.new_doc("Workspace Sidebar Item")
-				new_row.update(item_data)
-				new_row.parent = "Selling"
-				new_row.parenttype = "Workspace Sidebar"
-				new_row.parentfield = "items"
-				new_items.append(new_row)
-
-			new_items += sidebar.items[insert_idx:]
-			sidebar.items = new_items
-
-			for i, row in enumerate(sidebar.items):
-				row.idx = i + 1
-
-			sidebar.flags.ignore_permissions = True
-			sidebar.save()
-			frappe.db.commit()
-
-	# ── Accounting sidebar ───────────────────────────────────────────────────
-	_inject_expense_items("Accounting")
-
-	# ── Invoicing sidebar (v16 experimental) ────────────────────────────────
-	_inject_expense_items("Invoicing")
-
-	# ── Daily Income & Expense dashboard link ────────────────────────────────
-	_inject_dashboard_item("Accounting")
-	_inject_dashboard_item("Invoicing")
+	# ── Dock titles/hides + Setup gating ─────────────────────────────────────
+	_sync_dock_titles_and_hides()
+	_sync_setup_block()
 
 	# ── Cheque clearing accounts + Check mode of payment ────────────────────
 	_ensure_check_clearing_setup()

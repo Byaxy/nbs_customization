@@ -8,7 +8,7 @@
 	--nbs-primary-hover: #001540;
 	--nbs-danger: #dc2626;
 	--nbs-danger-hover: #b91c1c;
-	--nbs-accent-color: "#00fdff";
+	--nbs-accent-color: #00fdff;
 
 	/* Sidebar */
 	--nbs-sidebar-bg: #e8e9e9;
@@ -417,6 +417,56 @@
 }
 
 /* ============================================================
+   6B. ESPRESSO BUTTON CONTRACT (Frappe v16.50+)
+   frappe.ui.button emits <button class="es-button" data-variant
+   data-theme data-size> styled via --bt-* local vars. Override
+   the vars (specificity wins, no !important needed) instead of
+   background/color directly. Legacy .btn-* rules above stay as
+   fallback for dressed page-header buttons that keep old classes.
+   ============================================================ */
+
+/* Solid (primary) buttons: Save, Submit, Continue, dialog primaries */
+.es-button[data-variant="solid"] {
+	--bt-solid-bg: var(--nbs-btn-primary-bg);
+	--bt-solid-bg-hover: var(--nbs-btn-primary-hover);
+	--bt-solid-bg-active: var(--nbs-primary-hover);
+	--bt-solid-fg: var(--nbs-btn-primary-text);
+}
+
+/* Subtle (default) buttons: navy text to match legacy .btn-default */
+.es-button:not([data-variant]),
+.es-button[data-variant="subtle"] {
+	--bt-fg: var(--nbs-primary);
+}
+
+/* Red-theme buttons (cancel / delete / reject): solid danger fill
+   even on the subtle variant, matching the legacy danger block.
+   .btn-modal-secondary is the dialog Cancel button (dom.js) which
+   carries no data-theme, so it is listed explicitly. */
+.es-button[data-theme="red"],
+.es-button.btn-modal-secondary {
+	--bt-solid-bg: var(--nbs-btn-danger-bg);
+	--bt-solid-bg-hover: var(--nbs-btn-danger-hover);
+	--bt-solid-bg-active: #991b1b;
+	--bt-solid-fg: #ffffff;
+	--bt-fill-bg: var(--nbs-btn-danger-bg);
+	--bt-fill-bg-hover: var(--nbs-btn-danger-hover);
+	--bt-fill-bg-active: #991b1b;
+	--bt-fg: #ffffff;
+	--bt-border: var(--nbs-btn-danger-bg);
+	--bt-border-hover: var(--nbs-btn-danger-hover);
+}
+
+/* Child-table footer actions: brand-filled like the old Add Row */
+.es-button.grid-add-row,
+.es-button.grid-add-multiple-rows {
+	--bt-fill-bg: var(--nbs-btn-primary-bg);
+	--bt-fill-bg-hover: var(--nbs-btn-primary-hover);
+	--bt-fill-bg-active: var(--nbs-primary-hover);
+	--bt-fg: var(--nbs-btn-primary-text);
+}
+
+/* ============================================================
    7. LIST VIEW TABLES
    ============================================================ */
 
@@ -753,7 +803,7 @@ body.login-page {
 	font-weight: 600;
 }
 
-/* Login button */
+/* Login button (legacy .btn-primary + v16.50 .es-button[data-variant="solid"]) */
 .login-content .btn-primary,
 .page-card .btn-primary {
 	background-color: var(--nbs-login-btn-color) !important;
@@ -764,6 +814,17 @@ body.login-page {
 	font-size: 15px;
 	font-weight: 600;
 	border-radius: 6px;
+}
+
+.login-content .es-button[data-variant="solid"],
+.page-card .es-button[data-variant="solid"] {
+	--bt-solid-bg: var(--nbs-login-btn-color);
+	--bt-solid-bg-hover: var(--nbs-btn-primary-hover);
+	--bt-solid-bg-active: var(--nbs-primary-hover);
+	--bt-solid-fg: #ffffff;
+	width: 100%;
+	font-size: 15px;
+	font-weight: 600;
 }
 
 .login-content .btn-primary:hover,
@@ -815,16 +876,19 @@ body.login-page {
 
 /* High contrast mode */
 @media (prefers-contrast: high) {
-	.btn-primary {
+	.btn-primary,
+	.es-button[data-variant="solid"] {
 		border: 2px solid #000000 !important;
 	}
 
 	.btn-danger,
-	.btn-cancel {
+	.btn-cancel,
+	.es-button[data-theme="red"],
+	.es-button.btn-modal-secondary {
 		border: 2px solid #000000 !important;
 	}
 
-	.desk-sidebar .sidebar-item.selected a {
+	.body-sidebar .standard-sidebar-item.active-sidebar .item-anchor {
 		outline: 2px solid #ffffff;
 	}
 }
@@ -834,8 +898,9 @@ body.login-page {
 	.btn-primary,
 	.btn-danger,
 	.btn-cancel,
+	.es-button,
 	.table tbody tr,
-	.desk-sidebar .sidebar-item a {
+	.body-sidebar .standard-sidebar-item .item-anchor {
 		transition: none !important;
 	}
 
@@ -844,8 +909,8 @@ body.login-page {
 		transform: none !important;
 	}
 
-	#freeze::before,
-	.page-loading-indicator::before {
+	#freeze img,
+	.page-loading-indicator img {
 		animation: none !important;
 		opacity: 1 !important;
 	}

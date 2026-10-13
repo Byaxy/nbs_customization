@@ -1,0 +1,312 @@
+{% from "templates/includes/login/macros.html" import alert_banner %}
+{% extends "templates/web.html" %}
+{% block navbar %}
+{% if show_language_picker %}
+	{{ super() }}
+{% endif %}
+{% endblock %}
+{% macro email_login_body() -%}
+{% if not disable_user_pass_login or (ldap_settings and ldap_settings.enabled) %}
+<div class="page-card-body flex flex-col gap-4">
+	{{ alert_banner("error") }}
+	<div class="form-group flex flex-col items-start gap-1.5 mb-0">
+		<label class="text-base text-ink-gray-5 w-full mb-0" for="login_email">{{ login_label or _("Email")}}</label>
+		<div class="email-field">
+			<input type="text" id="login_email" class="form-control"
+				placeholder="{% if login_name_placeholder %}{{ login_name_placeholder  }}{% else %}{{ _('jane@example.com') }}{% endif %}"
+				required autofocus autocomplete="username">
+		</div>
+		<p class="field-error text-base text-ink-red-8 mb-0"></p>
+	</div>
+
+	<div class="form-group flex flex-col items-start gap-2 mb-0">
+		<div class="flex flex-col items-start gap-1.5 w-full">
+			<label class="text-base text-ink-gray-5 w-full mb-0" for="login_password">{{ _("Password") }}</label>
+			<div class="password-field">
+				<input type="password" id="login_password" class="form-control" placeholder="••••••••"
+					autocomplete="current-password" required>
+
+				<svg toggle="#login_password" class="icon icon-sm toggle-password" xmlns="http://www.w3.org/2000/svg">
+						<use href="#icon-eye"></use>
+					</svg>
+			</div>
+			<p class="field-error text-base text-ink-red-8 mb-0"></p>
+		</div>
+		{% if not disable_user_pass_login %}
+		<p class="text-lg text-right w-full mb-0">
+			<a href="#forgot" class="text-base text-ink-gray-5">{{ _("Forgot password?") }}</a>
+		</p>
+		{% endif %}
+	</div>
+</div>
+{% endif %}
+<div class="page-card-actions flex flex-col gap-3">
+	{% if not disable_user_pass_login %}
+	<button class="es-button w-full" data-variant="solid" type="submit">
+		{{ _("Continue") }}</button>
+	{% endif %}
+	{% if ldap_settings and ldap_settings.enabled %}
+	<button class="es-button w-full btn-ldap-login" data-variant="solid">
+		{{ _("Login with LDAP") }}</button>
+	{% endif %}
+	{% if login_with_email_link %}
+	<a href="#login-with-email-link"
+		class="es-button w-full btn-login-option btn-login-with-email-link">
+		{{ _("Login with Email Link") }}</a>
+	{% endif %}
+	{% if social_login %}
+	<div class="social-logins text-center text-base">
+		<div class="social-login-buttons">
+			{% for provider in provider_logins %}
+			<div class="login-button-wrapper">
+				<a href="{{ provider.auth_url }}"
+					class="es-button w-full btn-login-option btn-{{ provider.name }}">
+					{% if provider.icon %}
+						{{ provider.icon }}
+					{% endif %}
+					{{ _("Login with {0}").format(provider.provider_name) }}</a>
+			</div>
+			{% endfor %}
+		</div>
+	</div>
+	{% endif %}
+</div>
+{% endmacro %}
+
+{% block head_include %}
+{{ include_style('login.bundle.css') }}
+<style>
+	/* Full-bleed: escape web.html container padding so both columns span the viewport. */
+	.page-content-wrapper { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+	.page-breadcrumbs, .page-header-wrapper, .page-footer, .web-footer { display: none !important; }
+	main .page_content { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+	.nbs-login-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); width: 100%; max-width: none; margin: 0; height: 100vh; height: 100dvh; overflow: hidden; }
+	.nbs-login-brand {
+		position: relative; display: flex; flex-direction: column; justify-content: space-between;
+		padding: 2.5rem 3rem; color: #fff; overflow: hidden;
+		background-image:
+			radial-gradient(ellipse 60% 45% at 80% 15%, rgba(0, 253, 255, 0.14), transparent 70%),
+			radial-gradient(ellipse 50% 40% at 10% 90%, rgba(0, 253, 255, 0.10), transparent 70%),
+			linear-gradient(160deg, {{ nbs_theme.primaryColor or '#001b52' }} 0%, {{ nbs_theme.primaryHover or '#001540' }} 60%, #000b26 100%);
+	}
+	.nbs-login-brand::before, .nbs-login-brand::after {
+		content: ""; position: absolute; border-radius: 9999px; border: 1px solid rgba(0, 253, 255, 0.16);
+		pointer-events: none;
+	}
+	.nbs-login-brand::before { width: 420px; height: 420px; top: -140px; right: -120px; }
+	.nbs-login-brand::after { width: 420px; height: 420px; bottom: -200px; left: -120px; }
+	.nbs-login-brand .brand-inner { display: flex; flex-direction: column; justify-content: center; flex: 1; position: relative; z-index: 1; }
+	.nbs-login-brand .brand-logo { width: 76px; height: 76px; object-fit: contain; border-radius: 14px; background: rgba(255,255,255,0.95); padding: 8px; margin-bottom: 1.75rem; box-shadow: 0 18px 40px -16px rgba(0,0,0,0.5); }
+	.nbs-login-brand .brand-mark {
+		width: 76px; height: 76px; display: flex; align-items: center; justify-content: center;
+		border-radius: 16px; background: rgba(255,255,255,0.96); box-shadow: 0 18px 40px -16px rgba(0,0,0,0.5);
+		font-size: 1.6rem; font-weight: 700; color: {{ nbs_theme.primaryColor or '#001b52' }};
+	}
+	.nbs-login-brand h1 { font-size: 2.1rem; font-weight: 600; line-height: 1.3; margin: 0 0 1rem; color: #fff; }
+	.nbs-login-brand p.tagline { font-size: 1.05rem; opacity: 0.92; max-width: 30rem; line-height: 1.7; margin: 0; }
+	.nbs-login-brand .brand-foot { font-size: 0.8rem; opacity: 0.85; display: flex; align-items: center; gap: 0.6rem; position: relative; z-index: 1; }
+	.nbs-login-brand .brand-foot .badge { display: inline-block; width: 10px; height: 26px; border-radius: 2px; background: {{ nbs_theme.accentColor or '#00fdff' }}; }
+	.nbs-login-brand .back-home { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.85rem; }
+	.nbs-login-brand .back-home:hover { color: {{ nbs_theme.accentColor or '#00fdff' }}; }
+	.nbs-login-brand .back-home.is-disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+	.nbs-login-form { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2rem 1.5rem; background: {{ nbs_theme.loginBg or '#f1f5f9' }}; overflow: hidden; }
+	.nbs-login-form > div { width: 100%; max-width: 400px; }
+	.nbs-login-form .login-content { width: 100%; }
+	.nbs-login-form .page-card {
+		background: {{ nbs_theme.loginBoxBg or '#ffffff' }}; border: 1px solid #e8e8e8; border-radius: 1.25rem;
+		padding: 2rem; box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.28);
+	}
+	.nbs-login-form .page-card-head { border: none; padding: 0 0 1.5rem; margin: 0 0 1.5rem; border-bottom: 1px solid #f0f0f0; justify-content: flex-start; text-align: left; }
+	.nbs-login-form .app-logo { width: 44px; height: 44px; object-fit: contain; border-radius: 10px; background: rgba(0,27,82,0.08); padding: 6px; }
+	.nbs-login-form .app-logo-text { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 10px; background: rgba(0,27,82,0.08); font-size: 1.1rem; font-weight: 700; color: {{ nbs_theme.loginTitleColor or '#001b52' }}; }
+	.nbs-login-form .page-card-head h4 { font-size: 1.4rem; font-weight: 600; color: {{ nbs_theme.loginTitleColor or '#001b52' }}; margin: 0; }
+	.nbs-login-form .page-card .page-card-actions .es-button[data-variant="solid"] {
+		--bt-solid-bg: {{ nbs_theme.loginBtnColor or '#001b52' }};
+		--bt-solid-bg-hover: {{ nbs_theme.primaryHover or '#001540' }};
+		--bt-solid-fg: #ffffff;
+	}
+	.nbs-login-form .forgot-password-message a, .nbs-login-form .sign-up-message a { font-weight: 600; }
+	.nbs-login-form .login-foot { margin-top: 1.5rem; text-align: center; color: #8a8a8a; font-size: 0.8rem; }
+	@media (max-width: 768px) {
+		.nbs-login-wrap { grid-template-columns: 1fr; height: auto; min-height: 100vh; min-height: 100dvh; overflow-y: auto; }
+		.nbs-login-brand { display: none; }
+		.nbs-login-form { overflow-y: auto; }
+	}
+</style>
+{% endblock %}
+
+{% macro logo_section(title=null, subtitle=null) %}
+<div class="page-card-head flex flex-col items-start gap-4 text-left">
+	{% if nbs_logo %}
+	<img class="app-logo" src="{{ nbs_logo }}">
+	{% else %}
+	<span class="app-logo-text">{{ nbs_company[:3] }}</span>
+	{% endif %}
+	<div class="page-card-head-text flex flex-col gap-1.5 w-full">
+		{% if title %}
+		<h4 class="text-3xl-bold text-ink-gray-9 w-full mt-0 mb-0">{{ _(title) }}</h4>
+		{% else %}
+		<h4 class="text-3xl-bold text-ink-gray-9 w-full mt-0 mb-0">{{ _('Sign In') }}</h4>
+		{% endif %}
+		{% if subtitle %}
+		<p class="page-card-subtitle text-p-base text-ink-gray-6 mb-0">{{ _(subtitle) }}</p>
+		{% endif %}
+	</div>
+</div>
+{% endmacro %}
+
+{% block page_content %}
+
+<!-- {{ for_test }} -->
+<div class="nbs-login-wrap">
+	<aside class="nbs-login-brand">
+		<span class="back-home is-disabled" aria-disabled="true" title="Website not set up yet">
+			<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+			Back to website
+		</span>
+		<div class="brand-inner">
+			{% if nbs_logo %}
+			<img class="brand-logo" src="{{ nbs_logo }}" alt="{{ nbs_company }}">
+			{% else %}
+			<div class="brand-mark"><span>{{ nbs_company[:3] }}</span></div>
+			{% endif %}
+			<h1>{{ nbs_company }}</h1>
+			<p class="tagline">{{ _("Sign in to manage sales, inventory, placements and accounting in one place.") }}</p>
+		</div>
+		<div class="brand-foot">
+			<span class="badge"></span>
+			<span>{{ _("Secure access to your workspace") }}</span>
+		</div>
+	</aside>
+	<div class="nbs-login-form">
+		<div>
+			<noscript>
+				<div class="text-center my-5">
+					<h4>{{ _("Javascript is disabled on your browser") }}</h4>
+					<p class="text-muted">
+						{{ _("You need to enable JavaScript for your app to work.") }}<br>{{ _("To enable it follow the instructions in the following link: {0}").format("<a href='https://enable-javascript.com/'>enable-javascript.com</a></p>") }}
+					</p>
+				</div>
+			</noscript>
+			<section class='for-login'>
+				<div class="login-content page-card flex flex-col gap-5">
+					{{ logo_section(_('Sign In'), _('Welcome! Please sign in to continue.')) }}
+					<form class="form-signin form-login flex flex-col gap-8" role="form" novalidate>
+						{{ email_login_body() }}
+					</form>
+					{%- if not disable_signup and not disable_user_pass_login -%}
+					<div class="text-center sign-up-message text-p-sm text-ink-gray-6 mt-auto mb-0">
+						{{ _("Don't have an account?") }}
+						<a href="#signup" class="text-p-sm-semibold text-ink-gray-6">{{ _("Sign up") }}</a>
+					</div>
+					{%- endif -%}
+				</div>
+			</section>
+
+			{%- if social_login -%}
+			<section class='for-email-login'>
+				<div class="login-content page-card flex flex-col gap-5">
+					{{ logo_section(_('Sign In'), _('Welcome! Please sign in to continue.')) }}
+					<form class="form-signin form-login flex flex-col gap-8" role="form" novalidate>
+					{{ email_login_body() }}
+					</form>
+					{%- if not disable_signup and not disable_user_pass_login -%}
+					<div class="text-center sign-up-message text-p-sm text-ink-gray-6 mt-auto mb-0">
+						{{ _("Don't have an account?") }}
+						<a href="#signup" class="text-p-sm-semibold text-ink-gray-6">{{ _("Sign up") }}</a>
+					</div>
+					{%- endif -%}
+				</div>
+			</section>
+			{%- endif -%}
+			<section class='for-signup {{ "signup-disabled" if disable_signup else "" }}'>
+				<div class="login-content page-card flex flex-col gap-5">
+					{{ logo_section(_('Sign Up'), _("Let's setup your account.")) }}
+					{%- if not disable_signup -%}
+					{{ signup_form_template }}
+					{%- else -%}
+					<div class="signup-disabled-message">
+						<span class='indicator gray'>{{_("Signup Disabled")}}</span>
+						<p class="text-muted text-normal sign-up-message mt-1 mb-8">{{_("Signups have been disabled for this website.")}}</p>
+						<div><a href='/' class='es-button' data-variant="solid">{{ _("Home") }}</a></div>
+					</div>
+					{%- endif -%}
+				</div>
+			</section>
+
+			<section class='for-forgot'>
+				<div class="login-content page-card flex flex-col gap-5">
+					{{ logo_section(_('Forgot Password?'), _("Please enter your email, we'll send you password reset link")) }}
+					<form class="form-signin form-forgot hide flex flex-col gap-8" role="form" novalidate>
+						<div class="page-card-body flex flex-col gap-4">
+							{{ alert_banner("success") }}
+							{{ alert_banner("error") }}
+							<div class="form-group flex flex-col items-start gap-1.5 mb-0">
+								<label class="text-base text-ink-gray-5 w-full mb-0" for="forgot_email">{{ _("Email") }}</label>
+								<div class="email-field">
+									<input type="email" id="forgot_email" class="form-control"
+										placeholder="{{ _('jane@example.com') }}" required autofocus autocomplete="username">
+								</div>
+								<p class="field-error text-base text-ink-red-8 mb-0"></p>
+							</div>
+						</div>
+						<div class="page-card-actions flex flex-col gap-3">
+							<button class="es-button w-full btn-forgot" data-variant="solid"
+								type="submit" disabled>{{ _("Send Link") }}</button>
+						</div>
+					</form>
+					<div class="text-center sign-up-message text-p-sm text-ink-gray-6 mt-auto mb-0">
+						<a href="#login" class="text-p-sm-semibold text-ink-gray-6">{{ _("Back to sign in") }}</a>
+					</div>
+				</div>
+			</section>
+
+			<section class='for-login-with-email-link'>
+				<div class="login-content page-card flex flex-col gap-5">
+					{{ logo_section(_('Sign In'), _('Welcome! Please sign in to continue.')) }}
+					<form class="form-signin form-login-with-email-link hide flex flex-col gap-8" role="form" novalidate>
+						<div class="page-card-body flex flex-col gap-4">
+							{{ alert_banner("success", _("Please check your email.")) }}
+							{{ alert_banner("error") }}
+							<div class="form-group flex flex-col items-start gap-1.5 mb-0">
+								<label class="text-base text-ink-gray-5 w-full mb-0" for="login_with_email_link_email">{{ _("Email") }}</label>
+								<div class="email-field">
+									<input type="email" id="login_with_email_link_email" class="form-control"
+										placeholder="{{ _('jane@example.com') }}" required autofocus autocomplete="username">
+								</div>
+								<p class="field-error text-base text-ink-red-8 mb-0"></p>
+							</div>
+						</div>
+						<div class="page-card-actions flex flex-col gap-3">
+							<p class="resend-link hidden flex items-center gap-2 w-full text-base text-ink-gray-6 mb-0">
+								{{ _("Didn't receive the link?") }} <a href="#" class="btn-resend-link text-base-semibold text-ink-gray-6">{{ _("Resend") }}</a>
+							</p>
+							<button class="es-button w-full btn-login-with-email-link" data-variant="solid"
+								type="submit">{{ _("Send login link") }}</button>
+							<a href="#login" class="es-button w-full btn-login-option">
+								{{ _("Login with password") }}</a>
+						</div>
+					</form>
+					{%- if not disable_signup -%}
+					<div class="text-center sign-up-message text-p-sm text-ink-gray-6 mt-auto mb-0">
+						{{ _("Don't have an account?") }}
+						<a href="#signup" class="text-p-sm-semibold text-ink-gray-6">{{ _("Sign up") }}</a>
+					</div>
+					{%- endif -%}
+				</div>
+			</section>
+			<div class="login-foot">
+				<span>© {{ frappe.utils.now_datetime().year }} {{ nbs_company }}</span>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block script %}
+<script>{% include "templates/includes/login/login.js" %}</script>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}
