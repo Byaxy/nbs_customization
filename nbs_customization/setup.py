@@ -394,28 +394,6 @@ def _assert_dock_titles(titles):
 	layer.save()
 
 
-def _sync_setup_block():
-	"""Block the Setup module for users without the System Manager role.
-
-	Additive only: entries are never removed, so deliberate unblocks are left
-	for the admin to manage by hand afterwards. Administrator is skipped.
-	"""
-	managers = set(frappe.get_all("Has Role", filters={"role": "System Manager"}, pluck="parent"))
-	users = frappe.get_all(
-		"User", filters={"enabled": 1, "name": ["not in", ["Administrator", "Guest"]]}, pluck="name"
-	)
-	for name in users:
-		if name in managers:
-			continue
-		user = frappe.get_doc("User", name)
-		if any(block.module == "Setup" for block in user.block_modules):
-			continue
-		user.append("block_modules", {"module": "Setup"})
-		user.flags.ignore_permissions = True
-		user.save()
-	frappe.db.commit()
-
-
 # ─── after_migrate entry point ────────────────────────────────────────────────
 
 
@@ -590,7 +568,7 @@ def after_migrate():
 	1. Drop leftover legacy `paying_account` columns.
 	2. Interleave NBS items flat into the site-wide sidebar layers
 	   (Selling, Buying, Stock, Assets, Accounts).
-	3. Rename dock entries + hide unused modules; block Setup for non-System-Managers.
+	3. Rename dock entries + hide unused modules.
 	4. Create cheque clearing accounts + the Check Mode of Payment.
 	5. Ensure pricing tier Price Lists (Standard Selling = 30% reuse).
 	6. Seed placement billing/capital items (Others brand, fee items, Equipment category).
@@ -604,9 +582,8 @@ def after_migrate():
 	# ── NBS module sidebar sections (v16.50 site layers) ────────────────────
 	_sync_nbs_sidebars()
 
-	# ── Dock titles/hides + Setup gating ─────────────────────────────────────
+	# ── Dock titles/hides ────────────────────────────────────────────────────
 	_sync_dock_titles_and_hides()
-	_sync_setup_block()
 
 	# ── Cheque clearing accounts + Check mode of payment ────────────────────
 	_ensure_check_clearing_setup()

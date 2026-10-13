@@ -276,6 +276,40 @@
 }
 
 /* ============================================================
+   4B. DOCK (module rail)
+   Floating tray rides over the sidebar, so it keeps the default
+   surface unless retokened: --dock-bg binds --desk-sidebar-bg,
+   which this theme does not recolor. Active/hover mirror the
+   sidebar's active item (primary bg + accent ink). Tooltips are
+   .es-tooltip--plain, a class only the dock uses.
+   ============================================================ */
+
+.dock {
+	--dock-bg: var(--nbs-sidebar-bg);
+	--dock-ink: var(--nbs-sidebar-text);
+	--dock-ink-strong: var(--nbs-sidebar-text);
+	--dock-rule: rgba(0, 27, 82, 0.14);
+}
+
+.dock .dock-item:hover,
+.dock .dock-item.active,
+.dock .dock-logo .shell-header:hover {
+	background-color: var(--nbs-sidebar-active-bg) !important;
+	color: var(--nbs-sidebar-active-text) !important;
+}
+
+.dock .dock-item:focus-visible {
+	outline: 2px solid var(--nbs-sidebar-active-text);
+	outline-offset: 2px;
+}
+
+/* Dock tooltip bubble: primary bg, white text for contrast */
+.es-tooltip.es-tooltip--plain {
+	background-color: var(--nbs-btn-primary-bg);
+	color: #ffffff;
+}
+
+/* ============================================================
    5. PRIMARY BUTTONS
    ============================================================ */
 
@@ -899,6 +933,7 @@ body.login-page {
 	.btn-danger,
 	.btn-cancel,
 	.es-button,
+	.dock .dock-item,
 	.table tbody tr,
 	.body-sidebar .standard-sidebar-item .item-anchor {
 		transition: none !important;
