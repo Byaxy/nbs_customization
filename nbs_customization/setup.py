@@ -25,11 +25,18 @@ NBS_SIDEBAR_PLACEMENTS = {
 		("Sales Commission", "Sales Commission", "DocType", "badge-percent", "Loan Waybill"),
 		("Commission Payout", "Commission Payout", "DocType", "banknote-check", "Sales Commission"),
 		(
+			"Item Pricing Settings",
+			"Item Pricing Settings",
+			"DocType",
+			"settings",
+			"Pricing Rule",
+		),
+		(
 			"Item Pricing Quotation Batch",
 			"Item Pricing Quotation Batch",
 			"DocType",
 			"clipboard-list",
-			"Pricing Rule",
+			"Item Pricing Settings",
 		),
 		(
 			"Instrument Pricing Worksheet",

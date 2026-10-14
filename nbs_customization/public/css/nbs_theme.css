@@ -9,6 +9,7 @@
 	--nbs-danger: #dc2626;
 	--nbs-danger-hover: #b91c1c;
 	--nbs-accent-color: #00fdff;
+	--nbs-accent-soft: rgba(0, 253, 255, 0.55);
 
 	/* Sidebar */
 	--nbs-sidebar-bg: #e8e9e9;
@@ -202,6 +203,26 @@
 	color: var(--nbs-sidebar-text) !important;
 }
 
+/* Module header as a white card: the "current place" indicator. Hover and
+   menu-open keep the white surface and only deepen the shadow. Scoped to
+   .sidebar-header so the dock's app mark and the user chip stay flat. */
+.body-sidebar .sidebar-header.shell-header {
+	background-color: #ffffff;
+	box-shadow: var(--elevation-sm);
+	transition: box-shadow 0.18s ease;
+}
+
+.body-sidebar .sidebar-header.shell-header:hover,
+.body-sidebar .sidebar-header.shell-header.hover,
+.body-sidebar .sidebar-header.shell-header.active-sidebar {
+	background-color: #ffffff !important;
+	box-shadow: var(--elevation-base);
+}
+
+.body-sidebar .sidebar-header.shell-header .header-title {
+	color: var(--nbs-sidebar-text) !important;
+}
+
 .body-sidebar .standard-sidebar-item .item-anchor {
 	display: flex;
 	align-items: center;
@@ -285,10 +306,15 @@
    ============================================================ */
 
 .dock {
-	--dock-bg: var(--nbs-sidebar-bg);
+	--dock-bg: #dde0e0;
 	--dock-ink: var(--nbs-sidebar-text);
 	--dock-ink-strong: var(--nbs-sidebar-text);
 	--dock-rule: rgba(0, 27, 82, 0.14);
+}
+
+/* Pinned mode: navy-tinted divider between dock and sidebar */
+body.dock-pinned .dock {
+	border-right: 1px solid rgba(0, 27, 82, 0.14);
 }
 
 .dock .dock-item:hover,
@@ -296,6 +322,16 @@
 .dock .dock-logo .shell-header:hover {
 	background-color: var(--nbs-sidebar-active-bg) !important;
 	color: var(--nbs-sidebar-active-text) !important;
+}
+
+/* Duotone module glyphs fill from --duotone-light/--duotone-dark (the only
+   properties that reach inside <use>), so currentColor rules pass them by.
+   Tint both tones accent on hover/active, mirroring the sidebar treatment.
+   Resting tiles keep the shipped gray pair. */
+.dock .dock-item:hover,
+.dock .dock-item--duotone.active {
+	--duotone-light: var(--nbs-accent-soft);
+	--duotone-dark: var(--nbs-accent-color);
 }
 
 .dock .dock-item:focus-visible {
