@@ -66,10 +66,22 @@
 	// Try immediately — catches the freeze div if it's already in the DOM
 	swapLogo();
 
-	// Re-run on DOMContentLoaded in case the freeze div is injected after
-	// the script executes but before the DOM is fully parsed
+	// Desk boot splash (.splash img from splash_screen.html) only once
+	// boot data is available — otherwise leave the stock splash alone
+	// rather than pointing it at a fallback path that may not exist.
+	swapSplashLogo();
 	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", swapLogo);
+		document.addEventListener("DOMContentLoaded", () => {
+			swapLogo();
+			swapSplashLogo();
+		});
+	}
+
+	function swapSplashLogo() {
+		if (!(window.frappe && frappe.boot && frappe.boot.app_logo_url)) return;
+		document.querySelectorAll(".splash img").forEach((img) => {
+			img.src = frappe.boot.app_logo_url;
+		});
 	}
 })();
 
@@ -142,9 +154,6 @@ class NBSTheme {
 		// Subscribe to real-time updates from other sessions
 		this.subscribeRealtime();
 
-		// Handle login page separately
-		this.setupLoginPage();
-
 		// Watch for dynamically added elements
 		this.setupMutationObserver();
 	}
@@ -194,28 +203,6 @@ class NBSTheme {
 			// Full reload ensures all painted elements pick up new colors
 			window.location.reload();
 		});
-	}
-
-	// -------------------------------------------------------------------------
-	// Login page — update the "Login to ..." text with the company name
-	// -------------------------------------------------------------------------
-	setupLoginPage() {
-		const loginText = document.querySelector(".page-card-head h4");
-		if (!loginText) return;
-
-		frappe
-			.call({
-				method: "nbs_customization.api.get_default_company",
-				args: {},
-			})
-			.then((r) => {
-				if (r && r.message && r.message.company_name) {
-					loginText.textContent = `Login to ${r.message.company_name}`;
-				}
-			})
-			.catch(() => {
-				// Fallback — leave default text as-is
-			});
 	}
 
 	// -------------------------------------------------------------------------
@@ -316,12 +303,10 @@ if (!window.NBSTheme) {
 	}
 }
 
-// Frappe framework hook — also fire after frappe.boot completes
+// Frappe framework hook — nothing extra needed once frappe.boot completes
 if (window.frappe) {
 	$(document).ready(() => {
-		if (window.NBSTheme) {
-			// Re-run login page setup in case frappe.call wasn't ready earlier
-			window.NBSTheme.setupLoginPage();
-		}
+		// Theme is already applied via init(); no login-page tweaks here
+		// so the stock "Sign In" heading is left untouched.
 	});
 }
