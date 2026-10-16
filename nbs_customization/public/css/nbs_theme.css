@@ -162,6 +162,82 @@
 }
 
 /* ============================================================
+   3B. DESKTOP NAVBAR (v16.51 apps page)
+   The header is header.desktop-navbar.navbar-container — its class
+   token is "desktop-navbar", not "navbar", so the .navbar rules
+   above never match and the bar renders transparent. It also sits
+   inside the page's 48px gutters, so a fixed ::before bleeds the
+   primary fill across the whole viewport without moving content.
+   Scope every rule to body.desktop-page.
+   ============================================================ */
+
+body.desktop-page .navbar-container {
+	background-color: var(--nbs-navbar-bg) !important;
+	border-bottom-color: var(--nbs-navbar-bg) !important;
+}
+
+/* Full-bleed fill behind the sticky bar. The ancestor chain has no
+   transform/filter, so the fixed child is viewport-relative; the
+   bar's stacking context keeps it behind the bar, above the page. */
+body.desktop-page .navbar-container::before {
+	content: "";
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: var(--desktop-navbar-height);
+	background-color: var(--nbs-navbar-bg);
+	z-index: -1;
+}
+
+/* Notification bell — white disc so the icon reads on the navy bar. */
+body.desktop-page .desktop-notification-icon {
+	background-color: #ffffff !important;
+	border-radius: 50%;
+	transition: background-color 0.15s ease;
+}
+
+body.desktop-page .desktop-notification-icon:hover {
+	background-color: #f1f5f9 !important;
+}
+
+body.desktop-page .desktop-notification-icon svg,
+body.desktop-page .desktop-notification-icon svg use {
+	color: var(--nbs-primary) !important;
+	stroke: var(--nbs-primary) !important;
+}
+
+/* Search — white pill to match the bell. --border-radius-sm is
+   undefined in the espresso build, so the widget defaults to square
+   corners; set a small radius explicitly. */
+body.desktop-page .search-widget-button {
+	background-color: #ffffff !important;
+	border-color: #ffffff !important;
+	color: var(--nbs-primary) !important;
+	border-radius: 6px !important;
+}
+
+body.desktop-page .search-widget-button:hover {
+	background-color: #f1f5f9 !important;
+	border-color: #f1f5f9 !important;
+}
+
+body.desktop-page .search-widget-button svg,
+body.desktop-page .search-widget-button svg use {
+	stroke: var(--nbs-primary) !important;
+	color: var(--nbs-primary) !important;
+}
+
+body.desktop-page .search-widget-shortcut {
+	color: rgba(0, 27, 82, 0.6) !important;
+}
+
+/* Avatar — hairline ring so it separates from the navy bar. */
+body.desktop-page .desktop-avatar .avatar-frame {
+	box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+/* ============================================================
    PAGE HEADER
    ============================================================ */
 .page-head {
@@ -512,9 +588,12 @@ body.dock-pinned .dock {
 /* Red-theme buttons (cancel / delete / reject): solid danger fill
    even on the subtle variant, matching the legacy danger block.
    .btn-modal-secondary is the dialog Cancel button (dom.js) which
-   carries no data-theme, so it is listed explicitly. */
+   carries no data-theme, so it is listed explicitly. The document
+   Cancel is a plain subtle .es-button.secondary-action whose only
+   red signal is data-label="Cancel" (toolbar.js set_secondary_action). */
 .es-button[data-theme="red"],
-.es-button.btn-modal-secondary {
+.es-button.btn-modal-secondary,
+.es-button[data-label="Cancel"] {
 	--bt-solid-bg: var(--nbs-btn-danger-bg);
 	--bt-solid-bg-hover: var(--nbs-btn-danger-hover);
 	--bt-solid-bg-active: #991b1b;
@@ -954,7 +1033,8 @@ body.login-page {
 	.btn-danger,
 	.btn-cancel,
 	.es-button[data-theme="red"],
-	.es-button.btn-modal-secondary {
+	.es-button.btn-modal-secondary,
+	.es-button[data-label="Cancel"] {
 		border: 2px solid #000000 !important;
 	}
 
