@@ -98,6 +98,15 @@ function render_parent(dialog) {
 		if ($(e.target).closest(".nbs-row-del").length) return;
 		open_row_dialog(dialog, parseInt($(this).data("idx"), 10));
 	});
+	wrapper.find("tr.nbs-exp-row").on("keydown", function (e) {
+		// Only when the row itself is focused, so a focused action button keeps
+		// its own Enter/Space activation.
+		if (e.target !== this) return;
+		if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+			e.preventDefault();
+			open_row_dialog(dialog, parseInt($(this).data("idx"), 10));
+		}
+	});
 	wrapper.find(".nbs-row-edit").on("click", function (e) {
 		e.stopPropagation();
 		open_row_dialog(dialog, parseInt($(this).data("idx"), 10));
@@ -175,6 +184,7 @@ function open_row_dialog(parent_dialog, idx) {
 }
 
 async function save_row(d, parent_dialog, idx, values, keep_open) {
+	await ensure_category_meta(d, values.expense_category);
 	const errors = validate_row_values(d, values);
 	if (errors.length) {
 		show_row_errors(d, errors);
@@ -346,6 +356,9 @@ function wire_row_dialog(d, editing) {
 				needs_ref: !!editing.needs_ref,
 		  }
 		: null;
+	// Tracks the method whose account is being resolved, so a stale response
+	// from an earlier selection cannot overwrite the current one.
+	d._mop_req = editing ? editing.mode_of_payment : null;
 
 	F.purchase_invoice.get_query = () => ({
 		query: "nbs_customization.nbs_customization.doctype.expense.expense.get_purchase_invoices_search",
@@ -362,8 +375,9 @@ function wire_row_dialog(d, editing) {
 		const vals = read_values(F);
 		const is_invoice = vals.payment_type === "Against Purchase Invoice";
 		const acc = !!vals.is_accompanying;
-		// Payment Type owns the Purchase Invoice / Expense Category pair — mutually exclusive.
-		const needs_category = !is_invoice;
+		// Payment Type owns the Purchase Invoice / Expense Category pair — mutually
+		// exclusive ONLY when not accompanying; accompanying always needs a category.
+		const needs_category = !is_invoice || acc;
 		const is_shipment = vals.expense_scope === "Inbound Shipment";
 
 		toggle_field(d, "purchase_invoice", is_invoice);
@@ -398,9 +412,13 @@ function wire_row_dialog(d, editing) {
 	};
 
 	on_change("payment_type", () => {
-		// Expense Category and Purchase Invoice are mutually exclusive; drop the unused one.
-		if (F.payment_type.get_value() === "Against Purchase Invoice") clear_category(d);
-		else clear_purchase_invoice(d);
+		// Expense Category and Purchase Invoice are mutually exclusive; drop the
+		// unused one. An accompanying expense keeps its category even on invoice pay.
+		if (F.payment_type.get_value() === "Against Purchase Invoice") {
+			if (!F.is_accompanying.get_value()) clear_category(d);
+		} else {
+			clear_purchase_invoice(d);
+		}
 		sync_visibility();
 	});
 
@@ -445,6 +463,8 @@ function wire_row_dialog(d, editing) {
 			args: { purchase_invoice: name },
 			callback(r) {
 				if (!r.message) return;
+				// Ignore a late response if the invoice changed while this was in flight.
+				if (F.purchase_invoice.get_value() !== name) return;
 				const pi = r.message;
 				// Form parity: selecting a PI overwrites the amount with the outstanding.
 				F.amount.set_value(pi.outstanding_amount);
@@ -490,6 +510,7 @@ function wire_row_dialog(d, editing) {
 
 	on_change("mode_of_payment", () => {
 		const method = F.mode_of_payment.get_value();
+		d._mop_req = method;
 		d._resolved = null;
 		if (!method) {
 			sync_visibility();
@@ -499,6 +520,8 @@ function wire_row_dialog(d, editing) {
 			method: "nbs_customization.nbs_customization.doctype.expense.expense.get_payment_method_account",
 			args: { mode_of_payment: method, company },
 			callback(r) {
+				// A newer selection superseded this request.
+				if (d._mop_req !== method) return;
 				if (!r.message) {
 					sync_visibility();
 					return;
@@ -511,6 +534,7 @@ function wire_row_dialog(d, editing) {
 				d._resolved = { account, is_check: !!r.message.is_check, needs_ref };
 				if (!r.message.is_check && account) {
 					frappe.db.get_value("Account", account, "account_type", (ar) => {
+						if (d._mop_req !== method || !d._resolved) return;
 						needs_ref = !!ar && ar.account_type === "Bank";
 						d._resolved.needs_ref = needs_ref;
 						sync_visibility();
@@ -537,12 +561,25 @@ function wire_row_dialog(d, editing) {
 			args: { mode_of_payment: editing.mode_of_payment, company },
 			callback(r) {
 				if (!r.message) return;
+				// Ignore a late response if the method changed while in flight.
+				if (!d._resolved || F.mode_of_payment.get_value() !== editing.mode_of_payment)
+					return;
 				const account =
 					r.message.is_check && r.message.clearing_account_outward
 						? r.message.clearing_account_outward
 						: r.message.account;
 				d._resolved.account = account;
 				d._resolved.is_check = !!r.message.is_check;
+				d._resolved.needs_ref = !!r.message.is_check;
+				if (!r.message.is_check && account) {
+					const method = editing.mode_of_payment;
+					frappe.db.get_value("Account", account, "account_type", (ar) => {
+						if (d._mop_req !== method || !d._resolved) return;
+						d._resolved.needs_ref = !!ar && ar.account_type === "Bank";
+						sync_visibility();
+					});
+					return;
+				}
 				sync_visibility();
 			},
 		});
@@ -662,6 +699,18 @@ function po_names(d) {
 	return (d._po_controls || []).map((p) => p.ctrl.get_value()).filter(Boolean);
 }
 
+async function ensure_category_meta(d, name) {
+	// The dialog only pre-loads the first 200 categories; a Link search can
+	// still return one outside that slice, so resolve it before validating.
+	if (!name || d._ctx.category_map.has(name)) return;
+	try {
+		const r = await frappe.db.get_value("Expense Category", name, "is_accompanying_expense");
+		if (r && r.message) d._ctx.category_map.set(name, r.message);
+	} catch (e) {
+		/* leave uncached; the server stays the source of truth */
+	}
+}
+
 function validate_row_values(d, values) {
 	const errors = [];
 	const required = ["expense_description", "expense_date", "mode_of_payment", "payee"];
@@ -672,13 +721,13 @@ function validate_row_values(d, values) {
 				message: `${d.fields_dict[k].df.label} ${__("is required")}`,
 			});
 	});
-	if (!parseFloat(values.amount)) {
+	if (!(parseFloat(values.amount) > 0)) {
 		errors.push({ field: "amount", message: __("Enter an amount above zero") });
 	}
 	const is_invoice = values.payment_type === "Against Purchase Invoice";
 	const acc = !!values.is_accompanying;
 	const is_shipment = values.expense_scope === "Inbound Shipment";
-	const needs_category = !is_invoice;
+	const needs_category = !is_invoice || acc;
 	if (needs_category && !values.expense_category) {
 		errors.push({ field: "expense_category", message: __("Expense Category is required") });
 	}
@@ -776,7 +825,7 @@ async function values_to_row(d, values) {
 	const po_list = po_names(d);
 	const is_invoice = values.payment_type === "Against Purchase Invoice";
 	const acc = !!values.is_accompanying;
-	const needs_category = !is_invoice;
+	const needs_category = !is_invoice || acc;
 	return {
 		expense_description: `${values.expense_description || ""}`.trim(),
 		expense_date: values.expense_date,
@@ -838,7 +887,7 @@ function submit_bulk_expenses(dialog, listview, company) {
 			!e.expense_description ||
 			!e.expense_date ||
 			!(parseFloat(e.amount) > 0) ||
-			(!e.expense_category && e.payment_type === "Direct Payment") ||
+			(!e.expense_category && (e.payment_type === "Direct Payment" || e.is_accompanying)) ||
 			!e.mode_of_payment ||
 			!e.payee ||
 			(e.payment_type === "Against Purchase Invoice" && !e.purchase_invoice) ||
@@ -1006,6 +1055,7 @@ function show_bulk_results(results, listview) {
 	html += `</div>`;
 	const results_dialog = new frappe.ui.Dialog({
 		title: __("Bulk Expense Submission Results"),
+		size: "extra-large",
 		fields: [{ fieldtype: "HTML", fieldname: "results_html" }],
 		primary_action_label: __("Close"),
 		primary_action() {
@@ -1013,6 +1063,7 @@ function show_bulk_results(results, listview) {
 			listview.refresh();
 		},
 	});
+	results_dialog.$wrapper.addClass("nbs-exp-results-dialog");
 	results_dialog.fields_dict.results_html.$wrapper.html(html);
 	results_dialog.show();
 	results_dialog.get_close_btn().hide();
@@ -1045,7 +1096,9 @@ function row_html(r, i) {
 		invoice_cell = `<div class="nbs-trunc">${esc(r.purchase_invoice)}</div>${linked}`;
 	}
 	return `
-		<tr class="nbs-exp-row" data-idx="${i}">
+		<tr class="nbs-exp-row" data-idx="${i}" tabindex="0" role="button" aria-label="${__(
+		"Edit expense"
+	)}">
 			<td class="text-muted">${i + 1}</td>
 			<td class="text-nowrap">${esc(fmt_date(r.expense_date))}</td>
 			<td><div class="nbs-trunc nbs-w-desc" title="${esc(r.expense_description)}">${esc(
@@ -1124,6 +1177,7 @@ function ensure_bulk_styles() {
 	if (document.getElementById("nbs-exp-bulk-styles")) return;
 	const css = `
 		.nbs-exp-bulk-dialog .modal-dialog { max-width: min(1280px, 94vw); width: min(1280px, 94vw); }
+		.nbs-exp-results-dialog .modal-dialog { max-width: min(1000px, 92vw); width: min(1000px, 92vw); }
 		.nbs-exp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
 		.nbs-exp-title { font-size: 16px; font-weight: 600; }
 		.nbs-exp-table-wrap { border: 1px solid #e5e7eb; border-radius: 10px; overflow-x: auto; }
@@ -1140,8 +1194,8 @@ function ensure_bulk_styles() {
 		.nbs-pill-blue { background: #e8efff; color: #2450c8; }
 		.nbs-pill-blue-light { background: #eef4ff; color: #16295e; margin-top: 4px; }
 		.nbs-c-idx { width: 36px; } .nbs-c-act { width: 76px; }
-		.nbs-row-actions { display: none; gap: 6px; }
-		.nbs-exp-row:hover .nbs-row-actions { display: inline-flex; }
+		.nbs-row-actions { display: inline-flex; gap: 6px; opacity: 0; }
+		.nbs-exp-row:hover .nbs-row-actions, .nbs-exp-row:focus-within .nbs-row-actions { opacity: 1; }
 		.nbs-empty { text-align: center; padding: 56px 20px; }
 		.nbs-empty-icon { width: 48px; height: 48px; border-radius: 50%; background: #f1f2f4; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; color: #8a8f9e; margin-bottom: 12px; }
 		.nbs-empty-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
