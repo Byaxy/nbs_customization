@@ -141,18 +141,39 @@ class IntegrationTestExpense(IntegrationTestCase):
 	# ------------------------------------------------------------------ #
 
 	def test_zero_amount_rejected(self):
-		doc = self._base_expense(payment_type="Direct Payment", amount=0)
-		with self.assertRaises(frappe.ValidationError):
+		# reference_no set so the failure can only be the amount check, not the
+		# bank-reference check.
+		doc = self._base_expense(payment_type="Direct Payment", amount=0, reference_no="CHK-0001")
+		with self.assertRaisesRegex(frappe.ValidationError, "Paid Amount must be greater than zero"):
 			doc.validate()
 
 	def test_negative_amount_rejected(self):
-		doc = self._base_expense(payment_type="Direct Payment", amount=-50)
-		with self.assertRaises(frappe.ValidationError):
+		doc = self._base_expense(payment_type="Direct Payment", amount=-50, reference_no="CHK-0001")
+		with self.assertRaisesRegex(frappe.ValidationError, "Paid Amount must be greater than zero"):
 			doc.validate()
 
 	def test_positive_amount_accepted(self):
 		doc = self._base_expense(payment_type="Direct Payment", amount=100, reference_no="CHK-0001")
 		doc.validate()
+
+	def test_invoice_expense_blank_amount_defaults_to_outstanding(self):
+		from nbs_customization.tests.sales_doubles import make_test_purchase_invoice
+
+		pi = make_test_purchase_invoice()
+		try:
+			doc = self._base_expense(
+				payment_type="Against Purchase Invoice",
+				purchase_invoice=pi.name,
+				amount=None,
+				reference_no="BANK-TRF-001",
+			)
+			doc.validate()
+			self.assertEqual(doc.amount, pi.outstanding_amount)
+		finally:
+			pi.reload()
+			if pi.docstatus == 1:
+				pi.cancel()
+			frappe.delete_doc("Purchase Invoice", pi.name, force=True)
 
 	# ------------------------------------------------------------------ #
 	# Accompanying expenses — Purchase Order scope helpers                #
@@ -302,6 +323,89 @@ class IntegrationTestExpense(IntegrationTestCase):
 			po.reload()
 			po.cancel()
 			frappe.delete_doc("Purchase Order", po.name, force=True)
+
+	# ------------------------------------------------------------------ #
+	# Accompanying expense paid against a Purchase Invoice                 #
+	# ------------------------------------------------------------------ #
+
+	def _valuation_pi(self):
+		from nbs_customization.tests.sales_doubles import make_valuation_purchase_invoice
+
+		return make_valuation_purchase_invoice(expense_account=self.VALUATION_ACCOUNT)
+
+	def _delete_pi(self, pi):
+		if not frappe.db.exists("Purchase Invoice", pi.name):
+			return
+		pi.reload()
+		if pi.docstatus == 1:
+			pi.cancel()
+		frappe.delete_doc("Purchase Invoice", pi.name, force=True)
+
+	def test_accompanying_invoice_requires_category(self):
+		# The bulk dialog used to send expense_category=None for accompanying
+		# invoice rows; the server must reject that (the LCV needs the category).
+		pi = self._valuation_pi()
+		try:
+			doc = self._accompanying_expense(
+				payment_type="Against Purchase Invoice",
+				purchase_invoice=pi.name,
+				expense_category=None,
+				amount=pi.outstanding_amount,
+			)
+			with self.assertRaises(frappe.ValidationError):
+				doc.validate()
+		finally:
+			self._delete_pi(pi)
+
+	def test_accompanying_invoice_posts_pe_and_lcv(self):
+		from nbs_customization.nbs_customization.doctype.expense.expense import (
+			make_landed_cost_voucher,
+		)
+
+		po = self._make_po(qty=5)
+		pr = self._receive_po(po, 5)
+		pi = self._valuation_pi()
+		seeding_je = self._credit_bank()
+		doc = self._accompanying_expense(
+			payment_type="Against Purchase Invoice",
+			purchase_invoice=pi.name,
+			linked_purchase_order=po.name,
+			expense_scope="Single Purchase Order",
+			amount=pi.outstanding_amount,
+		)
+		doc.insert()
+		doc.submit()
+		lcv_name = None
+		try:
+			# Invoice flow settles the supplier payable via a Payment Entry.
+			self.assertTrue(doc.payment_entry)
+			pe = frappe.get_doc("Payment Entry", doc.payment_entry)
+			self.assertEqual(pe.payment_type, "Pay")
+			self.assertEqual(pe.party, "_Test Supplier")
+			self.assertEqual(pe.references[0].reference_name, pi.name)
+
+			# LCV capitalizes the ancillary cost, crediting the category account.
+			lcv_name = make_landed_cost_voucher(doc.name)
+			lcv = frappe.get_doc("Landed Cost Voucher", lcv_name)
+			self.assertEqual(lcv.taxes[0].expense_account, self.VALUATION_ACCOUNT)
+			self.assertEqual(lcv.taxes[0].amount, doc.amount)
+			self.assertEqual(len(lcv.purchase_receipts), 1)
+		finally:
+			if lcv_name and frappe.db.exists("Landed Cost Voucher", lcv_name):
+				lcv = frappe.get_doc("Landed Cost Voucher", lcv_name)
+				if lcv.docstatus == 1:
+					lcv.cancel()
+				frappe.delete_doc("Landed Cost Voucher", lcv_name, force=True)
+			# make_landed_cost_voucher db_sets landed_cost_voucher, bumping modified.
+			doc.reload()
+			doc.cancel()
+			seeding_je.cancel()
+			pr.cancel()
+			frappe.delete_doc("Purchase Receipt", pr.name, force=True)
+			po.reload()
+			po.cancel()
+			frappe.delete_doc("Purchase Order", po.name, force=True)
+			self._delete_pi(pi)
 
 	def test_backfill_single_po_purchase_receipt(self):
 		from nbs_customization.nbs_customization.backfill_expense_purchase_orders import (

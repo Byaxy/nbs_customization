@@ -33,9 +33,11 @@ class Expense(Document):
 		self._resolve_paid_to()
 		self._set_account_currencies()
 		self._validate_category_required()
-		self._validate_amount()
 		self._validate_accompanying()
 		self._validate_invoice_link()
+		# After _validate_invoice_link so an invoice expense with no amount is
+		# still defaulted from the outstanding amount before we reject it.
+		self._validate_amount()
 		self._validate_check_or_bank_reference()
 		self._validate_paid_from_matches_mop()
 		self._validate_paid_from_usable()
