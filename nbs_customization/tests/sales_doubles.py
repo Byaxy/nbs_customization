@@ -177,3 +177,52 @@ def make_test_purchase_invoice():
 	pi.insert(ignore_permissions=True)
 	pi.submit()
 	return pi
+
+
+def ensure_test_service_item(name="_Test Service Item"):
+	return _ensure(
+		"Item",
+		name,
+		{
+			"item_code": name,
+			"item_name": name,
+			"item_group": "All Item Groups",
+			"is_stock_item": 0,
+			"stock_uom": "Nos",
+		},
+	)
+
+
+def make_valuation_purchase_invoice(
+	*, expense_account="Expenses Included In Valuation - _TC", qty=1, rate=100
+):
+	"""A service-item PI whose cost books to a valuation expense account.
+
+	Accompanying expenses paid against an invoice require the invoice to book to
+	the category's account so the LCV can clear it. A non-stock item keeps the
+	row-level expense_account; a stock item is forced to "Stock Received But Not
+	Billed" (purchase_invoice.py:set_expense_account).
+	"""
+	pi = frappe.new_doc("Purchase Invoice")
+	pi.posting_date = frappe.utils.today()
+	pi.set_posting_time = 1
+	pi.company = COMPANY
+	pi.supplier = ensure_test_supplier()
+	pi.currency = "INR"
+	pi.conversion_rate = 1
+	pi.append(
+		"items",
+		{
+			"item_code": ensure_test_service_item(),
+			"qty": qty,
+			"rate": rate,
+			"price_list_rate": rate,
+			"expense_account": expense_account,
+			"conversion_factor": 1,
+			"stock_uom": "Nos",
+			"cost_center": _pick("Cost Center", "_Test Cost Center - _TC", company=COMPANY, is_group=0),
+		},
+	)
+	pi.insert(ignore_permissions=True)
+	pi.submit()
+	return pi
