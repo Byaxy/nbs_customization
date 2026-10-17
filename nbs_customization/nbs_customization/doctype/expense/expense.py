@@ -33,6 +33,7 @@ class Expense(Document):
 		self._resolve_paid_to()
 		self._set_account_currencies()
 		self._validate_category_required()
+		self._validate_amount()
 		self._validate_accompanying()
 		self._validate_invoice_link()
 		self._validate_check_or_bank_reference()
@@ -163,6 +164,10 @@ class Expense(Document):
 		needs_category = self.payment_type == "Direct Payment" or self.is_accompanying
 		if needs_category and not self.expense_category:
 			frappe.throw(_("Expense Category is required."))
+
+	def _validate_amount(self):
+		if flt(self.amount) <= 0:
+			frappe.throw(_("Paid Amount must be greater than zero."))
 
 	def _validate_accompanying(self):
 		if not self.is_accompanying:

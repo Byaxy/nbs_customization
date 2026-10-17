@@ -137,6 +137,24 @@ class IntegrationTestExpense(IntegrationTestCase):
 			frappe.delete_doc("Purchase Invoice", pi.name, force=True)
 
 	# ------------------------------------------------------------------ #
+	# Amount validation                                                    #
+	# ------------------------------------------------------------------ #
+
+	def test_zero_amount_rejected(self):
+		doc = self._base_expense(payment_type="Direct Payment", amount=0)
+		with self.assertRaises(frappe.ValidationError):
+			doc.validate()
+
+	def test_negative_amount_rejected(self):
+		doc = self._base_expense(payment_type="Direct Payment", amount=-50)
+		with self.assertRaises(frappe.ValidationError):
+			doc.validate()
+
+	def test_positive_amount_accepted(self):
+		doc = self._base_expense(payment_type="Direct Payment", amount=100, reference_no="CHK-0001")
+		doc.validate()
+
+	# ------------------------------------------------------------------ #
 	# Accompanying expenses — Purchase Order scope helpers                #
 	# ------------------------------------------------------------------ #
 
