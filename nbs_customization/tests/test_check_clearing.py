@@ -117,6 +117,39 @@ class TestCheckClearing(IntegrationTestCase):
 		frappe.db.rollback()
 		_ensure_test_setup()
 
+	def test_check_mop_rows_use_bank_or_cash_accounts(self):
+		mop = frappe.get_doc("Mode of Payment", "Check")
+		self.assertTrue(mop.accounts)
+		for row in mop.accounts:
+			details = frappe.db.get_value(
+				"Account",
+				row.default_account,
+				["company", "is_group", "account_type", "disabled"],
+				as_dict=1,
+			)
+			self.assertEqual(details.company, row.company)
+			self.assertFalse(details.is_group)
+			self.assertFalse(details.disabled)
+			self.assertIn(details.account_type, ("Bank", "Cash"))
+
+	def test_check_mop_repairs_legacy_clearing_row(self):
+		from nbs_customization.setup import _ensure_check_clearing_setup
+
+		mop = frappe.get_doc("Mode of Payment", "Check")
+		legacy_account = mop.clearing_account_inward
+		row = next(row for row in mop.accounts if row.company == COMPANY)
+		frappe.db.set_value("Mode of Payment Account", row.name, "default_account", legacy_account)
+
+		_ensure_check_clearing_setup()
+
+		mop.reload()
+		row = next(row for row in mop.accounts if row.company == COMPANY)
+		self.assertNotEqual(row.default_account, legacy_account)
+		self.assertIn(
+			frappe.db.get_value("Account", row.default_account, "account_type"),
+			("Bank", "Cash"),
+		)
+
 	def test_receive_check_forced_to_clearing_and_cleared_to_bank(self):
 		pe = _make_check_pe("Receive")
 		pe.reload()
