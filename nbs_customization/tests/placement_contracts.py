@@ -3,6 +3,7 @@
 
 import frappe
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+from frappe.utils import flt
 
 from nbs_customization.tests.placement_fixtures import (
 	BANK_ACCOUNT,
@@ -155,6 +156,8 @@ def make_contract(
 	target=None,
 	breach=3,
 	grace=0,
+	shortfall_penalty_type="None",
+	penalty_value=0,
 ):
 	# Draft contract mirroring the submitted worksheet; submit() activates it.
 	# Commercial values come from the worksheet only (SSOT tie-out enforced).
@@ -179,6 +182,8 @@ def make_contract(
 			"total_recovery_target": target if target is not None else worksheet.final_revenue_target,
 			"breach_threshold": breach,
 			"grace_period_days": grace,
+			"shortfall_penalty_type": shortfall_penalty_type,
+			"penalty_value": penalty_value,
 			"revenue_share_pct": worksheet.required_revenue_share_pct if contract_type == "CPT" else 0,
 			"avg_samples_per_day": worksheet.avg_samples_per_day,
 			"operational_days_per_month": worksheet.operational_days_per_month,
@@ -250,6 +255,14 @@ def make_contract_kit(prefix, contract_type="RRA", **overrides):
 
 
 def make_si(ctx, qty, rate, posting_date, ttype, counts=1):
+	# Keep contract rate aligned with the fixture rate so rate enforcement is
+	# exercised by real docs without rewriting the recovery arithmetic.
+	contract = ctx["contract"]
+	for line in contract.contract_reagent_lines:
+		if flt(line.contract_price) > flt(rate):
+			frappe.db.set_value("Contract Test Reagent Line", line.name, "contract_price", flt(rate))
+	frappe.clear_document_cache("Instrument Placement Contract", contract.name)
+
 	# Site mandates SO links on SI items — every fixture SI ships with its order.
 	so = frappe.get_doc(
 		{

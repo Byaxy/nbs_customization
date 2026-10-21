@@ -149,8 +149,10 @@ function _add_apply_button(frm) {
 						get_query() {
 							return {
 								filters: {
+									docstatus: 1,
 									custom_current_deployment_status: "Warehouse",
 									custom_current_placement_contract: ["is", "not set"],
+									status: ["not in", ["Sold", "Scrapped"]],
 								},
 							};
 						},

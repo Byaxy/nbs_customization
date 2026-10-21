@@ -10,3 +10,4 @@ nbs_customization.patches.v1.migrate_expense_scope_rename
 nbs_customization.patches.v1.backfill_check_bank
 nbs_customization.patches.v1.backfill_placement_company
 nbs_customization.patches.v1.backfill_placement_mirror_fields
+nbs_customization.patches.v1.backfill_placement_recovery_flags

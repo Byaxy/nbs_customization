@@ -1,10 +1,35 @@
 import frappe
 from frappe.utils import today
 
+from nbs_customization.utils.placement.permissions import (
+	PLACEMENT_MANAGERS,
+	STOCK_MANAGERS,
+	require_contract_access,
+	require_roles,
+)
+
 
 @frappe.whitelist()
 def make_deployment(source_name, target_doc=None):
 	from frappe.model.mapper import get_mapped_doc
+
+	require_roles(*STOCK_MANAGERS)
+	require_contract_access(source_name, "write")
+	contract = frappe.get_doc("Instrument Placement Contract", source_name)
+	if contract.contract_status != "Active":
+		frappe.throw(
+			frappe._("Contract {0} must be Active before deployment.").format(frappe.bold(source_name))
+		)
+	if frappe.db.exists(
+		"Analyzer Deployment",
+		{
+			"contract": source_name,
+			"deployment_status": ("in", ("Deployed", "Under Service", "Temporarily Retrieved")),
+		},
+	):
+		frappe.throw(
+			frappe._("Contract {0} already has an active deployment.").format(frappe.bold(source_name))
+		)
 
 	def set_missing_values(source, target):
 		target.deployment_status = "Draft"
@@ -44,8 +69,11 @@ def decommission_analyzer(asset_name, reason=None):
 	"""
 	from erpnext.assets.doctype.asset.depreciation import scrap_asset
 
+	require_roles(*STOCK_MANAGERS)
 	if frappe.db.get_value(
-		"Analyzer Deployment", {"asset": asset_name, "deployment_status": "Deployed"}, "name"
+		"Analyzer Deployment",
+		{"asset": asset_name, "deployment_status": ("in", ("Deployed", "Under Service"))},
+		"name",
 	):
 		frappe.throw(
 			frappe._("Asset {0} has a Deployed deployment — retrieve it before decommissioning.").format(
@@ -53,15 +81,14 @@ def decommission_analyzer(asset_name, reason=None):
 			)
 		)
 	contract = frappe.db.get_value("Asset", asset_name, "custom_current_placement_contract")
-	if (
-		contract
-		and frappe.db.get_value("Instrument Placement Contract", contract, "contract_status") == "Active"
-	):
-		frappe.throw(
-			frappe._("Asset {0} is linked to Active contract {1} — close it first.").format(
-				asset_name, contract
+	if contract:
+		status = frappe.db.get_value("Instrument Placement Contract", contract, "contract_status")
+		if status in ("Active", "Ownership Pending"):
+			frappe.throw(
+				frappe._("Asset {0} is linked to open contract {1} — close it first.").format(
+					asset_name, contract
+				)
 			)
-		)
 	scrap_asset(asset_name)
 	return asset_name
 
@@ -70,10 +97,25 @@ def decommission_analyzer(asset_name, reason=None):
 def make_repossession_request(source_name, target_doc=None):
 	from frappe.model.mapper import get_mapped_doc
 
+	require_roles(*PLACEMENT_MANAGERS)
+	require_contract_access(source_name, "write")
+	contract = frappe.get_doc("Instrument Placement Contract", source_name)
+	if contract.contract_status not in ("Active", "Ownership Pending"):
+		frappe.throw(frappe._("Contract {0} is not open for repossession.").format(frappe.bold(source_name)))
+	if frappe.db.exists(
+		"Repossession Request",
+		{"contract": source_name, "status": ("not in", ("Analyzer Retrieved", "Closed"))},
+	):
+		frappe.throw(
+			frappe._("Contract {0} already has an open Repossession Request.").format(
+				frappe.bold(source_name)
+			)
+		)
+
 	def set_missing_values(source, target):
 		deployment = frappe.db.get_value(
 			"Analyzer Deployment",
-			{"contract": source.name, "deployment_status": "Deployed"},
+			{"contract": source.name, "deployment_status": ("in", ("Deployed", "Under Service"))},
 			"name",
 		)
 		if deployment:
@@ -91,6 +133,8 @@ def make_repossession_request(source_name, target_doc=None):
 				"doctype": "Repossession Request",
 				"field_map": {
 					"name": "contract",
+					"contract_type": "contract_type",
+					"asset": "asset",
 					"customer": "customer",
 					"customer_name": "customer_name",
 				},

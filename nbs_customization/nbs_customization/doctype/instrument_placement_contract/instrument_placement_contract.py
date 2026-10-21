@@ -8,6 +8,12 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
+from nbs_customization.utils.placement.permissions import (
+	FINANCE_MANAGERS,
+	PLACEMENT_MANAGERS,
+	require_contract_access,
+	require_roles,
+)
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery as _recompute
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
 
@@ -21,12 +27,15 @@ class InstrumentPlacementContract(Document):
 		self._compute_min_monthly_value()
 		self._compute_cpt_fields()
 		self._validate_pricing_worksheet_link()
+		self._validate_commercial_terms(strict=False)
 		self._assert_matches_worksheet()
 
 	def before_submit(self):
+		require_roles(*PLACEMENT_MANAGERS)
 		self._require_contract_lines()
 		self._require_pricing_worksheet()
 		self._require_asset()
+		self._validate_commercial_terms(strict=True)
 		if not self.contract_price_list:
 			self.contract_price_list = _create_contract_price_list(self).name
 
@@ -40,9 +49,12 @@ class InstrumentPlacementContract(Document):
 		self._link_pricing_worksheet()
 
 	def on_cancel(self):
+		require_roles(*PLACEMENT_MANAGERS)
 		self._validate_no_deployment()
 		self._clear_asset_link()
 		self._unlink_pricing_worksheet()
+		self._terminate_contract("Contract cancelled")
+		_disable_contract_price_list(self.contract_price_list)
 
 	def _set_default_company(self):
 		# Company drives the print Letter Head; default it for mapped and legacy docs.
@@ -80,6 +92,13 @@ class InstrumentPlacementContract(Document):
 			return
 		if frappe.db.get_value("Asset", self.asset, "docstatus") == 2:
 			frappe.throw(frappe._("Asset {0} is cancelled.").format(frappe.bold(self.asset)))
+		asset_status = frappe.db.get_value("Asset", self.asset, "status")
+		if asset_status in ("Sold", "Scrapped"):
+			frappe.throw(
+				frappe._("Asset {0} is {1} and cannot be placed.").format(
+					frappe.bold(self.asset), frappe.bold(asset_status)
+				)
+			)
 		linked = frappe.db.get_value("Asset", self.asset, "custom_current_placement_contract")
 		if linked and linked != self.name:
 			frappe.throw(
@@ -115,7 +134,9 @@ class InstrumentPlacementContract(Document):
 			start = frappe.utils.getdate(self.start_date)
 			end = frappe.utils.getdate(self.end_date)
 			delta = (end.year - start.year) * 12 + (end.month - start.month)
-			self.contract_duration_months = max(delta + 1, 0)
+			if end.day > start.day:
+				delta += 1
+			self.contract_duration_months = max(delta, 0)
 
 	def _compute_min_monthly_value(self):
 		total = 0
@@ -137,6 +158,35 @@ class InstrumentPlacementContract(Document):
 		self.fixed_monthly_gross_revenue = total_gross
 		self.fixed_monthly_share_amount = total_gross * pct
 
+	def _validate_commercial_terms(self, strict=False):
+		if self.start_date and self.end_date and self.end_date < self.start_date:
+			frappe.throw(_("Contract End Date cannot be before Start Date."))
+
+		if self.contract_type in ("RRA", "RLO"):
+			if strict and (self.min_monthly_value or 0) <= 0:
+				frappe.throw(_("Minimum Monthly Purchase Value must be greater than zero."))
+			if strict and (self.breach_threshold or 0) < 1:
+				frappe.throw(_("Breach Threshold must be at least 1."))
+			if (self.grace_period_days or 0) < 0:
+				frappe.throw(_("Grace Period cannot be negative."))
+
+		penalty_type = self.shortfall_penalty_type or "None"
+		if penalty_type not in ("None", "Fixed Amount", "Percentage of Shortfall"):
+			frappe.throw(_("Invalid Shortfall Penalty Type."))
+		if penalty_type != "None" and (self.penalty_value or 0) <= 0:
+			frappe.throw(_("Penalty Value must be greater than zero for the selected penalty type."))
+		if penalty_type == "Percentage of Shortfall" and (self.penalty_value or 0) > 100:
+			frappe.throw(_("Percentage of Shortfall cannot exceed 100%."))
+
+		if self.contract_type == "CPT":
+			if strict and not (0 < (self.revenue_share_pct or 0) <= 100):
+				frappe.throw(_("Revenue Share % must be greater than 0 and at most 100."))
+			for line in self.contract_reagent_lines:
+				if strict and (line.monthly_test_volume or 0) <= 0:
+					frappe.throw(_("Every CPT reagent line needs a monthly test volume."))
+				if strict and (line.agreed_test_price or 0) <= 0:
+					frappe.throw(_("Every CPT reagent line needs an agreed test price."))
+
 	def _assert_matches_worksheet(self):
 		"""Block drift: commercial mirrors must equal the linked worksheet.
 
@@ -149,7 +199,7 @@ class InstrumentPlacementContract(Document):
 		ws = frappe.get_cached_doc("Instrument Pricing Worksheet", self.pricing_worksheet)
 		if ws.docstatus != 1:
 			return
-		if self.docstatus == 0:
+		if self.docstatus != 2:
 			self._backfill_legacy_mirror_fields(ws)
 		if self.contract_type == "CPT" and not _close(self.revenue_share_pct, ws.required_revenue_share_pct):
 			frappe.throw(
@@ -248,12 +298,15 @@ class InstrumentPlacementContract(Document):
 
 	@frappe.whitelist()
 	def recompute_recovery(self):
+		require_contract_access(self.name, "write")
 		_recompute(self.name)
 		self.reload()
 
 	@frappe.whitelist()
 	def create_asset_from_stock(self, warehouse: str, serial_no: str):
 		from nbs_customization.utils.placement.assets import capitalize_serial_for_placement
+
+		require_roles("System Manager", "Sales Manager", "Accounts Manager")
 
 		if self.asset:
 			frappe.throw(_("Contract already has an Asset linked."))
@@ -292,6 +345,13 @@ class InstrumentPlacementContract(Document):
 			frappe.throw(
 				frappe._("Contract Company {0} does not match Pricing Worksheet {1} company {2}.").format(
 					frappe.bold(self.company), frappe.bold(self.pricing_worksheet), frappe.bold(ws_company)
+				)
+			)
+		ws_customer = frappe.db.get_value("Instrument Pricing Worksheet", self.pricing_worksheet, "customer")
+		if ws_customer and self.customer and ws_customer != self.customer:
+			frappe.throw(
+				frappe._("Contract Customer {0} does not match Pricing Worksheet {1} customer {2}.").format(
+					frappe.bold(self.customer), frappe.bold(self.pricing_worksheet), frappe.bold(ws_customer)
 				)
 			)
 
@@ -351,6 +411,17 @@ class InstrumentPlacementContract(Document):
 				None,
 			)
 
+	def _terminate_contract(self, reason):
+		frappe.db.set_value(
+			"Instrument Placement Contract",
+			self.name,
+			{
+				"contract_status": "Terminated",
+				"termination_date": frappe.utils.today(),
+				"termination_reason": reason,
+			},
+		)
+
 	def _link_pricing_worksheet(self):
 		if not self.pricing_worksheet:
 			return
@@ -398,11 +469,32 @@ def _create_contract_price_list(contract):
 					"doctype": "Item Price",
 					"price_list": pl.name,
 					"item_code": line.item_code,
+					"customer": contract.customer,
 					"price_list_rate": line.contract_price,
 					"uom": frappe.db.get_value("Item", line.item_code, "stock_uom"),
 					"selling": 1,
-					"valid_from": frappe.utils.today(),
+					"valid_from": contract.start_date or frappe.utils.today(),
+					"valid_upto": contract.end_date,
 				}
 			).insert(ignore_permissions=True)
 
 	return pl
+
+
+def _disable_contract_price_list(price_list):
+	if not price_list:
+		return
+	frappe.db.set_value("Price List", price_list, "enabled", 0)
+	for row in frappe.get_all(
+		"Item Price",
+		filters={"price_list": price_list, "selling": 1},
+		fields=["name", "valid_upto"],
+	):
+		if not row.valid_upto or row.valid_upto > frappe.utils.getdate(frappe.utils.today()):
+			frappe.db.set_value(
+				"Item Price",
+				row.name,
+				"valid_upto",
+				frappe.utils.today(),
+				update_modified=False,
+			)

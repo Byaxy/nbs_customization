@@ -6,6 +6,8 @@ from math import ceil
 import frappe
 from frappe.model.document import Document
 
+from nbs_customization.utils.placement.permissions import PLACEMENT_MANAGERS, require_roles
+
 
 class ContractAmendment(Document):
 	def on_submit(self):
@@ -14,6 +16,7 @@ class ContractAmendment(Document):
 
 	def apply_to_contract(self):
 		"""Push approved terms onto the linked contract and flip Effective."""
+		require_roles(*PLACEMENT_MANAGERS)
 		if self.status != "Approved":
 			frappe.throw(
 				frappe._("Amendment must be Approved before it can be applied (status is '{0}').").format(
@@ -27,20 +30,11 @@ class ContractAmendment(Document):
 			_remap_lines_from_worksheet(contract, self.new_pricing_worksheet)
 
 		if self.new_declared_volume and contract.contract_reagent_lines:
-			for line in contract.contract_reagent_lines:
-				line.monthly_test_volume = self.new_declared_volume
-				line.min_monthly_qty = ceil(
-					self.new_declared_volume
-					/ (
-						(
-							line.cogs_per_unit
-							and frappe.db.get_value(
-								"Reagent Specification", {"item": line.item_code}, "default_tests_per_pack"
-							)
-						)
-						or 1
-					)
-				)
+			_apply_declared_volume(contract, self.new_declared_volume)
+
+		if self.new_end_date:
+			contract.end_date = self.new_end_date
+			contract._compute_duration()
 
 		if self.new_min_value:
 			contract.min_monthly_value = self.new_min_value
@@ -62,11 +56,6 @@ class ContractAmendment(Document):
 		if self.new_min_value:
 			contract.min_monthly_value = self.new_min_value
 
-		contract._compute_min_monthly_value()
-		contract._compute_cpt_fields()
-		if self.new_min_value:
-			contract.min_monthly_value = self.new_min_value
-
 		# Amendments are the authorized mutation path for submitted contracts.
 		contract.flags.ignore_validate_update_after_submit = True
 		contract.save(ignore_permissions=True)
@@ -77,6 +66,16 @@ class ContractAmendment(Document):
 
 	def _validate_amendment_terms(self, contract):
 		"""Guard history and worksheet eligibility before pushing terms."""
+		if self.new_declared_volume and self.new_declared_volume <= 0:
+			frappe.throw(frappe._("New declared volume must be greater than zero."))
+		if self.new_share_pct and not (0 < self.new_share_pct <= 100):
+			frappe.throw(frappe._("New revenue share must be greater than 0 and at most 100."))
+		if self.new_end_date:
+			new_end_date = frappe.utils.getdate(self.new_end_date)
+			if contract.end_date and new_end_date <= frappe.utils.getdate(contract.end_date):
+				frappe.throw(frappe._("New End Date must be after the current contract end date."))
+			if contract.start_date and new_end_date < frappe.utils.getdate(contract.start_date):
+				frappe.throw(frappe._("New End Date cannot be before the contract start date."))
 		effective_target = self._effective_recovery_target()
 		if effective_target and (contract.cumulative_collected or 0) > effective_target:
 			frappe.throw(
@@ -139,6 +138,25 @@ class ContractAmendment(Document):
 				"Instrument Pricing Worksheet", self.new_pricing_worksheet, "final_revenue_target"
 			)
 		return None
+
+
+def _apply_declared_volume(contract, total_volume):
+	"""Treat the amendment value as a total and split it by each line's share."""
+	lines = list(contract.contract_reagent_lines)
+	shares = [line.monthly_test_volume or 0 for line in lines]
+	total_contract_volume = sum(shares)
+	for line, share in zip(lines, shares, strict=True):
+		if total_contract_volume > 0:
+			volume = total_volume * share / total_contract_volume
+		else:
+			volume = total_volume / len(lines)
+		line.monthly_test_volume = volume
+		tpp = frappe.db.get_value(
+			"Reagent Specification",
+			{"item": line.item_code},
+			"default_tests_per_pack",
+		)
+		line.min_monthly_qty = ceil(volume / tpp) if tpp else 0
 
 
 def _remap_lines_from_worksheet(contract, ws_name):
@@ -225,7 +243,15 @@ def _sync_contract_price_list(contract):
 	)
 	for row in existing:
 		if row.item_code in wanted:
-			frappe.db.set_value("Item Price", row.name, "price_list_rate", wanted.pop(row.item_code))
+			frappe.db.set_value(
+				"Item Price",
+				row.name,
+				{
+					"price_list_rate": wanted.pop(row.item_code),
+					"customer": contract.customer,
+					"valid_upto": contract.end_date,
+				},
+			)
 		else:
 			frappe.delete_doc("Item Price", row.name, ignore_permissions=True)
 	for item_code, rate in wanted.items():
@@ -234,9 +260,11 @@ def _sync_contract_price_list(contract):
 				"doctype": "Item Price",
 				"price_list": contract.contract_price_list,
 				"item_code": item_code,
+				"customer": contract.customer,
 				"price_list_rate": rate,
 				"uom": frappe.db.get_value("Item", item_code, "stock_uom"),
 				"selling": 1,
-				"valid_from": frappe.utils.today(),
+				"valid_from": contract.start_date or frappe.utils.today(),
+				"valid_upto": contract.end_date,
 			}
 		).insert(ignore_permissions=True)

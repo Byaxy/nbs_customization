@@ -1,12 +1,23 @@
 # Copyright (c) 2026, Charles Byakutaga/NBS and contributors
 # For license information, please see license.txt
 
-import calendar
-import datetime
+from math import ceil
 
 import frappe
 from frappe.model.document import Document
+from frappe.utils import flt
 
+from nbs_customization.utils.placement.periods import (
+	period_end,
+	period_start,
+	posting_date_for_period,
+	validate_period,
+)
+from nbs_customization.utils.placement.permissions import (
+	FINANCE_MANAGERS,
+	require_contract_access,
+	require_roles,
+)
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery
 
 REVENUE_SHARE_FEE_ITEM = "REVENUE-SHARE-FEE"
@@ -21,22 +32,30 @@ class RevenueShareStatement(Document):
 
 @frappe.whitelist()
 def generate_revenue_share_statement(contract_name, period):
+	validate_period(period)
+	require_roles(*FINANCE_MANAGERS)
+	require_contract_access(contract_name, "write")
 	contract = frappe.get_doc("Instrument Placement Contract", contract_name)
 	if contract.contract_type != "CPT":
 		frappe.throw(frappe._("Revenue Share Statement is only for CPT contracts."))
+	if contract.contract_status != "Active":
+		frappe.throw(
+			frappe._("Revenue Share Statement requires an Active contract (current: {0}).").format(
+				contract.contract_status
+			)
+		)
 
-	declared_volume = _resolve_declared_volume(contract, period)
+	declared_volume, amendment_name = _resolve_declared_volume(contract, period)
+	if declared_volume <= 0:
+		frappe.throw(frappe._("Declared test volume must be greater than zero."))
+
+	allocated = _allocate_declared_volume(contract, declared_volume)
+	gross_revenue = sum(volume * (line.agreed_test_price or 0) for line, volume in allocated)
 	revenue_share_pct = (contract.revenue_share_pct or 0) / 100
-
-	# Live line math, not the stored snapshot: amendments push new volumes
-	# prices onto lines via post-submit saves, which skip validate, so the
-	# snapshot only refreshes when apply_to_contract recomputes it.
-	gross_revenue = sum(
-		(line.monthly_test_volume or 0) * (line.agreed_test_price or 0)
-		for line in contract.contract_reagent_lines
-	)
 	our_share = gross_revenue * revenue_share_pct
 	customer_share = gross_revenue - our_share
+	kits_per_line = _compute_kits_per_line(contract, declared_volume)
+	kits_to_deliver = sum(kits_per_line.values())
 
 	existing = frappe.db.get_value(
 		"Revenue Share Statement",
@@ -45,29 +64,33 @@ def generate_revenue_share_statement(contract_name, period):
 	)
 	if existing:
 		rss = frappe.get_doc("Revenue Share Statement", existing)
+		_assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, kits_per_line)
 	else:
 		rss = frappe.get_doc(
 			{
 				"doctype": "Revenue Share Statement",
 				"contract": contract_name,
 				"period": period,
-				"period_start": _period_start(period),
-				"period_end": _period_end(period),
+				"period_start": period_start(period),
+				"period_end": period_end(period),
 			}
 		)
 		rss.insert(ignore_permissions=True)
 
+	rss.contract_type = contract.contract_type
+	rss.customer = contract.customer
+	rss.customer_name = contract.customer_name
+	rss.asset = contract.asset
+	rss.revenue_share_pct = revenue_share_pct * 100
 	rss.declared_volume = declared_volume
 	rss.gross_revenue = gross_revenue
 	rss.our_share_amount = our_share
 	rss.customer_share_amount = customer_share
 	rss.invoiced_this_period = our_share
-
-	rss.kits_to_deliver = _compute_kits_needed(contract, declared_volume)
-
+	rss.kits_to_deliver = kits_to_deliver
+	rss.active_amendment = amendment_name
 	rss.save(ignore_permissions=True)
 
-	order_name = None
 	if rss.kits_to_deliver > 0 and not rss.waybill_kit_dispatch:
 		company = _resolve_company(contract)
 		order_name = _ensure_free_issue_order(contract, company, declared_volume)
@@ -89,43 +112,114 @@ def generate_revenue_share_statement(contract_name, period):
 
 
 def _resolve_declared_volume(contract, period):
-	period_start = _period_start(period)
-	period_end = _period_end(period)
-
 	amendment = frappe.db.get_all(
 		"Contract Amendment",
 		filters={
 			"contract": contract.name,
 			"status": "Effective",
-			"effective_date": ("between", [period_start, period_end]),
+			"effective_date": ("between", [period_start(period), period_end(period)]),
 		},
-		fields=["new_declared_volume"],
+		fields=["name", "new_declared_volume"],
 		order_by="effective_date desc",
 		limit=1,
 	)
-	if amendment:
-		return amendment[0].new_declared_volume
+	if amendment and amendment[0].new_declared_volume:
+		return amendment[0].new_declared_volume, amendment[0].name
 
 	total_vol = sum((line.monthly_test_volume or 0) for line in contract.contract_reagent_lines)
-	return total_vol or 0
+	return total_vol, None
 
 
-def _compute_kits_needed(contract, declared_volume):
-	total_packs = 0
-	for line in contract.contract_reagent_lines:
-		tpp = frappe.db.get_value("Reagent Specification", {"item": line.item_code}, "default_tests_per_pack")
-		if tpp:
-			total_packs += declared_volume / tpp
-	return total_packs
+def _allocate_declared_volume(contract, declared_volume):
+	"""Split the period's declared volume by each line's contracted share."""
+	lines = list(contract.contract_reagent_lines)
+	if not lines:
+		frappe.throw(frappe._("Contract has no reagent lines to allocate volume to."))
+
+	total_contract_volume = sum((line.monthly_test_volume or 0) for line in lines)
+	if total_contract_volume <= 0:
+		share = declared_volume / len(lines)
+		return [(line, share) for line in lines]
+
+	return [
+		(line, declared_volume * (line.monthly_test_volume or 0) / total_contract_volume) for line in lines
+	]
 
 
 def _compute_kits_per_line(contract, declared_volume):
+	volumes = {}
+	for line, volume in _allocate_declared_volume(contract, declared_volume):
+		volumes[line.item_code] = volumes.get(line.item_code, 0) + volume
+
 	result = {}
-	for line in contract.contract_reagent_lines:
-		tpp = frappe.db.get_value("Reagent Specification", {"item": line.item_code}, "default_tests_per_pack")
-		if tpp:
-			result[line.item_code] = declared_volume / tpp
+	for item_code, volume in volumes.items():
+		tpp = frappe.db.get_value(
+			"Reagent Specification",
+			{"item": item_code},
+			"default_tests_per_pack",
+		)
+		if tpp and volume > 0:
+			result[item_code] = ceil(volume / tpp)
 	return result
+
+
+def _assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, kits_per_line):
+	_assert_invoice_regeneration_safe(rss, declared_volume, gross_revenue, our_share)
+	_assert_dispatch_regeneration_safe(rss, kits_per_line)
+
+
+def _assert_invoice_regeneration_safe(rss, declared_volume, gross_revenue, our_share):
+	if not rss.sales_invoice:
+		return
+	if frappe.db.get_value("Sales Invoice", rss.sales_invoice, "docstatus") != 1:
+		rss.sales_invoice = None
+		return
+	if (
+		abs((rss.declared_volume or 0) - declared_volume) <= 0.01
+		and abs((rss.gross_revenue or 0) - gross_revenue) <= 0.01
+		and abs((rss.our_share_amount or 0) - our_share) <= 0.01
+	):
+		return
+	frappe.throw(
+		frappe._(
+			"Revenue Share Statement {0} already has invoice {1}. "
+			"Cancel or delete it before regenerating with different values."
+		).format(frappe.bold(rss.name), frappe.bold(rss.sales_invoice))
+	)
+
+
+def _assert_dispatch_regeneration_safe(rss, kits_per_line):
+	if not rss.waybill_kit_dispatch:
+		return
+	dn = frappe.get_doc("Delivery Note", rss.waybill_kit_dispatch)
+	if dn.docstatus != 1:
+		rss.waybill_kit_dispatch = None
+		return
+	if _quantities_match(_dispatch_qty_by_item(dn), _positive_kits(kits_per_line)):
+		return
+	frappe.throw(
+		frappe._(
+			"Revenue Share Statement {0} has Delivery Note {1} with different kit quantities. "
+			"Cancel the Delivery Note before regenerating with changed values."
+		).format(frappe.bold(rss.name), frappe.bold(dn.name))
+	)
+
+
+def _dispatch_qty_by_item(dn):
+	quantities = {}
+	for row in dn.items:
+		quantities[row.item_code] = quantities.get(row.item_code, 0) + flt(row.qty)
+	return quantities
+
+
+def _positive_kits(kits_per_line):
+	return {item_code: flt(qty) for item_code, qty in kits_per_line.items() if flt(qty) > 0}
+
+
+def _quantities_match(left, right):
+	if left.keys() != right.keys():
+		return False
+	return all(abs(left[item_code] - right[item_code]) <= 0.01 for item_code in left)
 
 
 def _resolve_company(contract):
@@ -248,7 +342,7 @@ def _create_revenue_share_invoice(rss, contract, company):
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Reagent Sale",
 			"custom_counts_toward_recovery": 1,
-			"posting_date": frappe.utils.today(),
+			"posting_date": posting_date_for_period(rss.period),
 			"set_posting_time": 1,
 			"items": [
 				{
@@ -264,14 +358,3 @@ def _create_revenue_share_invoice(rss, contract, company):
 	si.insert(ignore_permissions=True)
 	si.submit()
 	return si
-
-
-def _period_start(period):
-	parts = period.split("-")
-	return datetime.date(int(parts[0]), int(parts[1]), 1)
-
-
-def _period_end(period):
-	start = _period_start(period)
-	last_day = calendar.monthrange(start.year, start.month)[1]
-	return datetime.date(start.year, start.month, last_day)

@@ -9,11 +9,13 @@
  "field_order": [
   "naming_series",
   "contract",
+  "contract_type",
   "customer",
   "customer_name",
   "column_break_jmgw",
   "asset",
   "serial_no",
+  "analyzer_deployment",
   "recovery_summary_section",
   "total_recovery_target",
   "outstanding_balance",
@@ -30,7 +32,10 @@
   "transfer_certificate",
   "column_break_axrw",
   "transfer_certificate_no",
+  "transfer_price",
   "transfer_invoice",
+  "requested_by",
+  "request_date",
   "approvals_section",
   "finance_reviewed_by",
   "finance_review_date",
@@ -75,6 +80,13 @@
    "reqd": 1
   },
   {
+   "fetch_from": "contract.contract_type",
+   "fieldname": "contract_type",
+   "fieldtype": "Data",
+   "label": "Contract Type",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_jmgw",
    "fieldtype": "Column Break"
   },
@@ -93,6 +105,13 @@
    "fieldtype": "Link",
    "label": "Serial No",
    "options": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "analyzer_deployment",
+   "fieldtype": "Link",
+   "label": "Analyzer Deployment",
+   "options": "Analyzer Deployment",
    "read_only": 1
   },
   {
@@ -198,6 +217,14 @@
    "label": "Transfer Certificate Number"
   },
   {
+   "default": "0",
+   "description": "Consideration for the asset sale. Zero means transfer at no charge.",
+   "fieldname": "transfer_price",
+   "fieldtype": "Currency",
+   "label": "Transfer Price",
+   "non_negative": 1
+  },
+  {
    "allow_on_submit": 1,
    "fieldname": "transfer_certificate",
    "fieldtype": "Attach",
@@ -209,6 +236,20 @@
    "fieldtype": "Link",
    "label": "Nominal Transfer Invoice",
    "options": "Sales Invoice"
+  },
+  {
+   "fieldname": "requested_by",
+   "fieldtype": "Link",
+   "label": "Requested By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "request_date",
+   "fieldtype": "Date",
+   "label": "Request Date",
+   "read_only": 1
   },
   {
    "fieldname": "approvals_section",

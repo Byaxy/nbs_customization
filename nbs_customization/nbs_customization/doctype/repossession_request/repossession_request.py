@@ -4,12 +4,31 @@
 import frappe
 from frappe.model.document import Document
 
+from nbs_customization.utils.placement.permissions import (
+	PLACEMENT_MANAGERS,
+	STOCK_MANAGERS,
+	require_roles,
+)
+
 
 class RepossessionRequest(Document):
 	def validate(self):
 		if self.is_new():
 			return
-		self._validate_status_transition()
+		self._validate_status_update()
+
+	def before_update_after_submit(self):
+		self._validate_status_update()
+
+	def _validate_status_update(self):
+		old = self.get_doc_before_save()
+		if not old or old.status == self.status:
+			return
+		self._validate_status_transition(old)
+		if self.status == "Approved":
+			require_roles(*PLACEMENT_MANAGERS)
+		if self.status == "Analyzer Retrieved" and not self.flags.allow_analyzer_retrieved:
+			frappe.throw(frappe._("Use 'Execute Retrieval' to move this request to Analyzer Retrieved."))
 
 	def on_submit(self):
 		self._validate_required_fields()
@@ -20,16 +39,13 @@ class RepossessionRequest(Document):
 		self.status = "Closed"
 		self.db_set("status", "Closed")
 
-	def _validate_status_transition(self):
-		old = self.get_doc_before_save()
-		if not old:
-			return
+	def _validate_status_transition(self, old):
 		if self.docstatus == 1 and old.docstatus == 0:
 			return
 
 		allowed = {
 			"Draft": {"Pending Approval"},
-			"Pending Approval": {"Approved"},
+			"Pending Approval": {"Approved", "Closed"},
 			"Approved": {"Analyzer Retrieved", "Closed"},
 			"Analyzer Retrieved": {"Closed"},
 		}
@@ -55,6 +71,7 @@ class RepossessionRequest(Document):
 
 @frappe.whitelist()
 def execute_retrieval(repossession_request_name):
+	require_roles(*STOCK_MANAGERS)
 	rr = frappe.get_doc("Repossession Request", repossession_request_name)
 
 	if rr.status != "Approved":
@@ -69,6 +86,7 @@ def execute_retrieval(repossession_request_name):
 
 	deployment = frappe.get_doc("Analyzer Deployment", rr.analyzer_deployment)
 	deployment.deployment_status = "Permanently Retrieved"
+	deployment.flags.allow_permanent_retrieval = True
 	deployment.retrieval_date = rr.actual_retrieval_date or frappe.utils.today()
 	deployment.retrieval_reason = _map_repossession_reason(rr.reason)
 	deployment.condition_at_return = rr.analyzer_condition_on_return
@@ -76,6 +94,14 @@ def execute_retrieval(repossession_request_name):
 	deployment.repossession_request = rr.name
 
 	deployment.save(ignore_permissions=True)
+
+	contract = frappe.get_doc("Instrument Placement Contract", rr.contract)
+	contract._terminate_contract(f"Repossession: {rr.reason}")
+	from nbs_customization.nbs_customization.doctype.instrument_placement_contract.instrument_placement_contract import (
+		_disable_contract_price_list,
+	)
+
+	_disable_contract_price_list(contract.contract_price_list)
 
 	rr.status = "Analyzer Retrieved"
 	rr.db_set("status", "Analyzer Retrieved")

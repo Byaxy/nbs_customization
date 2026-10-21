@@ -4,7 +4,7 @@
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from nbs_customization.tests.placement_contracts import make_contract_kit
+from nbs_customization.tests.placement_contracts import make_contract_kit, make_deployed
 from nbs_customization.tests.placement_fixtures import skip_test_record_bootstrap
 
 
@@ -82,6 +82,55 @@ class TestDeploymentSideEffects(IntegrationTestCase):
 			ctx["contract"].name,
 		)
 
+	def test_existing_deployment_allows_ownership_pending(self):
+		ctx = make_contract_kit("_TST-DEP4")
+		dep = make_deployed(ctx)
+		frappe.db.set_value(
+			"Instrument Placement Contract",
+			ctx["contract"].name,
+			"contract_status",
+			"Ownership Pending",
+		)
+		dep.condition_at_return = "Good"
+		dep.save()
+
+	def test_new_deployment_requires_active_contract(self):
+		ctx = make_contract_kit("_TST-DEP5")
+		frappe.db.set_value(
+			"Instrument Placement Contract",
+			ctx["contract"].name,
+			"contract_status",
+			"Ownership Pending",
+		)
+		with self.assertRaises(frappe.ValidationError):
+			make_deployed(ctx)
+
+	def test_old_retrieval_editable_after_redeployment(self):
+		ctx = make_contract_kit("_TST-DEP6")
+		old = make_deployed(ctx)
+		old.deployment_status = "Permanently Retrieved"
+		old.flags.allow_permanent_retrieval = True
+		old.retrieval_date = frappe.utils.today()
+		old.save()
+
+		frappe.get_doc(
+			{
+				"doctype": "Analyzer Deployment",
+				"naming_series": "NBSAD-.YYYY./.####",
+				"contract": ctx["contract"].name,
+				"asset": ctx["asset"].name,
+				"customer": ctx["customer"].name,
+				"customer_site": ctx["site"].name,
+				"asset_location": "Block 1",
+				"asset_storage_location": "Field 1",
+				"deployment_date": "2026-03-01",
+				"deployment_status": "Under Service",
+			}
+		).insert()
+
+		old.condition_at_return = "Good"
+		old.save()
+
 	def test_permanent_retrieval_clears_contract(self):
 		ctx = make_contract_kit("_TST-DEP3")
 		before = frappe.db.count("Asset Movement", {"company": "NORTHLAND BIOMEDICAL SOLUTIONS"})
@@ -102,6 +151,7 @@ class TestDeploymentSideEffects(IntegrationTestCase):
 		dep.deployment_status = "Deployed"
 		dep.save()
 		dep.deployment_status = "Permanently Retrieved"
+		dep.flags.allow_permanent_retrieval = True
 		dep.retrieval_date = frappe.utils.today()
 		dep.save()
 

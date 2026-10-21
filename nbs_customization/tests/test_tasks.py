@@ -9,6 +9,7 @@ from nbs_customization.tasks import (
 )
 from nbs_customization.tests.placement_contracts import (
 	make_contract_kit,
+	make_deployed,
 	make_si,
 )
 from nbs_customization.tests.placement_fixtures import ensure_stock
@@ -63,7 +64,8 @@ class TestTasks(IntegrationTestCase):
 
 	def test_monthly_jobs_scope_by_contract_type(self):
 		rra = make_contract_kit("_TST-TSK1")
-		make_si(rra, 20, 200, "2026-07-10", "Contract Reagent Sale")
+		rate = rra["contract"].contract_reagent_lines[0].contract_price
+		make_si(rra, 20, rate, "2026-07-10", "Contract Reagent Sale")
 		cpt = make_contract_kit("_TST-TSK2", contract_type="CPT", price_per_test=600)
 		ensure_stock(cpt["reagent"].name, qty=50)
 		period = frappe.utils.today()[:7]
@@ -114,6 +116,7 @@ class TestTasks(IntegrationTestCase):
 
 	def test_daily_rlo_check_creates_otr_once(self):
 		ctx = make_contract_kit("_TST-TSK4", contract_type="RLO", target=12000)
+		make_deployed(ctx)
 		frappe.db.set_value(
 			"Instrument Placement Contract",
 			ctx["contract"].name,

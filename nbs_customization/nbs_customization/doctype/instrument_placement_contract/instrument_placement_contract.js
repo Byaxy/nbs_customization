@@ -1,6 +1,7 @@
 frappe.ui.form.on("Instrument Placement Contract", {
 	refresh(frm) {
 		_setup_queries(frm);
+		_compute_duration(frm);
 		_add_capitalize_button(frm);
 		_add_deployment_button(frm);
 		_add_retrieve_button(frm);
@@ -64,8 +65,10 @@ function _setup_queries(frm) {
 
 	frm.set_query("asset", () => {
 		const filters = {
+			docstatus: 1,
 			custom_current_deployment_status: "Warehouse",
 			custom_current_placement_contract: ["is", "not set"],
+			status: ["not in", ["Sold", "Scrapped"]],
 		};
 		if (frm.doc.asset) {
 			filters.name = ["in", [frm.doc.asset]];
@@ -109,8 +112,9 @@ function _compute_duration(frm) {
 	if (frm.doc.start_date && frm.doc.end_date) {
 		const start = frappe.datetime.str_to_obj(frm.doc.start_date);
 		const end = frappe.datetime.str_to_obj(frm.doc.end_date);
-		const months =
+		let months =
 			(end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+		if (end.getDate() > start.getDate()) months += 1;
 		frm.set_value("contract_duration_months", Math.max(months, 0));
 	}
 }
@@ -142,7 +146,7 @@ function _on_pricing_worksheet_change(frm) {
 			);
 
 			const start = frappe.datetime.now_date();
-			const end = frappe.datetime.add_days(start, (ws.contract_years || 1) * 365);
+			const end = frappe.datetime.add_months(start, (ws.contract_years || 1) * 12);
 			frm.set_value("start_date", start);
 			frm.set_value("end_date", end);
 

@@ -63,11 +63,59 @@ class TestRepossession(IntegrationTestCase):
 			"Approved",
 		)
 
+	def test_save_details_after_submit_allows_unchanged_status(self):
+		_ctx, _dep, rr = self._draft_rr("_TST-RP8")
+		rr.submit()
+		rr.actual_retrieval_date = frappe.utils.today()
+		rr.customer_notified = 1
+		rr.customer_notification_date = frappe.utils.today()
+		rr.notes = "Customer notified"
+		rr.save()
+		self.assertEqual(rr.status, "Pending Approval")
+
+	def test_reject_pending_approval_closes(self):
+		_ctx, _dep, rr = self._draft_rr("_TST-RP9")
+		rr.submit()
+		rr.status = "Closed"
+		rr.save()
+		self.assertEqual(
+			frappe.db.get_value("Repossession Request", rr.name, "status"),
+			"Closed",
+		)
+
 	def test_illegal_transition_raises(self):
 		_ctx, _dep, rr = self._draft_rr("_TST-RP2")
 		rr.status = "Approved"
 		with self.assertRaises(frappe.ValidationError):
 			rr.save()
+
+	def test_illegal_transition_blocked_after_submit(self):
+		_ctx, _dep, rr = self._draft_rr("_TST-RP6")
+		rr.submit()
+		rr.status = "Analyzer Retrieved"
+		with self.assertRaises(frappe.ValidationError):
+			rr.save()
+
+	def test_approval_requires_placement_role(self):
+		_ctx, _dep, rr = self._draft_rr("_TST-RP7")
+		rr.submit()
+
+		user = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": "accounts.manager@example.com",
+				"first_name": "Accounts Manager",
+				"send_welcome_email": 0,
+			}
+		).insert(ignore_permissions=True)
+		user.add_roles("Accounts Manager")
+		frappe.set_user(user.name)
+		try:
+			rr.status = "Approved"
+			with self.assertRaises(frappe.PermissionError):
+				rr.save()
+		finally:
+			frappe.set_user("Administrator")
 
 	def test_approve_then_execute_retrieval(self):
 		ctx, dep, rr = self._draft_rr(

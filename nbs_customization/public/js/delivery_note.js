@@ -96,6 +96,10 @@ frappe.ui.form.on("Delivery Note", {
 	custom_instrument_placement_contract(frm) {
 		_on_contract_change(frm);
 	},
+
+	custom_placement_transaction_type(frm) {
+		_setup_item_query(frm);
+	},
 });
 
 frappe.ui.form.on("Delivery Note Item", {
@@ -149,10 +153,25 @@ function _setup_item_query(frm) {
 
 	const child_table = _get_child_table(frm);
 	const item_field = _get_item_field(frm);
+	const ttype = frm.doc.custom_placement_transaction_type;
+	const cached = _contract_data_cache;
+	const analyzer_item = cached?.name === contract ? cached.analyzer_pid : null;
+
+	if (ttype === "Ownership Transfer") {
+		frm.set_query(item_field, child_table, () => ({
+			filters: analyzer_item ? { name: analyzer_item } : {},
+		}));
+		return;
+	}
+
+	const filters = analyzer_item ? { analyzer_item } : { contract_name: contract };
+	if (ttype === "Contract Reagent Sale") filters.reagent_role = "Test Reagent";
+	if (ttype === "Contract Consumable Replenishment")
+		filters.reagent_role = "Non-Test Consumable";
 
 	frm.set_query(item_field, child_table, () => ({
 		query: "nbs_customization.utils.placement.valid_items.get_valid_reagent_items",
-		filters: { contract_name: contract },
+		filters,
 	}));
 }
 
