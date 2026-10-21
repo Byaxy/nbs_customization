@@ -78,13 +78,14 @@ def daily_check_rlo_ownership():
 		SELECT c.name
 		FROM `tabInstrument Placement Contract` c
 		WHERE c.contract_type = 'RLO'
-		  AND c.contract_status = 'Active'
+		  AND c.contract_status IN ('Active', 'Ownership Pending')
 		  AND c.ownership_threshold_met = 1
 		  AND NOT EXISTS (
 			  SELECT 1
 			  FROM `tabOwnership Transfer Request` otr
 			  WHERE otr.contract = c.name
-				AND otr.status != 'Closed'
+				AND otr.docstatus != 2
+				AND otr.status != 'Transfer Completed'
 		  )
 		""",
 		as_dict=True,

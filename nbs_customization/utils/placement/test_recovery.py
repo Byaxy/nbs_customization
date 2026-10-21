@@ -62,7 +62,7 @@ class TestRecoveryRecompute(IntegrationTestCase):
 		self.assertEqual(doc.cumulative_collected, 4000)
 		self.assertEqual(doc.outstanding_on_contract, 8000)
 
-		ignored = make_si(ctx, 10, 200, "2026-07-12", "Contract Reagent Sale", counts=0)
+		ignored = make_si(ctx, 10, 200, "2026-07-12", "Standard Sale", counts=0)
 		doc.reload()
 		self.assertEqual(doc.cumulative_invoiced, 4000)
 
@@ -93,8 +93,8 @@ class TestRecoveryRecompute(IntegrationTestCase):
 		self.assertEqual(doc.contract_status, "Active")
 
 	def test_free_issue_excluded(self):
-		ctx = make_contract_kit("_TST-RECCPT", contract_type="CPT", target=60000)
-		free = make_si(ctx, 30, 200, "2026-07-10", "Contract Reagent Sale", counts=0)
+		ctx = make_contract_kit("_TST-RECCPT", contract_type="CPT", target=60000, price_per_test=600)
+		free = make_si(ctx, 30, 200, "2026-07-10", "Standard Sale", counts=0)
 		counted = make_si(ctx, 5, 200, "2026-07-12", "Contract Reagent Sale", counts=1)
 		result = recompute_contract_recovery(ctx["contract"].name)
 		self.assertEqual(result["cumulative_invoiced"], 1000)

@@ -189,6 +189,17 @@ def get_valid_reagent_items(doctype, txt, searchfield, start, page_len, filters)
 	analyzer_type = filters.get("analyzer_type")
 	test_parameter = filters.get("test_parameter")
 
+	contract_name = filters.get("contract_name")
+	if contract_name and not analyzer_item:
+		if not frappe.has_permission("Instrument Placement Contract", "read", contract_name):
+			frappe.throw(
+				frappe._("Not permitted to read Instrument Placement Contract {0}.").format(
+					frappe.bold(contract_name)
+				),
+				frappe.PermissionError,
+			)
+		analyzer_item = frappe.db.get_value("Instrument Placement Contract", contract_name, "analyzer_pid")
+
 	if analyzer_item:
 		require_analyzer_item_read(analyzer_item)
 		items = get_reagent_items_for_analyzer(analyzer_item)

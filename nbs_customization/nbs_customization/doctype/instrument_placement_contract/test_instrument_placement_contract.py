@@ -126,6 +126,7 @@ class TestContractLifecycle(FrappeTestCase):
 			"pricing_worksheet": self.worksheet.name,
 			"start_date": "2026-01-01",
 			"end_date": "2027-12-31",
+			"breach_threshold": 3,
 			"avg_samples_per_day": self.worksheet.avg_samples_per_day,
 			"operational_days_per_month": self.worksheet.operational_days_per_month,
 			"contract_reagent_lines": [
@@ -164,6 +165,15 @@ class TestContractLifecycle(FrappeTestCase):
 	def test_duration_computed(self):
 		doc = self._make_contract()
 		self.assertEqual(doc.contract_duration_months, 24)
+
+	def test_duration_anniversary_is_not_incremented(self):
+		doc = self._make_contract(start_date="2026-10-21", end_date="2029-10-21")
+		self.assertEqual(doc.contract_duration_months, 36)
+
+	def test_scrapped_asset_blocked(self):
+		self.test_asset.db_set("status", "Scrapped")
+		with self.assertRaises(frappe.ValidationError):
+			self._make_contract()
 
 	def test_submit_sets_approval_fields(self):
 		doc = self._make_contract()

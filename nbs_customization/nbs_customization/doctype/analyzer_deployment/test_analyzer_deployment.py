@@ -102,6 +102,7 @@ class TestDeploymentSideEffects(IntegrationTestCase):
 		dep.deployment_status = "Deployed"
 		dep.save()
 		dep.deployment_status = "Permanently Retrieved"
+		dep.flags.allow_permanent_retrieval = True
 		dep.retrieval_date = frappe.utils.today()
 		dep.save()
 

@@ -4,6 +4,14 @@
 import frappe
 from frappe.model.document import Document
 
+ALLOWED_TRANSITIONS = {
+	"Draft": {"Deployed", "Under Service"},
+	"Deployed": {"Under Service", "Temporarily Retrieved", "Permanently Retrieved"},
+	"Under Service": {"Deployed", "Temporarily Retrieved", "Permanently Retrieved"},
+	"Temporarily Retrieved": {"Deployed", "Permanently Retrieved"},
+	"Permanently Retrieved": set(),
+}
+
 
 class AnalyzerDeployment(Document):
 	def validate(self):
@@ -14,21 +22,100 @@ class AnalyzerDeployment(Document):
 			if self.asset:
 				company = frappe.db.get_value("Asset", self.asset, "company")
 			self.asset_storage_location = get_company_store_location(company)
+		self._validate_deployment()
 		self._detect_status_transition()
 
+	def _validate_deployment(self):
+		if not self.contract or not self.asset:
+			return
+		asset_status = frappe.db.get_value("Asset", self.asset, ["docstatus", "status"], as_dict=True)
+		if not asset_status or asset_status.docstatus != 1:
+			frappe.throw(frappe._("Asset {0} must be submitted.").format(frappe.bold(self.asset)))
+		if asset_status.status in ("Sold", "Scrapped", "Cancelled"):
+			frappe.throw(
+				frappe._("Asset {0} is {1} and cannot be deployed.").format(
+					frappe.bold(self.asset), frappe.bold(asset_status.status)
+				)
+			)
+
+		if self.deployment_status in ("Deployed", "Under Service"):
+			contract_status = frappe.db.get_value(
+				"Instrument Placement Contract", self.contract, "contract_status"
+			)
+			if contract_status != "Active":
+				frappe.throw(
+					frappe._("Contract {0} must be Active before deployment (current: {1}).").format(
+						frappe.bold(self.contract), frappe.bold(contract_status)
+					)
+				)
+
+		old = self.get_doc_before_save()
+		was_permanently_retrieved = old and old.deployment_status == "Permanently Retrieved"
+		if (
+			self.deployment_status == "Permanently Retrieved"
+			and not was_permanently_retrieved
+			and not self.flags.allow_permanent_retrieval
+		):
+			frappe.throw(
+				frappe._("Permanently Retrieved can only be set through Repossession or Ownership Transfer.")
+			)
+
+		if self.deployment_status != "Draft":
+			self._assert_no_other_active_deployment()
+
+	def _assert_no_other_active_deployment(self):
+		active_statuses = ("Deployed", "Under Service", "Temporarily Retrieved")
+		other_asset = frappe.db.get_value(
+			"Analyzer Deployment",
+			{
+				"asset": self.asset,
+				"deployment_status": ("in", active_statuses),
+				"name": ("!=", self.name or ""),
+			},
+			"name",
+		)
+		if other_asset:
+			frappe.throw(
+				frappe._("Asset {0} already has active deployment {1}.").format(
+					frappe.bold(self.asset), frappe.bold(other_asset)
+				)
+			)
+		other_contract = frappe.db.get_value(
+			"Analyzer Deployment",
+			{
+				"contract": self.contract,
+				"deployment_status": ("in", active_statuses),
+				"name": ("!=", self.name or ""),
+			},
+			"name",
+		)
+		if other_contract:
+			frappe.throw(
+				frappe._("Contract {0} already has active deployment {1}.").format(
+					frappe.bold(self.contract), frappe.bold(other_contract)
+				)
+			)
+
 	def _detect_status_transition(self):
+		new_status = self.deployment_status
 		if self.is_new():
+			if new_status == "Deployed":
+				self._on_deployed()
 			return
 
 		old = self.get_doc_before_save()
 		if not old:
 			return
 
-		new_status = self.deployment_status
 		old_status = old.deployment_status
-
 		if new_status == old_status:
 			return
+		if new_status not in ALLOWED_TRANSITIONS.get(old_status, set()):
+			frappe.throw(
+				frappe._("Cannot move Analyzer Deployment from '{0}' to '{1}'.").format(
+					frappe.bold(old_status), frappe.bold(new_status)
+				)
+			)
 
 		handlers = {
 			"Deployed": self._on_deployed,

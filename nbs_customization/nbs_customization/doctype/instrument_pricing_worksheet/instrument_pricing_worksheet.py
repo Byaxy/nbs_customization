@@ -85,6 +85,12 @@ class InstrumentPricingWorksheet(Document):
 				frappe.throw(
 					frappe._("Row {0}: Tests Per Pack is required and must be positive.").format(row.idx)
 				)
+			if self.calculation_output_type == "Revenue Share Percentage" and flt(row.price_per_test) <= 0:
+				frappe.throw(
+					frappe._("Row {0}: Price per Test is required for Revenue Share Percentage.").format(
+						row.idx
+					)
+				)
 			if row.test_parameter and row.test_parameter not in spec_params:
 				frappe.throw(
 					frappe._("Test Parameter {0} is not on this analyzer's specification.").format(
@@ -180,6 +186,7 @@ def make_instrument_placement_contract(source_name: str, target_doc=None):
 
 	def set_missing_values(source, target):
 		target.pricing_worksheet = source.name
+		target.naming_series = "NBSIPC-.YYYY./.####"
 		target.company = source.company or frappe.db.get_single_value("Global Defaults", "default_company")
 		target.contract_title = "{0} - {1} Placement Contract".format(
 			source.customer_name or source.customer, source.contract_type

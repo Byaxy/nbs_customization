@@ -73,6 +73,7 @@ class TestOwnershipTransfer(IntegrationTestCase):
 
 	def test_eligible_contract_allows_otr(self):
 		ctx = self._rlo("_TST-OT4")
+		make_deployed(ctx)
 		name = create_ownership_transfer_request(ctx["contract"].name)
 		otr = frappe.get_doc("Ownership Transfer Request", name)
 		self.assertEqual(otr.status, "Draft")
@@ -83,6 +84,7 @@ class TestOwnershipTransfer(IntegrationTestCase):
 	def test_approval_buttons_save_after_submit(self):
 		# Finance/Legal button path: set_value + save on the submitted doc.
 		ctx = self._rlo("_TST-OT7")
+		make_deployed(ctx)
 		name = create_ownership_transfer_request(ctx["contract"].name)
 		otr = frappe.get_doc("Ownership Transfer Request", name)
 		otr.submit()

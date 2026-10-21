@@ -1,8 +1,11 @@
 import frappe
 
+from nbs_customization.utils.placement.permissions import PLACEMENT_MANAGERS, require_roles
+
 
 @frappe.whitelist()
 def mark_effective(amendment_name):
+	require_roles(*PLACEMENT_MANAGERS)
 	doc = frappe.get_doc("Contract Amendment", amendment_name)
 
 	if doc.status != "Approved":

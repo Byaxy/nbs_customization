@@ -20,6 +20,7 @@
   "minimum_value_required",
   "total_actual_value",
   "shortfall_value",
+  "previous_breach_count",
   "consecutive_breach_count",
   "column_break_vlhh",
   "actual_reagent_value",
@@ -171,6 +172,13 @@
    "fieldtype": "Select",
    "label": "Compliance Status",
    "options": "Compliant\nShortfall\nGrace Period\nBreach",
+   "read_only": 1
+  },
+  {
+   "fieldname": "previous_breach_count",
+   "fieldtype": "Int",
+   "label": "Previous Consecutive Breach Count",
+   "non_negative": 1,
    "read_only": 1
   },
   {

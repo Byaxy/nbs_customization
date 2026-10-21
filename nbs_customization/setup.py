@@ -585,6 +585,7 @@ def after_migrate():
 	"""
 
 	drop_paying_account_columns()
+	_ensure_placement_roles()
 
 	# ── NBS module sidebar sections (v16.50 site layers) ────────────────────
 	_sync_nbs_sidebars()
@@ -611,6 +612,15 @@ def after_migrate():
 	from nbs_customization.placement_contract_templates import ensure_placement_contract_templates
 
 	ensure_placement_contract_templates()
+
+
+def _ensure_placement_roles():
+	"""Seed roles already referenced by placement DocPerms."""
+	for role in ("Auditor",):
+		if not frappe.db.exists("Role", role):
+			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
+				ignore_permissions=True
+			)
 
 
 def _ensure_brand_others():

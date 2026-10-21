@@ -59,6 +59,7 @@ class TestReagentSpecification(FrappeTestCase):
 						"item_code": self.reagent_item.item_code,
 						"test_parameter": param.name,
 						"monthly_test_volume": 0,
+						"tests_per_pack": 100,
 					}
 				],
 			}

@@ -75,7 +75,7 @@ class TestRevenueShareStatement(IntegrationTestCase):
 
 	def test_amendment_volume_overrides(self):
 		ctx = self._cpt("_TST-RSS3")
-		frappe.get_doc(
+		amendment_doc = frappe.get_doc(
 			{
 				"doctype": "Contract Amendment",
 				"contract": ctx["contract"].name,
@@ -87,8 +87,12 @@ class TestRevenueShareStatement(IntegrationTestCase):
 			}
 		).insert()
 		contract = frappe.get_doc("Instrument Placement Contract", ctx["contract"].name)
-		self.assertEqual(_resolve_declared_volume(contract, "2026-07"), 250)
-		self.assertEqual(_resolve_declared_volume(contract, "2026-08"), 100)
+		volume, amendment = _resolve_declared_volume(contract, "2026-07")
+		self.assertEqual(volume, 250)
+		self.assertEqual(amendment, amendment_doc.name)
+		volume, amendment = _resolve_declared_volume(contract, "2026-08")
+		self.assertEqual(volume, 100)
+		self.assertIsNone(amendment)
 
 	def test_idempotent(self):
 		from nbs_customization.setup import create_revenue_share_fee_item

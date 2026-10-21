@@ -196,14 +196,15 @@
    "depends_on": "eval:parent.calculation_output_type==\"Revenue Share Percentage\";",
    "fieldname": "price_per_test",
    "fieldtype": "Currency",
-   "label": "Price per Test"
+   "label": "Price per Test",
+   "mandatory_depends_on": "eval:parent.calculation_output_type==\"Revenue Share Percentage\";"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-08 16:01:54.993009",
+ "modified": "2026-10-21 01:03:12.438805",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Worksheet Test Reagent Line",

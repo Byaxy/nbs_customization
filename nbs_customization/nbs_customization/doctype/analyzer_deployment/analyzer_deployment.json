@@ -149,13 +149,13 @@
    "options": "New\nRefurbished\nPreviously Deployed"
   },
   {
-   "default": "Deployed",
+   "default": "Draft",
    "fieldname": "deployment_status",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Deployment Status",
-   "options": "Deployed\nUnder Service\nTemporarily Retrieved\nPermanently Retrieved",
+   "options": "Draft\nDeployed\nUnder Service\nTemporarily Retrieved\nPermanently Retrieved",
    "reqd": 1
   },
   {

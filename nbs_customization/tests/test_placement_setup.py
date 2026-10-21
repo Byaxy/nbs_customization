@@ -217,6 +217,7 @@ class TestPlacementSetup(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			decommission_analyzer(asset_name)
 		dep1.deployment_status = "Permanently Retrieved"
+		dep1.flags.allow_permanent_retrieval = True
 		dep1.retrieval_date = frappe.utils.add_days(frappe.utils.today(), 1)
 		dep1.save()
 
@@ -246,6 +247,7 @@ class TestPlacementSetup(IntegrationTestCase):
 			2,
 		)
 		dep2.deployment_status = "Permanently Retrieved"
+		dep2.flags.allow_permanent_retrieval = True
 		dep2.retrieval_date = frappe.utils.add_days(frappe.utils.today(), 3)
 		dep2.save()
 		frappe.db.set_value("Instrument Placement Contract", ct2.name, "contract_status", "Closed")
@@ -363,6 +365,7 @@ class TestPlacementSetup(IntegrationTestCase):
 		serial = make_serial(analyzer["item"].name, WAREHOUSE, "_TST-SET6-SN")
 		ct = _draft_contract("_TST-SET6", analyzer, reagent, analyzer, customer, site, ws)
 		asset_name = ct.create_asset_from_stock(WAREHOUSE, serial.serial_no)
+		ct.submit()
 		dep = frappe.get_doc(
 			{
 				"doctype": "Analyzer Deployment",

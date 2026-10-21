@@ -21,6 +21,7 @@
   "new_pricing_worksheet",
   "column_break_kryc",
   "new_declared_volume",
+  "new_end_date",
   "new_min_value",
   "new_share_pct",
   "financial_snapshot_at_time_of_amendment_section",
@@ -123,6 +124,11 @@
    "label": "New Declared Monthly Test Volume",
    "non_negative": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "new_end_date",
+   "fieldtype": "Date",
+   "label": "New Contract End Date"
   },
   {
    "depends_on": "eval:[\"RRA\",\"RLO\"].includes(doc.contract_type);",

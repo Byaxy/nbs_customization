@@ -172,6 +172,8 @@ class TestMonthlyReconciliation(IntegrationTestCase):
 			grace=0,
 			monthly_test_volume=10000,
 			analyzer_landed_cost=150000,
+			shortfall_penalty_type="Fixed Amount",
+			penalty_value=100,
 		)
 		make_si(ctx, 2, 200, "2026-07-15", "Contract Reagent Sale")
 		short = frappe.get_doc(

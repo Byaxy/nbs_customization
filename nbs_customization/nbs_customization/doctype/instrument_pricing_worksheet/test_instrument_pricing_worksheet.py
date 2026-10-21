@@ -310,6 +310,7 @@ class TestApplyWorksheet(FrappeTestCase):
 		self.assertGreater(len(mapped.contract_reagent_lines), 0)
 		self.assertEqual(mapped.total_recovery_target, self.ws.final_revenue_target)
 		self.assertEqual(mapped.company, self.ws.company)
+		self.assertEqual(mapped.naming_series, "NBSIPC-.YYYY./.####")
 		self.assertEqual(self.ws.company, frappe.db.get_single_value("Global Defaults", "default_company"))
 
 	def test_contract_created(self):
@@ -317,6 +318,7 @@ class TestApplyWorksheet(FrappeTestCase):
 		contract = self._make_contract(asset, site)
 		self.assertEqual(contract.contract_type, "RRA")
 		self.assertEqual(contract.customer, self.customer.name)
+		self.assertTrue(contract.name.startswith("NBSIPC-"))
 		self.assertEqual(contract.total_recovery_target, self.ws.final_revenue_target)
 
 	def test_contract_lines_mapped(self):
@@ -502,6 +504,31 @@ class TestWorksheetValidationFixes(FrappeTestCase):
 						"monthly_test_volume": 100,
 						"cogs_per_pack": 10,
 						"tests_per_pack": 0,
+					}
+				],
+			}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			ws.insert()
+
+	def test_revenue_share_requires_price_per_test(self):
+		ws = frappe.get_doc(
+			{
+				"doctype": "Instrument Pricing Worksheet",
+				"analyzer_pid": self.analyzer.item_code,
+				"contract_type": "CPT",
+				"calculation_output_type": "Revenue Share Percentage",
+				"customer": self.customer.name,
+				"analyzer_landed_cost": 8000,
+				"contract_years": 3,
+				"profit_margin_pct": 0,
+				"reagent_lines": [
+					{
+						"item_code": self.r1.item_code,
+						"test_parameter": self.p1.name,
+						"monthly_test_volume": 100,
+						"cogs_per_pack": 10,
+						"tests_per_pack": 100,
 					}
 				],
 			}
