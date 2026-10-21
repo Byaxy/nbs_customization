@@ -89,6 +89,17 @@ def recompute_contract_recovery(contract_name):
 				"contract_status",
 				"Ownership Pending",
 			)
+		elif (
+			not ownership_threshold_met
+			and contract.contract_status == "Ownership Pending"
+			and not _transfer_completed(contract_name)
+		):
+			frappe.db.set_value(
+				"Instrument Placement Contract",
+				contract_name,
+				"contract_status",
+				"Active",
+			)
 	elif contract.contract_type in ("RRA", "CPT"):
 		# RRA/CPT close when the recovery target is fully collected. RLO waits
 		# for the ownership transfer so the asset is still on the books.
@@ -119,3 +130,10 @@ def _is_rlo_ownership_eligible(contract_type, target, collected, outstanding):
 	if contract_type != "RLO" or target <= 0:
 		return False
 	return collected >= target and outstanding <= 1
+
+
+def _transfer_completed(contract_name):
+	return frappe.db.exists(
+		"Ownership Transfer Request",
+		{"contract": contract_name, "status": "Transfer Completed"},
+	)

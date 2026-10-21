@@ -38,18 +38,24 @@ class AnalyzerDeployment(Document):
 				)
 			)
 
+		old = self.get_doc_before_save()
+		existing_active = old and old.deployment_status in (
+			"Deployed",
+			"Under Service",
+			"Temporarily Retrieved",
+		)
 		if self.deployment_status in ("Deployed", "Under Service"):
 			contract_status = frappe.db.get_value(
 				"Instrument Placement Contract", self.contract, "contract_status"
 			)
-			if contract_status != "Active":
+			allowed_statuses = ("Active", "Ownership Pending") if existing_active else ("Active",)
+			if contract_status not in allowed_statuses:
 				frappe.throw(
 					frappe._("Contract {0} must be Active before deployment (current: {1}).").format(
 						frappe.bold(self.contract), frappe.bold(contract_status)
 					)
 				)
 
-		old = self.get_doc_before_save()
 		was_permanently_retrieved = old and old.deployment_status == "Permanently Retrieved"
 		if (
 			self.deployment_status == "Permanently Retrieved"
@@ -60,7 +66,7 @@ class AnalyzerDeployment(Document):
 				frappe._("Permanently Retrieved can only be set through Repossession or Ownership Transfer.")
 			)
 
-		if self.deployment_status != "Draft":
+		if self.deployment_status in ("Deployed", "Under Service", "Temporarily Retrieved"):
 			self._assert_no_other_active_deployment()
 
 	def _assert_no_other_active_deployment(self):

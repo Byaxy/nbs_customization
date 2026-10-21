@@ -15,6 +15,12 @@ class RepossessionRequest(Document):
 	def validate(self):
 		if self.is_new():
 			return
+		self._validate_status_update()
+
+	def before_update_after_submit(self):
+		self._validate_status_update()
+
+	def _validate_status_update(self):
 		self._validate_status_transition()
 		if self.status == "Approved":
 			require_roles(*PLACEMENT_MANAGERS)

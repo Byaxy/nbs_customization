@@ -110,6 +110,13 @@ class TestContractAmendment(IntegrationTestCase):
 		am.reload()
 		self.assertEqual(am.status, "Effective")
 
+	def test_extend_end_date_recomputes_duration(self):
+		ctx = make_contract_kit("_TST-AMD14")
+		am = self._amendment(ctx, new_end_date="2028-12-31")
+		am.apply_to_contract()
+		ct = frappe.get_doc("Instrument Placement Contract", ctx["contract"].name)
+		self.assertEqual(ct.contract_duration_months, 36)
+
 	def test_apply_value_share_worksheet_target(self):
 		ctx = make_contract_kit("_TST-AMD2")
 		ws2 = make_worksheet(

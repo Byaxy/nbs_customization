@@ -198,6 +198,12 @@ class TestContractLifecycle(FrappeTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			doc.save()
 
+	def test_worksheet_mirror_tie_out_blocks_submit_drift(self):
+		doc = self._make_contract()
+		doc.contract_reagent_lines[0].contract_price += 10
+		with self.assertRaises(frappe.ValidationError):
+			doc.submit()
+
 	def test_worksheet_mirror_tie_out_blocks_share_drift(self):
 		doc = self._make_contract(contract_type="CPT")
 		doc.revenue_share_pct = 45

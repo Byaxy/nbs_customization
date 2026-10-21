@@ -19,6 +19,9 @@ class OwnershipTransferRequest(Document):
 			self._validate_contract_eligible()
 		self._validate_status_permission()
 
+	def before_update_after_submit(self):
+		self._validate_status_permission()
+
 	def before_submit(self):
 		require_roles(*PLACEMENT_MANAGERS)
 
@@ -183,6 +186,18 @@ def complete_transfer(otr_name):
 	if not otr.transfer_date:
 		otr.transfer_date = frappe.utils.today()
 
+	contract = frappe.get_doc("Instrument Placement Contract", otr.contract)
+	if contract.contract_status not in ("Active", "Ownership Pending"):
+		frappe.throw(
+			frappe._("Cannot complete transfer — contract status is '{0}'.").format(contract.contract_status)
+		)
+	if not contract.ownership_threshold_met or flt(contract.outstanding_on_contract) > 1:
+		frappe.throw(
+			frappe._("Contract {0} is no longer eligible for ownership transfer.").format(
+				frappe.bold(otr.contract)
+			)
+		)
+
 	deployment = frappe.db.get_value(
 		"Analyzer Deployment",
 		{"contract": otr.contract, "deployment_status": ("in", ("Deployed", "Under Service"))},
@@ -197,7 +212,6 @@ def complete_transfer(otr_name):
 		dep.ownership_transfer_request = otr.name
 		dep.save(ignore_permissions=True)
 
-	contract = frappe.get_doc("Instrument Placement Contract", otr.contract)
 	si = _create_transfer_invoice(otr, contract)
 	otr.db_set("transfer_invoice", si.name)
 

@@ -31,7 +31,7 @@ function _add_status_buttons(frm) {
 		frm.add_custom_button(
 			__("Retrieve Analyzer"),
 			() => {
-				_show_retrieval_dialog(frm, "Temporarily Retrieved");
+				_show_retrieval_dialog(frm);
 			},
 			__("Status")
 		);
@@ -57,9 +57,17 @@ function _add_status_buttons(frm) {
 		);
 
 		frm.add_custom_button(
-			__("Permanently Retrieve"),
+			__("Start Repossession"),
 			() => {
-				_show_retrieval_dialog(frm, "Permanently Retrieved");
+				frappe.new_doc("Repossession Request", {
+					contract: frm.doc.contract,
+					analyzer_deployment: frm.doc.name,
+					asset: frm.doc.asset,
+					customer: frm.doc.customer,
+					customer_name: frm.doc.customer_name,
+					requested_by: frappe.session.user,
+					request_date: frappe.datetime.get_today(),
+				});
 			},
 			__("Status")
 		);
@@ -107,11 +115,9 @@ function _add_decommission_button(frm) {
 	);
 }
 
-function _show_retrieval_dialog(frm, new_status) {
+function _show_retrieval_dialog(frm) {
 	const dialog = new frappe.ui.Dialog({
-		title: __("Analyzer Retrieval — {0}", [
-			new_status === "Permanently Retrieved" ? __("Permanent") : __("Temporary"),
-		]),
+		title: __("Analyzer Retrieval — Temporary"),
 		fields: [
 			{
 				fieldname: "retrieval_reason",
@@ -147,7 +153,7 @@ function _show_retrieval_dialog(frm, new_status) {
 			frm.set_value("retrieval_reason", values.retrieval_reason);
 			frm.set_value("condition_at_return", values.condition_at_return || null);
 			frm.set_value("retrieval_date", values.retrieval_date);
-			frm.set_value("deployment_status", new_status);
+			frm.set_value("deployment_status", "Temporarily Retrieved");
 			frm.save();
 			dialog.hide();
 		},

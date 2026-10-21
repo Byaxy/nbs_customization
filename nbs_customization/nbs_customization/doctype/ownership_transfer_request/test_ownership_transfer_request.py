@@ -102,6 +102,40 @@ class TestOwnershipTransfer(IntegrationTestCase):
 			"Approved",
 		)
 
+	def test_manual_transfer_completed_blocked_after_submit(self):
+		ctx = self._rlo("_TST-OT8")
+		make_deployed(ctx)
+		name = create_ownership_transfer_request(ctx["contract"].name)
+		otr = frappe.get_doc("Ownership Transfer Request", name)
+		otr.submit()
+		otr.status = "Transfer Completed"
+		with self.assertRaises(frappe.ValidationError):
+			otr.save()
+
+	def test_finance_approval_requires_finance_role(self):
+		ctx = self._rlo("_TST-OT9")
+		make_deployed(ctx)
+		name = create_ownership_transfer_request(ctx["contract"].name)
+		otr = frappe.get_doc("Ownership Transfer Request", name)
+		otr.submit()
+
+		user = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": "sales.manager@example.com",
+				"first_name": "Sales Manager",
+				"send_welcome_email": 0,
+			}
+		).insert(ignore_permissions=True)
+		user.add_roles("Sales Manager")
+		frappe.set_user(user.name)
+		try:
+			otr.status = "Pending Legal Review"
+			with self.assertRaises(frappe.PermissionError):
+				otr.save()
+		finally:
+			frappe.set_user("Administrator")
+
 	def test_complete_transfer_fulfills_contract(self):
 		ctx = self._rlo("_TST-OT5")
 		dep = make_deployed(ctx)
@@ -145,6 +179,20 @@ class TestOwnershipTransfer(IntegrationTestCase):
 				frappe.db.get_value("Asset Depreciation Schedule", s, "docstatus"),
 				2,
 			)
+
+	def test_complete_transfer_rechecks_contract_eligibility(self):
+		ctx = self._rlo("_TST-OTA")
+		make_deployed(ctx)
+		name = create_ownership_transfer_request(ctx["contract"].name)
+		frappe.db.set_value("Ownership Transfer Request", name, "status", "Approved")
+		frappe.db.set_value("Ownership Transfer Request", name, "transfer_certificate", "/files/cert.pdf")
+		frappe.db.set_value(
+			"Instrument Placement Contract",
+			ctx["contract"].name,
+			{"ownership_threshold_met": 0, "outstanding_on_contract": 12000},
+		)
+		with self.assertRaises(frappe.ValidationError):
+			complete_transfer(name)
 
 	def test_complete_transfer_requires_certificate(self):
 		ctx = self._rlo("_TST-OT6")

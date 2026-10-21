@@ -149,20 +149,27 @@ def _compute_kits_needed(contract, declared_volume):
 
 
 def _compute_kits_per_line(contract, declared_volume):
-	result = {}
+	volumes = {}
 	for line, volume in _allocate_declared_volume(contract, declared_volume):
+		volumes[line.item_code] = volumes.get(line.item_code, 0) + volume
+
+	result = {}
+	for item_code, volume in volumes.items():
 		tpp = frappe.db.get_value(
 			"Reagent Specification",
-			{"item": line.item_code},
+			{"item": item_code},
 			"default_tests_per_pack",
 		)
 		if tpp and volume > 0:
-			result[line.item_code] = result.get(line.item_code, 0) + ceil(volume / tpp)
+			result[item_code] = ceil(volume / tpp)
 	return result
 
 
 def _assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, kits_to_deliver):
 	if not rss.sales_invoice:
+		return
+	if frappe.db.get_value("Sales Invoice", rss.sales_invoice, "docstatus") != 1:
+		rss.sales_invoice = None
 		return
 	if (
 		abs((rss.declared_volume or 0) - declared_volume) <= 0.01

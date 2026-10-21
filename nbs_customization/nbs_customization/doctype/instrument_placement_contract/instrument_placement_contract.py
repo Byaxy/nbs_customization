@@ -194,16 +194,12 @@ class InstrumentPlacementContract(Document):
 		authorized mutation path and save with
 		ignore_validate_update_after_submit, which exempts this check.
 		"""
-		if (
-			self.docstatus == 1
-			or self.flags.ignore_validate_update_after_submit
-			or not self.pricing_worksheet
-		):
+		if self.flags.ignore_validate_update_after_submit or not self.pricing_worksheet:
 			return
 		ws = frappe.get_cached_doc("Instrument Pricing Worksheet", self.pricing_worksheet)
 		if ws.docstatus != 1:
 			return
-		if self.docstatus == 0:
+		if self.docstatus != 2:
 			self._backfill_legacy_mirror_fields(ws)
 		if self.contract_type == "CPT" and not _close(self.revenue_share_pct, ws.required_revenue_share_pct):
 			frappe.throw(

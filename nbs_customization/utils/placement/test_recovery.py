@@ -84,6 +84,20 @@ class TestRecoveryRecompute(IntegrationTestCase):
 		self.assertEqual(doc.cumulative_collected, 12000)
 		self.assertEqual(doc.contract_status, "Fulfilled")
 
+	def test_payment_reversal_restores_active_rlo(self):
+		ctx = make_contract_kit("_TST-RECR", contract_type="RLO", target=12000)
+		ct = ctx["contract"].name
+		si = make_si(ctx, 60, 200, "2026-07-10", "Contract Reagent Sale")
+		payment = make_payment(si)
+		doc = frappe.get_doc("Instrument Placement Contract", ct)
+		self.assertEqual(doc.contract_status, "Ownership Pending")
+		self.assertEqual(doc.ownership_threshold_met, 1)
+
+		payment.cancel()
+		doc.reload()
+		self.assertEqual(doc.contract_status, "Active")
+		self.assertEqual(doc.ownership_threshold_met, 0)
+
 	def test_partial_collection_keeps_active(self):
 		ctx = make_contract_kit("_TST-RECP", target=12000)
 		ct = ctx["contract"].name

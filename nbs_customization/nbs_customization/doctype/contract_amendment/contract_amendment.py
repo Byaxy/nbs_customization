@@ -34,6 +34,7 @@ class ContractAmendment(Document):
 
 		if self.new_end_date:
 			contract.end_date = self.new_end_date
+			contract._compute_duration()
 
 		if self.new_min_value:
 			contract.min_monthly_value = self.new_min_value
@@ -70,9 +71,10 @@ class ContractAmendment(Document):
 		if self.new_share_pct and not (0 < self.new_share_pct <= 100):
 			frappe.throw(frappe._("New revenue share must be greater than 0 and at most 100."))
 		if self.new_end_date:
-			if contract.end_date and self.new_end_date <= contract.end_date:
+			new_end_date = frappe.utils.getdate(self.new_end_date)
+			if contract.end_date and new_end_date <= frappe.utils.getdate(contract.end_date):
 				frappe.throw(frappe._("New End Date must be after the current contract end date."))
-			if contract.start_date and self.new_end_date < contract.start_date:
+			if contract.start_date and new_end_date < frappe.utils.getdate(contract.start_date):
 				frappe.throw(frappe._("New End Date cannot be before the contract start date."))
 		effective_target = self._effective_recovery_target()
 		if effective_target and (contract.cumulative_collected or 0) > effective_target:
