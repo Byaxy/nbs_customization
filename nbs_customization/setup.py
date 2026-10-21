@@ -466,6 +466,48 @@ def _account_for(company, account_name):
 	return frappe.db.get_value("Account", {"company": company, "account_name": account_name}, "name")
 
 
+def _account_details(account):
+	if not account:
+		return None
+	return frappe.get_cached_value(
+		"Account",
+		account,
+		["company", "is_group", "account_type", "disabled"],
+		as_dict=1,
+	)
+
+
+def _is_usable_account(details, company, account_types):
+	return bool(
+		details
+		and details.company == company
+		and not details.is_group
+		and not details.disabled
+		and details.account_type in account_types
+	)
+
+
+def _is_valid_mop_account(account, company):
+	return _is_usable_account(_account_details(account), company, ("Bank", "Cash"))
+
+
+def _default_bank_cash_account(company):
+	for fieldname in ("default_bank_account", "default_cash_account"):
+		account = frappe.get_cached_value("Company", company, fieldname)
+		if _is_usable_account(_account_details(account), company, ("Bank", "Cash")):
+			return account
+	for account_type in ("Bank", "Cash"):
+		account = frappe.db.get_value(
+			"Account",
+			{"company": company, "account_type": account_type, "is_group": 0, "disabled": 0},
+			"name",
+			order_by="name asc",
+		)
+		if account:
+			return account
+	return None
+
+
 def _receivable_payable_groups(company):
 	"""Return the (receivable, payable) group account names for `company`.
 
@@ -491,6 +533,11 @@ def _ensure_check_clearing_setup():
 	account_type so they stay out of the standard Bank/Cash account pickers.
 	The inward (asset) account nests under Accounts Receivable and the outward
 	(liability) account under Accounts Payable.
+
+	ERPNext v16 validates Mode of Payment account rows as Bank, Cash or
+	Receivable ledger accounts. The MOP row therefore uses the company's default
+	Bank/Cash account; cheque routing still comes from the custom clearing
+	fields above.
 	"""
 	company_to_accounts = {}
 	for company in frappe.get_all("Company", pluck="name"):
@@ -502,18 +549,22 @@ def _ensure_check_clearing_setup():
 			continue
 		inward = _ensure_account(company, "Cheques in Transit - Inward", receivable, "Asset")
 		outward = _ensure_account(company, "Cheques in Transit - Outward", payable, "Liability")
-		company_to_accounts[company] = {"inward": inward, "outward": outward}
+		company_to_accounts[company] = {
+			"inward": inward,
+			"outward": outward,
+			"mop_account": _default_bank_cash_account(company),
+		}
 
 	if not company_to_accounts:
 		return
 
 	if not frappe.db.exists("Mode of Payment", "Check"):
 		mop = frappe.get_doc({"doctype": "Mode of Payment", "mode_of_payment": "Check", "enabled": 1})
-		for company, accounts in company_to_accounts.items():
-			mop.append("accounts", {"company": company, "default_account": accounts["inward"]})
+		_repair_check_mop_accounts(mop, company_to_accounts)
 		mop.insert(ignore_permissions=True)
 	else:
 		mop = frappe.get_doc("Mode of Payment", "Check")
+		_repair_check_mop_accounts(mop, company_to_accounts)
 
 	company = next(iter(company_to_accounts))
 	accounts = company_to_accounts[company]
@@ -521,9 +572,44 @@ def _ensure_check_clearing_setup():
 	mop.clearing_account_inward = accounts["inward"]
 	mop.clearing_account_outward = accounts["outward"]
 	if not mop.default_clearing_destination:
-		mop.default_clearing_destination = frappe.get_cached_value("Company", company, "default_bank_account")
+		mop.default_clearing_destination = (
+			frappe.get_cached_value("Company", company, "default_bank_account") or accounts["mop_account"]
+		)
 	mop.flags.ignore_permissions = True
 	mop.save()
+
+
+def _repair_check_mop_accounts(mop, company_to_accounts):
+	rows_by_company = {}
+	for row in list(mop.accounts):
+		if row.company in rows_by_company:
+			mop.remove(row)
+			continue
+		rows_by_company[row.company] = row
+
+	for company, row in rows_by_company.items():
+		fallback = company_to_accounts.get(company, {}).get("mop_account")
+		fallback = fallback or _default_bank_cash_account(company)
+		if _is_valid_mop_account(row.default_account, company):
+			continue
+		if fallback:
+			row.default_account = fallback
+		else:
+			mop.remove(row)
+			frappe.logger("nbs_customization").warning(
+				"No enabled Bank/Cash account for company %s; removed invalid Check MOP row.", company
+			)
+
+	for company, accounts in company_to_accounts.items():
+		if company in rows_by_company:
+			continue
+		fallback = accounts["mop_account"]
+		if fallback:
+			mop.append("accounts", {"company": company, "default_account": fallback})
+		else:
+			frappe.logger("nbs_customization").warning(
+				"No enabled Bank/Cash account for company %s; skipping Check MOP row.", company
+			)
 
 
 FIXED_TIER_PRICE_LISTS = [
