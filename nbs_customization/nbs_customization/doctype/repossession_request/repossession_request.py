@@ -21,7 +21,10 @@ class RepossessionRequest(Document):
 		self._validate_status_update()
 
 	def _validate_status_update(self):
-		self._validate_status_transition()
+		old = self.get_doc_before_save()
+		if not old or old.status == self.status:
+			return
+		self._validate_status_transition(old)
 		if self.status == "Approved":
 			require_roles(*PLACEMENT_MANAGERS)
 		if self.status == "Analyzer Retrieved" and not self.flags.allow_analyzer_retrieved:
@@ -36,16 +39,13 @@ class RepossessionRequest(Document):
 		self.status = "Closed"
 		self.db_set("status", "Closed")
 
-	def _validate_status_transition(self):
-		old = self.get_doc_before_save()
-		if not old:
-			return
+	def _validate_status_transition(self, old):
 		if self.docstatus == 1 and old.docstatus == 0:
 			return
 
 		allowed = {
 			"Draft": {"Pending Approval"},
-			"Pending Approval": {"Approved"},
+			"Pending Approval": {"Approved", "Closed"},
 			"Approved": {"Analyzer Retrieved", "Closed"},
 			"Analyzer Retrieved": {"Closed"},
 		}

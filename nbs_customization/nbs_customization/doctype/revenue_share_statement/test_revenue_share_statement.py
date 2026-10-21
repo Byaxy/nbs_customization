@@ -162,6 +162,38 @@ class TestRevenueShareStatement(IntegrationTestCase):
 			1,
 		)
 
+	def test_changed_volume_requires_dispatch_cancellation(self):
+		from nbs_customization.setup import create_revenue_share_fee_item
+
+		create_revenue_share_fee_item()
+		ctx = self._cpt("_TST-RSS8")
+		name = generate_revenue_share_statement(ctx["contract"].name, "2026-07")
+		rss = frappe.get_doc("Revenue Share Statement", name)
+		old_dn = rss.waybill_kit_dispatch
+		frappe.get_doc("Sales Invoice", rss.sales_invoice).cancel()
+		frappe.get_doc(
+			{
+				"doctype": "Contract Amendment",
+				"contract": ctx["contract"].name,
+				"amendment_date": "2026-07-05",
+				"effective_date": "2026-07-05",
+				"reason": "Customer Volume Change Request",
+				"new_declared_volume": 250,
+				"status": "Effective",
+			}
+		).insert()
+
+		with self.assertRaises(frappe.ValidationError):
+			generate_revenue_share_statement(ctx["contract"].name, "2026-07")
+
+		frappe.get_doc("Delivery Note", old_dn).cancel()
+		generate_revenue_share_statement(ctx["contract"].name, "2026-07")
+		rss.reload()
+		self.assertNotEqual(rss.waybill_kit_dispatch, old_dn)
+		new_dn = frappe.get_doc("Delivery Note", rss.waybill_kit_dispatch)
+		self.assertEqual(new_dn.docstatus, 1)
+		self.assertEqual(sum(row.qty for row in new_dn.items), 3)
+
 	def test_shared_reagent_packs_round_once_per_item(self):
 		contract = frappe._dict(
 			contract_reagent_lines=[

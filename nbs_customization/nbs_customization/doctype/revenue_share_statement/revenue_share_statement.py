@@ -5,6 +5,7 @@ from math import ceil
 
 import frappe
 from frappe.model.document import Document
+from frappe.utils import flt
 
 from nbs_customization.utils.placement.periods import (
 	period_end,
@@ -53,7 +54,8 @@ def generate_revenue_share_statement(contract_name, period):
 	revenue_share_pct = (contract.revenue_share_pct or 0) / 100
 	our_share = gross_revenue * revenue_share_pct
 	customer_share = gross_revenue - our_share
-	kits_to_deliver = _compute_kits_needed(contract, declared_volume)
+	kits_per_line = _compute_kits_per_line(contract, declared_volume)
+	kits_to_deliver = sum(kits_per_line.values())
 
 	existing = frappe.db.get_value(
 		"Revenue Share Statement",
@@ -62,7 +64,7 @@ def generate_revenue_share_statement(contract_name, period):
 	)
 	if existing:
 		rss = frappe.get_doc("Revenue Share Statement", existing)
-		_assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, kits_to_deliver)
+		_assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, kits_per_line)
 	else:
 		rss = frappe.get_doc(
 			{
@@ -144,10 +146,6 @@ def _allocate_declared_volume(contract, declared_volume):
 	]
 
 
-def _compute_kits_needed(contract, declared_volume):
-	return sum(_compute_kits_per_line(contract, declared_volume).values())
-
-
 def _compute_kits_per_line(contract, declared_volume):
 	volumes = {}
 	for line, volume in _allocate_declared_volume(contract, declared_volume):
@@ -165,7 +163,12 @@ def _compute_kits_per_line(contract, declared_volume):
 	return result
 
 
-def _assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, kits_to_deliver):
+def _assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, kits_per_line):
+	_assert_invoice_regeneration_safe(rss, declared_volume, gross_revenue, our_share)
+	_assert_dispatch_regeneration_safe(rss, kits_per_line)
+
+
+def _assert_invoice_regeneration_safe(rss, declared_volume, gross_revenue, our_share):
 	if not rss.sales_invoice:
 		return
 	if frappe.db.get_value("Sales Invoice", rss.sales_invoice, "docstatus") != 1:
@@ -175,7 +178,6 @@ def _assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, ki
 		abs((rss.declared_volume or 0) - declared_volume) <= 0.01
 		and abs((rss.gross_revenue or 0) - gross_revenue) <= 0.01
 		and abs((rss.our_share_amount or 0) - our_share) <= 0.01
-		and abs((rss.kits_to_deliver or 0) - kits_to_deliver) <= 0.01
 	):
 		return
 	frappe.throw(
@@ -184,6 +186,40 @@ def _assert_regeneration_safe(rss, declared_volume, gross_revenue, our_share, ki
 			"Cancel or delete it before regenerating with different values."
 		).format(frappe.bold(rss.name), frappe.bold(rss.sales_invoice))
 	)
+
+
+def _assert_dispatch_regeneration_safe(rss, kits_per_line):
+	if not rss.waybill_kit_dispatch:
+		return
+	dn = frappe.get_doc("Delivery Note", rss.waybill_kit_dispatch)
+	if dn.docstatus != 1:
+		rss.waybill_kit_dispatch = None
+		return
+	if _quantities_match(_dispatch_qty_by_item(dn), _positive_kits(kits_per_line)):
+		return
+	frappe.throw(
+		frappe._(
+			"Revenue Share Statement {0} has Delivery Note {1} with different kit quantities. "
+			"Cancel the Delivery Note before regenerating with changed values."
+		).format(frappe.bold(rss.name), frappe.bold(dn.name))
+	)
+
+
+def _dispatch_qty_by_item(dn):
+	quantities = {}
+	for row in dn.items:
+		quantities[row.item_code] = quantities.get(row.item_code, 0) + flt(row.qty)
+	return quantities
+
+
+def _positive_kits(kits_per_line):
+	return {item_code: flt(qty) for item_code, qty in kits_per_line.items() if flt(qty) > 0}
+
+
+def _quantities_match(left, right):
+	if left.keys() != right.keys():
+		return False
+	return all(abs(left[item_code] - right[item_code]) <= 0.01 for item_code in left)
 
 
 def _resolve_company(contract):
