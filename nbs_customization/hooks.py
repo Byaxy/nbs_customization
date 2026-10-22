@@ -331,9 +331,11 @@ fixtures = [
 					"Sales Order-custom_placement_transaction_type",
 					"Delivery Note-custom_instrument_placement_contract",
 					"Delivery Note-custom_placement_transaction_type",
+					"Sales Invoice-custom_section_break_10gbf",
 					"Sales Invoice-custom_instrument_placement_contract",
-					"Sales Invoice-custom_placement_transaction_type",
 					"Sales Invoice-custom_counts_toward_recovery",
+					"Sales Invoice-custom_column_break_sjbwk",
+					"Sales Invoice-custom_placement_transaction_type",
 				],
 			]
 		],
