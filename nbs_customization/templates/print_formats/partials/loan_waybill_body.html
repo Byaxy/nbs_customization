@@ -1,0 +1,278 @@
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature2, officer_signature -%}
+
+<div class="nbs-body">
+	{# 1. "Loan Waybill" heading #}
+	<table style="width: 100%; border-collapse: collapse; margin-bottom: 4px">
+		<tr>
+			<td style="text-align: center; padding-bottom: 6px">
+				<span style="font-size: 24px; font-weight: bold; color: #000"> LOAN WAYBILL </span>
+			</td>
+		</tr>
+	</table>
+	{# 2. Sales order # | Date | LWB #}
+	<table
+		style="
+			width: 100%;
+			border-collapse: collapse;
+			table-layout: fixed;
+			margin-bottom: 10px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
+		<tr>
+			<td
+				style="
+					width: 27%;
+					text-align: center;
+					background-color: #819ac2;
+					padding: 2px 3px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+				"
+			>
+				Sales Order #
+			</td>
+			<td style="width: 10%"></td>
+			<td
+				style="
+					width: 26%;
+					text-align: center;
+					background-color: #819ac2;
+					padding: 2px 3px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+				"
+			>
+				Date
+			</td>
+			<td style="width: 10%"></td>
+			<td
+				style="
+					width: 27%;
+					text-align: center;
+					background-color: #819ac2;
+					padding: 2px 3px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+				"
+			>
+				LWB #
+			</td>
+		</tr>
+		<tr>
+			<td
+				style="
+					width: 27%;
+					text-align: center;
+					padding: 4px 6px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+					word-break: break-all;
+				"
+			>
+				N/A
+			</td>
+			<td style="width: 10%"></td>
+			<td
+				style="
+					width: 26%;
+					text-align: center;
+					padding: 4px 6px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+					word-break: break-all;
+				"
+			>
+				{{ frappe.utils.format_date(doc.loan_date) }}
+			</td>
+			<td style="width: 10%"></td>
+			<td
+				style="
+					width: 27%;
+					text-align: center;
+					padding: 4px 6px !important;
+					font-size: 12px;
+					font-weight: bold;
+					color: #000;
+					word-break: break-all;
+				"
+			>
+				{{ doc.name }}
+			</td>
+		</tr>
+	</table>
+
+	{# 3. Billing Address | Delivering Officer | Receiving Officer #}
+	<table
+		style="
+			width: 100%;
+			border-collapse: collapse;
+			table-layout: fixed;
+			margin-bottom: 10px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
+		<tr>
+			<td style="width: 27%; vertical-align: top">
+				<div
+					style="
+						background-color: #819ac2;
+						padding: 2px 5px;
+						margin-bottom: 2px;
+						-webkit-print-color-adjust: exact;
+						print-color-adjust: exact;
+					"
+				>
+					<div style="font-weight: bold; font-size: 13px; color: #000">
+						Delivery Address:
+					</div>
+				</div>
+				<div style="padding-left: 5px; padding-top: 2px; color: #000">
+					<div
+						style="
+							font-size: 12px;
+							font-weight: bold;
+							margin-bottom: 2px;
+							text-transform: uppercase;
+						"
+					>
+						{{ doc.customer_name }}
+					</div>
+					{% set addr = frappe.get_doc("Address", doc.shipping_address_name if
+					doc.shipping_address_name else doc.customer_address) %}
+					<div style="line-height: 1.3; font-size: 12px">
+						{{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2
+						}}{% endif %}<br />
+						{{ addr.city }} - {{ addr.country }}<br />
+						{% if addr.phone %}{{ addr.phone }}<br />{% endif %} {% if addr.email_id
+						%}{{ addr.email_id }}{% endif %}
+					</div>
+				</div>
+			</td>
+			<td style="width: 5%"></td>
+			<td style="width: 26%; vertical-align: top">
+				{{ officer_signature("Delivering Officer") }}
+			</td>
+			<td style="width: 5%"></td>
+			<td style="width: 27%; vertical-align: top">
+				{{ officer_signature("Receiving Officer") }}
+			</td>
+		</tr>
+	</table>
+
+	{# 4. Items table #}
+	<table
+		style="
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 10px;
+			margin-bottom: 10px;
+			-webkit-print-color-adjust: exact;
+			print-color-adjust: exact;
+		"
+	>
+		<thead>
+			<tr
+				style="
+					background-color: #819ac2;
+					color: #000;
+					font-weight: bold;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<td style="width: 5%; text-align: center">S/N</td>
+				<td style="width: 12%">PID</td>
+				<td style="width: 55%">Product Description</td>
+				<td style="width: 16%; text-align: center">Serial/Lot No.</td>
+				<td style="width: 12%; text-align: center">Qnty</td>
+			</tr>
+		</thead>
+		<tbody>
+			{% for item in doc.batch_balances %}
+			<tr
+				style="
+						background-color: {{ '#D5DCE4' if loop.index is even else 'transparent' }};
+						color: #000;
+						-webkit-print-color-adjust: exact;
+						print-color-adjust: exact;
+					"
+			>
+				<td style="text-align: center; vertical-align: top">{{ '%02d' % loop.index }}</td>
+				<td style="vertical-align: top; word-break: break-all">{{ item.item_code }}</td>
+				<td style="vertical-align: top">{{ item.description }}</td>
+				<td style="text-align: center; vertical-align: top">
+					{{ item.batch_no or item.serial_no or "-" }}
+				</td>
+				<td style="text-align: center; vertical-align: top">
+					{{ item.get_formatted("qty_loaned", doc) }}
+				</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	{# 5. Bottom section — page-break-inside: avoid keeps it on one page #}
+	<div class="nbs-bottom-section">
+		{# Signatures #}
+		<table style="margin-bottom: 15px; margin-top: 60px">
+			<tr>
+				<td style="width: 5%"></td>
+				{{ pdf_signature2("Sales Manager") }}
+				<td style="width: 35%"></td>
+				{{ pdf_signature2("Customer") }}
+				<td style="width: 5%"></td>
+			</tr>
+		</table>
+
+		{# Terms & Conditions — full width #}
+		<div
+			style="
+				margin-bottom: 8px;
+				-webkit-print-color-adjust: exact;
+				print-color-adjust: exact;
+			"
+		>
+			<div
+				style="
+					background-color: #819ac2;
+					padding: 2px 5px;
+					margin-bottom: 2px;
+					-webkit-print-color-adjust: exact;
+					print-color-adjust: exact;
+				"
+			>
+				<div style="font-weight: bold; font-size: 13px; color: #000">
+					Terms &amp; Conditions
+				</div>
+			</div>
+			<div style="padding: 2px 5px 0 5px; font-size: 10px; line-height: 1.5; color: #000">
+				<div>Goods Received in Good Condition.</div>
+				<div>
+					By signing above, you agree the terms on this Loan Waybill are correct and
+					accurate, no other terms & conditions shall apply.
+				</div>
+			</div>
+		</div>
+
+		{# Thank You message #}
+		<div
+			style="
+				text-align: center;
+				padding: 8px 0;
+				font-size: 13px;
+				font-weight: bold;
+				color: #000;
+			"
+		>
+			Thank You for Doing Business with us
+		</div>
+	</div>
+</div>
