@@ -1,0 +1,14 @@
+{%- set _company = doc.company if doc.get("company") else frappe.db.get_single_value("Global Defaults", "default_company") -%}
+{%- set company_doc = frappe.get_doc("Company", _company) if _company and frappe.db.exists("Company", _company) else None -%}
+{%- set watermark_src = (company_doc.custom_pdf_water_mark or company_doc.company_logo) if company_doc else None -%}
+{% if watermark_src %}
+<img class="nbs-watermark" style="position: fixed;
+		top: 28%;
+		left: 15%;
+		width: 480px;
+		height: 440px;
+		opacity: 0.1;
+		z-index: 0;
+		pointer-events: none;" src="{{ frappe.utils.get_url(watermark_src) }}" alt="">
+{% endif %}
+{% if nbs_body_template %}{% include nbs_body_template %}{% endif %}

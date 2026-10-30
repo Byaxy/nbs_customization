@@ -1,0 +1,100 @@
+.print-format-doc .custom-html {
+	margin: 0;
+	padding: 0;
+}
+.print-format-doc .section {
+	margin-top: 0 !important;
+}
+.print-format-doc [document-status] {
+	display: none !important;
+}
+.nbs-body td,
+.nbs-body th {
+	padding: 3px 4px !important;
+}
+.nbs-watermark {
+	position: fixed;
+	top: 28%;
+	left: 15%;
+	width: 480px;
+	height: 440px;
+	opacity: 0.1;
+	z-index: 0;
+	pointer-events: none;
+}
+.nbs-body {
+	font-family: "Times New Roman", Times, serif;
+	color: #000;
+	position: relative;
+	z-index: 1;
+}
+.nbs-title {
+	text-align: center;
+	font-weight: bold;
+	font-size: 15px;
+	margin: 8px 0 2px;
+}
+.nbs-subtitle {
+	text-align: center;
+	font-weight: bold;
+	font-size: 12px;
+	margin-bottom: 10px;
+}
+.nbs-section {
+	page-break-inside: avoid;
+	break-inside: avoid;
+	margin-bottom: 10px;
+}
+.nbs-bottom-section {
+	page-break-inside: avoid;
+	break-inside: avoid;
+}
+@media screen {
+	body.print-format-doc {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+	}
+	body.print-format-doc .column.col {
+		position: static;
+	}
+	body.print-format-doc .nbs-watermark {
+		position: absolute !important;
+		top: 148.5mm !important;
+		left: 50% !important;
+		transform: translate(-50%, -50%) !important;
+	}
+	body.print-format-doc > .print-repeating-frame {
+		flex: 1 0 auto;
+		display: flex;
+		flex-direction: column;
+	}
+	body.print-format-doc .print-repeating-frame > thead,
+	body.print-format-doc .print-repeating-frame > tbody,
+	body.print-format-doc .print-repeating-frame > tfoot,
+	body.print-format-doc .print-repeating-frame > thead > tr,
+	body.print-format-doc .print-repeating-frame > tbody > tr,
+	body.print-format-doc .print-repeating-frame > tfoot > tr,
+	body.print-format-doc .print-repeating-frame > thead > tr > td,
+	body.print-format-doc .print-repeating-frame > tbody > tr > td,
+	body.print-format-doc .print-repeating-frame > tfoot > tr > td {
+		display: block;
+		width: 100%;
+	}
+	body.print-format-doc .print-repeating-frame > thead {
+		order: 1;
+	}
+	body.print-format-doc .print-repeating-frame > tbody {
+		order: 2;
+	}
+	body.print-format-doc .print-repeating-frame > tfoot {
+		order: 3;
+		margin-top: auto;
+	}
+}
+@media print {
+	* {
+		-webkit-print-color-adjust: exact !important;
+		print-color-adjust: exact !important;
+	}
+}

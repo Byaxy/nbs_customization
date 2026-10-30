@@ -1,0 +1,10 @@
+{%- from "nbs_customization/templates/print_formats/placement_matrix.html" import contract_schedule_b -%}
+
+<div class="nbs-body">
+	<div class="nbs-title">{{ doc.contract_type }} Price Matrix for {{ doc.analyzer_pid }}</div>
+	<div class="nbs-subtitle">Agreement Number: {{ doc.name }}</div>
+
+	<div class="nbs-section">
+		{{ contract_schedule_b(doc) }}
+	</div>
+</div>
