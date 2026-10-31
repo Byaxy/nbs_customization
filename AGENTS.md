@@ -19,6 +19,10 @@
 - **code-style** — Keep functions small, files <300 lines, public functions top / utilities bottom, terse why-comments.
 - **ui-design** — Desk/page polish: restraint, spacing/gap+flex, lane alignment, tweak panel for new features.
 
+Global skill (not in `skills-lock.json`):
+
+- **caveman** — Terse caveman voice, code/commands/paths/numbers kept exact. Installed at `~/.agents/skills/caveman`; auto-active via `~/.config/opencode/AGENTS.md`. Stays on until "stop caveman" or "normal mode".
+
 Locked in `skills-lock.json` (hashes `0580e1d...`, `37aa49...`, `c3dec2...`).
 
 ## Browser Automation (agent-browser — global)

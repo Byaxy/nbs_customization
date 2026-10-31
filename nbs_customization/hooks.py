@@ -299,6 +299,7 @@ fixtures = [
 					"Landed Cost Voucher-custom_linked_purchase_order",
 					"Landed Cost Voucher-custom_linked_purchase_orders",
 					"Sales Invoice-custom_is_commission_applied",
+					"Sales Invoice Item-custom_copied_tax_withholding_category",
 					"Stock Reconciliation Item-custom_description",
 					"Purchase Receipt-custom_purchase_order",
 					"Sales Invoice-custom_sales_order",
@@ -386,6 +387,7 @@ doc_events = {
 		"on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
 	},
 	"Sales Invoice": {
+		"before_validate": "nbs_customization.controllers.sales_invoice.before_validate",
 		"validate": [
 			"nbs_customization.controllers.validations.stock.validate_unique_item_batch",
 			"nbs_customization.controllers.placement.sales_invoice.validate",
