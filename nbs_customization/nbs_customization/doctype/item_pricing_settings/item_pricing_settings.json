@@ -21,8 +21,6 @@
   "price_list",
   "price_list_target_commission",
   "price_list_target_commission_tax",
-  "section_break_iiyn",
-  "pricing_notes",
   "fx_section",
   "cost_currency",
   "company_currency",
@@ -99,7 +97,7 @@
   {
    "fetch_from": "item_code.description",
    "fieldname": "description",
-   "fieldtype": "Data",
+   "fieldtype": "Small Text",
    "in_list_view": 1,
    "label": "Description",
    "read_only": 1
@@ -193,12 +191,12 @@
    "label": "Import Cost Conversion (Manual only)"
   },
   {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
    "fieldname": "company_currency",
    "fieldtype": "Link",
    "label": "Company Currency",
    "options": "Currency",
-   "read_only": 1,
-   "depends_on": "eval:doc.pricing_mode==\"Manual\""
+   "read_only": 1
   },
   {
    "fieldname": "column_break_fx",
@@ -206,17 +204,17 @@
   },
   {
    "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
+   "description": "Cost \u2192 Company (e.g. EUR\u2192USD). Auto-fetched, editable.",
    "fieldname": "exchange_rate",
    "fieldtype": "Float",
    "label": "Exchange Rate (Cost \u2192 Company)",
-   "precision": "6",
-   "description": "Cost \u2192 Company (e.g. EUR\u2192USD). Auto-fetched, editable."
+   "precision": "6"
   },
   {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
    "fieldname": "exchange_rate_date",
    "fieldtype": "Date",
-   "label": "Exchange Rate Date",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\""
+   "label": "Exchange Rate Date"
   },
   {
    "depends_on": "eval:doc.pricing_mode==\"Manual\"",
@@ -248,11 +246,11 @@
   },
   {
    "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override",
+   "description": "Check 'Convert' if in Cost Currency.",
    "fieldname": "estimated_base_rate",
    "fieldtype": "Currency",
    "label": "Estimated Base Rate (per unit, quote currency)",
-   "mandatory_depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\"",
-   "description": "Check 'Convert' if in Cost Currency."
+   "mandatory_depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\""
   },
   {
    "fieldname": "column_break_manual",
@@ -521,81 +519,81 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:doc.pricing_mode==\"Manual\"",
    "fieldname": "cost_currency",
    "fieldtype": "Link",
    "label": "Cost Currency (Import)",
-   "options": "Currency",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\""
+   "options": "Currency"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_estimated_base_rate",
    "fieldtype": "Check",
-   "label": "Convert Base Rate?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Base Rate?"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_manual_bank_charges",
    "fieldtype": "Check",
-   "label": "Convert Bank Charges?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Bank Charges?"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_manual_freight",
    "fieldtype": "Check",
-   "label": "Convert Freight?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Freight?"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_manual_clearing_fees",
    "fieldtype": "Check",
-   "label": "Convert Clearing Fees?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Clearing Fees?"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_manual_transport_in",
    "fieldtype": "Check",
-   "label": "Convert Transport In?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Transport In?"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_manual_transport_out",
    "fieldtype": "Check",
-   "label": "Convert Transport Out?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Transport Out?"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_manual_overhead",
    "fieldtype": "Check",
-   "label": "Convert Overhead?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Overhead?"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_manual_fixed_cost",
    "fieldtype": "Check",
-   "label": "Convert Fixed Cost?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && doc.manual_cost_mode==\"Breakdown\" && !doc.estimated_true_cost_override && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Fixed Cost?"
   },
   {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Manual\" && (doc.manual_cost_mode==\"Override\" || doc.estimated_true_cost_override) && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
    "fieldname": "convert_estimated_true_cost_override",
    "fieldtype": "Check",
-   "label": "Convert Override?",
-   "depends_on": "eval:doc.pricing_mode==\"Manual\" && (doc.manual_cost_mode==\"Override\" || doc.estimated_true_cost_override) && doc.cost_currency && doc.company_currency && doc.cost_currency != doc.company_currency",
-   "default": "0"
+   "label": "Convert Override?"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-09-04 13:27:33.045581",
- "modified_by": "charlesbyaxy@gmail.com",
+ "modified": "2026-10-31 20:10:26.547371",
+ "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Item Pricing Settings",
  "naming_rule": "By fieldname",
