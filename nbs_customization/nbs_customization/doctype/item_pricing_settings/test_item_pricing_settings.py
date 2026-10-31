@@ -5,13 +5,13 @@ from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
-from frappe.utils import cint, flt
+from frappe.utils import add_days, cint, flt, today
 
 from nbs_customization.nbs_customization.doctype.item_pricing_settings.item_pricing_settings import (
 	get_item_live_rates,
 	refresh_valuation,
 )
-from nbs_customization.utils.pricing import recompute_suggested_price
+from nbs_customization.utils.pricing import get_current_selling_price, recompute_suggested_price
 
 ITEM = "_Test Pricing Settings Item"
 
@@ -21,6 +21,7 @@ class IntegrationTestItemPricingSettings(IntegrationTestCase):
 		_ensure_item()
 		_ensure_price_list("Standard Selling")
 		_ensure_price_list("Selling - 30%")
+		_clear_item_prices()
 		_clear_settings()
 
 	def test_auto_recompute_uses_valuation_and_standard_selling(self):
@@ -101,6 +102,60 @@ class IntegrationTestItemPricingSettings(IntegrationTestCase):
 			get_item_live_rates(None), {"current_valuation_rate": 0.0, "current_selling_price": 0.0}
 		)
 
+	def test_get_current_selling_price_uses_active_row(self):
+		_set_item_price("Standard Selling", 200)
+		_add_item_price("Standard Selling", 999, valid_from=add_days(today(), 1))
+		_add_item_price(
+			"Standard Selling",
+			888,
+			valid_from=add_days(today(), -10),
+			valid_upto=add_days(today(), -1),
+		)
+
+		self.assertEqual(flt(get_current_selling_price(ITEM)), 200)
+
+	def test_get_current_selling_price_returns_zero_without_active_row(self):
+		_add_item_price("Standard Selling", 999, valid_from=add_days(today(), 1))
+		_add_item_price(
+			"Standard Selling",
+			888,
+			valid_from=add_days(today(), -10),
+			valid_upto=add_days(today(), -1),
+		)
+
+		self.assertEqual(flt(get_current_selling_price(ITEM)), 0)
+
+	def test_pinned_zero_valuation_is_rejected_on_save(self):
+		doc = _make_settings("Auto")
+		doc.valuation_rate_override = 1
+		doc.current_valuation_rate = 0
+
+		with self.assertRaises(frappe.ValidationError):
+			doc.save(ignore_permissions=True)
+
+	def test_refresh_valuation_zeroes_stale_tiers_and_unpins(self):
+		_set_item_price("Standard Selling", 300)
+		_make_settings("Auto")
+		frappe.db.set_value(
+			"Item Pricing Settings",
+			ITEM,
+			{"valuation_rate_override": 1, "current_valuation_rate": 0, "rate_30": 100},
+		)
+
+		with patch("nbs_customization.utils.pricing.get_current_valuation_rate", return_value=0):
+			recompute_suggested_price(ITEM, force_sle=True)
+
+		row = frappe.db.get_value(
+			"Item Pricing Settings",
+			ITEM,
+			["rate_30", "valuation_rate_override", "current_valuation_rate", "suggested_selling_price"],
+			as_dict=True,
+		)
+		self.assertEqual(flt(row.rate_30), 0)
+		self.assertEqual(cint(row.valuation_rate_override), 0)
+		self.assertEqual(flt(row.current_valuation_rate), 0)
+		self.assertEqual(flt(row.suggested_selling_price), 0)
+
 
 def _make_settings(mode, **values):
 	_clear_settings()
@@ -120,6 +175,11 @@ def _make_settings(mode, **values):
 def _clear_settings():
 	if frappe.db.exists("Item Pricing Settings", ITEM):
 		frappe.delete_doc("Item Pricing Settings", ITEM, force=1, ignore_permissions=True)
+
+
+def _clear_item_prices():
+	for name in frappe.get_all("Item Price", filters={"item_code": ITEM}, pluck="name"):
+		frappe.delete_doc("Item Price", name, force=1, ignore_permissions=True)
 
 
 def _ensure_item():
@@ -168,6 +228,23 @@ def _set_item_price(price_list, rate):
 			"uom": _uom(),
 			"selling": 1,
 			"buying": 0,
+		}
+	).insert(ignore_permissions=True)
+
+
+def _add_item_price(price_list, rate, valid_from=None, valid_upto=None):
+	frappe.get_doc(
+		{
+			"doctype": "Item Price",
+			"item_code": ITEM,
+			"price_list": price_list,
+			"price_list_rate": rate,
+			"currency": _currency(),
+			"uom": _uom(),
+			"selling": 1,
+			"buying": 0,
+			"valid_from": valid_from,
+			"valid_upto": valid_upto,
 		}
 	).insert(ignore_permissions=True)
 

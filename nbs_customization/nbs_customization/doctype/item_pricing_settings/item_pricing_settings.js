@@ -452,15 +452,16 @@ function _apply_valuation_mode(frm) {
 
 function _sync_current_selling_price(frm, callback) {
 	const done = () => (callback ? callback() : null);
-	if (!frm.doc.item_code) {
+	const item_code = frm.doc.item_code;
+	if (!item_code) {
 		done();
 		return;
 	}
 	frappe.call({
 		method: "nbs_customization.nbs_customization.doctype.item_pricing_settings.item_pricing_settings.get_standard_selling_price",
-		args: { item_code: frm.doc.item_code },
+		args: { item_code },
 		callback(r) {
-			if (!r.exc) {
+			if (!r.exc && frm.doc.item_code === item_code) {
 				frm.doc.current_selling_price = flt(r.message);
 				frm.refresh_field("current_selling_price");
 			}
@@ -474,6 +475,8 @@ function _sync_current_selling_price(frm, callback) {
 
 function _sync_item_live_rates(frm) {
 	const item_code = frm.doc.item_code;
+	const requested_rate = flt(frm.doc.current_valuation_rate);
+	const requested_pin = flt(frm.doc.valuation_rate_override);
 	if (!item_code) {
 		frm.doc.current_valuation_rate = 0;
 		frm.doc.current_selling_price = 0;
@@ -492,14 +495,18 @@ function _sync_item_live_rates(frm) {
 		callback(r) {
 			if (r.exc || frm.doc.item_code !== item_code) return;
 			const rates = r.message || {};
-			// Assign directly so the current_valuation_rate handler does not pin the rate.
-			frm.doc.current_valuation_rate = flt(rates.current_valuation_rate);
-			frm.doc.current_selling_price = flt(rates.current_selling_price);
-			if (frm.doc.pricing_mode === "Auto") {
-				frm.doc.valuation_rate_override = 0;
-				frm.refresh_field("valuation_rate_override");
+			const rate_changed = flt(frm.doc.current_valuation_rate) !== requested_rate;
+			const pin_changed = flt(frm.doc.valuation_rate_override) !== requested_pin;
+			if (!rate_changed && !pin_changed) {
+				// Assign directly so the current_valuation_rate handler does not pin the rate.
+				frm.doc.current_valuation_rate = flt(rates.current_valuation_rate);
+				if (frm.doc.pricing_mode === "Auto") {
+					frm.doc.valuation_rate_override = 0;
+					frm.refresh_field("valuation_rate_override");
+				}
+				frm.refresh_field("current_valuation_rate");
 			}
-			frm.refresh_field("current_valuation_rate");
+			frm.doc.current_selling_price = flt(rates.current_selling_price);
 			frm.refresh_field("current_selling_price");
 			_render_valuation_hint(frm);
 			_render_price_comparison(frm);

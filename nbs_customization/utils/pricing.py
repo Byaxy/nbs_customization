@@ -1,5 +1,5 @@
 import frappe
-from frappe.utils import cint, flt, now_datetime
+from frappe.utils import cint, flt, now_datetime, today
 
 # ── Pure tier calculator (PDF formulas, margin is % of selling price) ──────────
 
@@ -109,17 +109,26 @@ def get_standard_rate(tiers, source_tier):
 
 
 def get_current_selling_price(item_code):
-	"""Live Standard Selling rate for item_code; 0 when no Item Price exists."""
+	"""Live Standard Selling rate for item_code; 0 when no active Item Price exists."""
 	if not item_code:
 		return 0.0
-	return flt(
-		frappe.db.get_value(
-			"Item Price",
-			{"item_code": item_code, "price_list": STANDARD_SELLING, "selling": 1},
-			"price_list_rate",
-			order_by="valid_from desc, modified desc",
-		)
+	rates = frappe.get_all(
+		"Item Price",
+		filters={
+			"item_code": item_code,
+			"price_list": STANDARD_SELLING,
+			"selling": 1,
+			"valid_from": ["<=", today()],
+		},
+		or_filters=[
+			["valid_upto", "is", "not set"],
+			["valid_upto", ">=", today()],
+		],
+		order_by="valid_from desc, modified desc",
+		limit=1,
+		pluck="price_list_rate",
 	)
+	return flt(rates[0]) if rates else 0.0
 
 
 # ── FX helpers ──────────────────────────────────────────────────────────────────
@@ -397,7 +406,7 @@ def recompute_suggested_price(item_code, force_sle=False):
 		return
 
 	val_rate, override = resolve_auto_valuation_rate(settings, force_sle=force_sle)
-	if not val_rate:
+	if not val_rate and not force_sle:
 		return
 
 	tiers = compute_tiers(

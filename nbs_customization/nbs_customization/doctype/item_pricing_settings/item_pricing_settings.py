@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, now_datetime, today
+from frappe.utils import cint, flt, now_datetime, today
 
 from nbs_customization.utils.pricing import (
 	FIXED_TIER_SET,
@@ -222,6 +222,12 @@ class ItemPricingSettings(Document):
 					)
 		if not self.standard_selling_source_tier:
 			self.standard_selling_source_tier = "30%"
+		if self.pricing_mode == "Auto" and cint(self.valuation_rate_override):
+			if flt(self.current_valuation_rate) <= 0:
+				frappe.throw(
+					"Current Valuation Rate must be greater than 0 when Manual Valuation Rate Override "
+					"is ticked. Untick it to use the latest Stock Ledger valuation."
+				)
 
 	def _set_company_currency(self):
 		# Legacy: copy old quote_currency → cost_currency if cost blank (migrated column)
@@ -294,8 +300,6 @@ class ItemPricingSettings(Document):
 			self.update(_tier_values_for_settings(self, true_cost, tiers))
 			return
 		val_rate, override = resolve_auto_valuation_rate(self)
-		if not val_rate:
-			return
 		tiers = compute_tiers(
 			val_rate,
 			target_margin_pct=self.target_margin_pct,
@@ -565,6 +569,7 @@ def apply_tiers(doc_name, selected_tiers=None):
 
 @frappe.whitelist()
 def get_standard_selling_price(item_code):
+	frappe.has_permission("Item Pricing Settings", "read", throw=True)
 	if not isinstance(item_code, str):
 		return 0.0
 	return get_current_selling_price(item_code)
