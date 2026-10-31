@@ -9,6 +9,7 @@ Currently handles:
 
 import frappe
 
+# Hidden item-row marker: the category this app copied from the customer.
 COPIED_CATEGORY_FIELD = "custom_copied_tax_withholding_category"
 
 # ---------------------------------------------------------------------------
@@ -66,25 +67,14 @@ def _get_customer_withholding(customer):
 	)
 
 
-def _get_previous_customer_category(doc):
-	"""Category copied from the customer on the last save, if the customer changed."""
-	previous = doc.get_doc_before_save()
-	previous_customer = previous.get("customer") if previous else None
-
-	if not previous_customer or previous_customer == doc.get("customer"):
-		return None
-
-	return _get_customer_withholding(previous_customer).get("tax_withholding_category")
-
-
 def _apply_customer_tax_withholding(doc):
 	"""
 	Withhold tax whenever the customer is configured for it.
 
-	Item-level categories drive ERPNext's withholding engine. The hidden
-	copied-category field records which category this app wrote onto item
-	rows, so customer changes update only derived rows and leave real item
-	overrides alone. Opening entries are exempt, matching erpnext.
+	Item-level categories drive ERPNext's withholding engine. Each item row
+	records the category this app copied onto it, so customer changes update
+	only derived rows and leave real item overrides alone. Opening entries
+	are exempt, matching erpnext.
 	"""
 	if doc.get("is_opening") == "Yes":
 		return
@@ -95,15 +85,18 @@ def _apply_customer_tax_withholding(doc):
 	if category or withholding.get("tax_withholding_group"):
 		doc.apply_tds = 1
 
-	copied_category = doc.get(COPIED_CATEGORY_FIELD) or _get_previous_customer_category(doc)
-
 	for item in doc.get("items") or []:
 		item_category = item.get("tax_withholding_category")
-		if item_category and item_category != copied_category:
-			continue
-		item.tax_withholding_category = category
+		copied_category = item.get(COPIED_CATEGORY_FIELD)
 
-	doc.set(COPIED_CATEGORY_FIELD, category)
+		if not item_category or (copied_category and item_category == copied_category):
+			item.tax_withholding_category = category
+			item.set(COPIED_CATEGORY_FIELD, category)
+		elif doc.is_new() and item_category == category:
+			# Core populated this row from the customer before the first save.
+			item.set(COPIED_CATEGORY_FIELD, category)
+		else:
+			item.set(COPIED_CATEGORY_FIELD, None)
 
 
 # ---------------------------------------------------------------------------

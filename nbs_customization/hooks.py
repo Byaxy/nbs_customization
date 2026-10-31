@@ -299,6 +299,7 @@ fixtures = [
 					"Landed Cost Voucher-custom_linked_purchase_order",
 					"Landed Cost Voucher-custom_linked_purchase_orders",
 					"Sales Invoice-custom_is_commission_applied",
+					"Sales Invoice Item-custom_copied_tax_withholding_category",
 					"Stock Reconciliation Item-custom_description",
 					"Purchase Receipt-custom_purchase_order",
 					"Sales Invoice-custom_sales_order",
