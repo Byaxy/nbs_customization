@@ -59,6 +59,7 @@
   "column_break_ngul",
   "computed_values_section",
   "current_valuation_rate",
+  "valuation_rate_override",
   "suggested_selling_price",
   "column_break_xfrs",
   "current_selling_price",
@@ -337,11 +338,19 @@
    "label": "Computed Values"
   },
   {
+   "description": "Auto-filled from the latest Stock Ledger / Landed Cost valuation. Edit to pin a rate; tier calculations use this value.",
    "fieldname": "current_valuation_rate",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Current Valuation Rate",
-   "read_only": 1
+   "label": "Current Valuation Rate"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.pricing_mode==\"Auto\"",
+   "description": "Pin the Current Valuation Rate. Tiers use the pinned value and Purchase Receipt / Landed Cost refreshes will not overwrite it. Untick or use Refresh Valuation to resume automatic updates.",
+   "fieldname": "valuation_rate_override",
+   "fieldtype": "Check",
+   "label": "Manual Valuation Rate Override"
   },
   {
    "bold": 1,

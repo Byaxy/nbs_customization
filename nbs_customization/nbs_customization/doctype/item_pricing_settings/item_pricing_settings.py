@@ -4,15 +4,19 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, now_datetime, today
+from frappe.utils import cint, flt, now_datetime, today
 
 from nbs_customization.utils.pricing import (
 	FIXED_TIER_SET,
+	_tier_values_for_settings,
 	compute_tiers,
+	get_current_selling_price,
+	get_current_valuation_rate,
 	get_exchange_rate,
 	get_standard_rate,
 	recompute_manual_estimate,
 	recompute_suggested_price,
+	resolve_auto_valuation_rate,
 )
 
 
@@ -218,6 +222,12 @@ class ItemPricingSettings(Document):
 					)
 		if not self.standard_selling_source_tier:
 			self.standard_selling_source_tier = "30%"
+		if self.pricing_mode == "Auto" and cint(self.valuation_rate_override):
+			if flt(self.current_valuation_rate) <= 0:
+				frappe.throw(
+					"Current Valuation Rate must be greater than 0 when Manual Valuation Rate Override "
+					"is ticked. Untick it to use the latest Stock Ledger valuation."
+				)
 
 	def _set_company_currency(self):
 		# Legacy: copy old quote_currency → cost_currency if cost blank (migrated column)
@@ -277,27 +287,27 @@ class ItemPricingSettings(Document):
 					pass
 		# compute preview tiers so form shows them after save even before Refresh
 		try:
-			if self.pricing_mode == "Manual":
-				true_cost, tiers = recompute_manual_estimate(self)
-				self.manual_true_cost = flt(true_cost, 2)
-				self.basic_rate = flt(tiers.get("basic_rate") or 0, 2)
-				self.target_rate = flt(tiers.get("target_rate") or 0, 2)
-				self.rate_15 = flt(tiers.get("rate_15") or 0, 2)
-				self.rate_30 = flt(tiers.get("rate_30") or 0, 2)
-				self.rate_45 = flt(tiers.get("rate_45") or 0, 2)
-				self.rate_commission = flt(tiers.get("rate_commission") or 0, 2)
-				self.rate_commission_tax = flt(tiers.get("rate_commission_tax") or 0, 2)
-				self.rate_target_commission = flt(tiers.get("rate_target_commission") or 0, 2)
-				self.rate_target_commission_tax = flt(tiers.get("rate_target_commission_tax") or 0, 2)
-				self.final_rate_per_unit = flt(tiers.get("final_rate_per_unit") or 0, 2)
-				self.suggested_selling_price = flt(
-					get_standard_rate(tiers, self.standard_selling_source_tier), 2
-				)
-			else:
-				# Auto: keep existing tiers until Refresh
-				pass
+			self._recompute_pricing_preview()
 		except Exception:
-			pass
+			frappe.log_error(
+				message=frappe.get_traceback(),
+				title=f"Pricing preview failed: {self.name or self.item_code}",
+			)
+
+	def _recompute_pricing_preview(self):
+		if self.pricing_mode == "Manual":
+			true_cost, tiers = recompute_manual_estimate(self)
+			self.update(_tier_values_for_settings(self, true_cost, tiers))
+			return
+		val_rate, override = resolve_auto_valuation_rate(self)
+		tiers = compute_tiers(
+			val_rate,
+			target_margin_pct=self.target_margin_pct,
+			commission_pct=self.commission_pct,
+			wht_pct=self.wht_pct,
+		)
+		self.update(_tier_values_for_settings(self, val_rate, tiers))
+		self.valuation_rate_override = override
 
 
 # ── Whitelisted actions ───────────────────────────────────────────────────────
@@ -310,15 +320,6 @@ def refresh_valuation(doc_name):
 	if doc.pricing_mode == "Manual":
 		true_cost, tiers = recompute_manual_estimate(doc)
 		standard_rate = get_standard_rate(tiers, doc.standard_selling_source_tier)
-		# current selling price = live Standard Selling
-		price_list = doc.price_list_30 or "Standard Selling"
-		current_sp = flt(
-			frappe.db.get_value(
-				"Item Price",
-				{"item_code": doc.item_code, "price_list": price_list, "selling": 1},
-				"price_list_rate",
-			)
-		)
 		frappe.db.set_value(
 			"Item Pricing Settings",
 			doc_name,
@@ -336,13 +337,13 @@ def refresh_valuation(doc_name):
 				"rate_target_commission_tax": flt(tiers.get("rate_target_commission_tax") or 0, 2),
 				"final_rate_per_unit": flt(tiers.get("final_rate_per_unit") or 0, 2),
 				"suggested_selling_price": flt(standard_rate, 2),
-				"current_selling_price": flt(current_sp, 2),
+				"current_selling_price": get_current_selling_price(doc.item_code),
 				"last_updated": now_datetime(),
 			},
 			update_modified=False,
 		)
 	else:
-		recompute_suggested_price(doc.item_code)
+		recompute_suggested_price(doc.item_code, force_sle=True)
 	frappe.msgprint(
 		"Valuation refreshed. Review the tier rates below.",
 		indicator="blue",
@@ -547,11 +548,14 @@ def apply_tiers(doc_name, selected_tiers=None):
 			).insert(ignore_permissions=True)
 		applied.append(f"{price_list}: {currency} {rate}")
 
-	# update current_selling_price to standard_rate for live truth
+	# current selling price is live truth from Standard Selling
 	frappe.db.set_value(
 		"Item Pricing Settings",
 		doc_name,
-		{"current_selling_price": flt(standard_rate, 2), "suggested_selling_price": flt(standard_rate, 2)},
+		{
+			"current_selling_price": get_current_selling_price(doc.item_code),
+			"suggested_selling_price": flt(standard_rate, 2),
+		},
 		update_modified=False,
 	)
 	frappe.db.commit()
@@ -561,6 +565,25 @@ def apply_tiers(doc_name, selected_tiers=None):
 		title="Prices Applied",
 		indicator="green",
 	)
+
+
+@frappe.whitelist()
+def get_standard_selling_price(item_code):
+	frappe.has_permission("Item Pricing Settings", "read", throw=True)
+	if not isinstance(item_code, str):
+		return 0.0
+	return get_current_selling_price(item_code)
+
+
+@frappe.whitelist()
+def get_item_live_rates(item_code):
+	frappe.has_permission("Item Pricing Settings", "read", throw=True)
+	if not isinstance(item_code, str) or not item_code:
+		return {"current_valuation_rate": 0.0, "current_selling_price": 0.0}
+	return {
+		"current_valuation_rate": get_current_valuation_rate(item_code),
+		"current_selling_price": get_current_selling_price(item_code),
+	}
 
 
 @frappe.whitelist()

@@ -1,7 +1,9 @@
 import frappe
-from frappe.utils import flt, now_datetime
+from frappe.utils import cint, flt, now_datetime, today
 
 # ── Pure tier calculator (PDF formulas, margin is % of selling price) ──────────
+
+STANDARD_SELLING = "Standard Selling"
 
 STANDARD_TIER_MAP = {
 	"Basic": "basic_rate",
@@ -104,6 +106,29 @@ def get_standard_rate(tiers, source_tier):
 			return flt(val, 2)
 	# fallback to rate_30
 	return flt(tiers.get("rate_30"), 2)
+
+
+def get_current_selling_price(item_code):
+	"""Live Standard Selling rate for item_code; 0 when no active Item Price exists."""
+	if not item_code:
+		return 0.0
+	rates = frappe.get_all(
+		"Item Price",
+		filters={
+			"item_code": item_code,
+			"price_list": STANDARD_SELLING,
+			"selling": 1,
+			"valid_from": ["<=", today()],
+		},
+		or_filters=[
+			["valid_upto", "is", "not set"],
+			["valid_upto", ">=", today()],
+		],
+		order_by="valid_from desc, modified desc",
+		limit=1,
+		pluck="price_list_rate",
+	)
+	return flt(rates[0]) if rates else 0.0
 
 
 # ── FX helpers ──────────────────────────────────────────────────────────────────
@@ -302,7 +327,7 @@ def recompute_manual_estimate(doc):
 
 
 def _tier_values_for_settings(doc, true_cost, tiers):
-	"""Build the db.set_value dict for tier fields + standard selling mapping."""
+	"""Build the db.set_value dict for tier fields + live Standard Selling."""
 	standard_rate = get_standard_rate(tiers, doc.standard_selling_source_tier)
 	values = {
 		"manual_true_cost": flt(true_cost, 2) if doc.pricing_mode == "Manual" else 0,
@@ -320,29 +345,41 @@ def _tier_values_for_settings(doc, true_cost, tiers):
 		"rate_target_commission_tax": flt(tiers.get("rate_target_commission_tax") or 0, 2),
 		"final_rate_per_unit": flt(tiers.get("final_rate_per_unit") or 0, 2),
 		"suggested_selling_price": flt(standard_rate, 2),
+		"current_selling_price": get_current_selling_price(doc.item_code),
 		"last_updated": now_datetime(),
 	}
 	return values
 
 
+def resolve_auto_valuation_rate(doc, force_sle=False):
+	"""Return (valuation_rate, override_flag) for an Auto-mode doc.
+
+	A pinned rate survives Purchase Receipt / LCV recomputes. force_sle
+	(the Refresh Valuation action) clears the pin and pulls the latest SLE.
+	"""
+	current = flt(getattr(doc, "current_valuation_rate", 0))
+	override = cint(getattr(doc, "valuation_rate_override", 0))
+	if force_sle or not override:
+		latest = get_current_valuation_rate(doc.item_code)
+		if latest:
+			return latest, 0
+		return current, 0 if force_sle else override
+	return current, override
+
+
 # ── Auto recompute (SLE valuation) ─────────────────────────────────────────────
 
 
-def recompute_suggested_price(item_code):
+def recompute_suggested_price(item_code, force_sle=False):
 	"""
-	Reads the current valuation rate for item_code from the most recent
-	Stock Ledger Entry, then updates the Item Pricing Settings record with:
-	  - current_valuation_rate
-	  - all 6 tier rates
-	  - suggested_selling_price (standard_rate via standard_selling_source_tier, default 30%)
-	  - current_selling_price  (what is currently live in Item Price for Standard Selling)
-	  - last_updated
+	Auto-mode recompute of valuation, tiers, and the live Standard Selling price.
 
-	Does NOT write to Item Price. That is a deliberate manual step
-	performed by the pricing manager via the Apply button on the form.
+	Respects a pinned valuation (valuation_rate_override). force_sle, used by
+	the Refresh Valuation action, clears the pin and reads the latest SLE.
+	Does NOT write to Item Price; applying tiers remains a deliberate step.
 
 	Silently skips if no Item Pricing Settings record exists for the item,
-	so this function will never block a Purchase Receipt or LCV submission.
+	so this function never blocks a Purchase Receipt or LCV submission.
 	"""
 	settings_name = frappe.db.get_value("Item Pricing Settings", {"item_code": item_code}, "name")
 	if not settings_name:
@@ -352,13 +389,14 @@ def recompute_suggested_price(item_code):
 		"Item Pricing Settings",
 		settings_name,
 		[
+			"item_code",
 			"target_margin_pct",
 			"commission_pct",
 			"wht_pct",
 			"standard_selling_source_tier",
 			"pricing_mode",
-			"price_list",
-			"price_list_30",
+			"current_valuation_rate",
+			"valuation_rate_override",
 		],
 		as_dict=True,
 	)
@@ -367,8 +405,8 @@ def recompute_suggested_price(item_code):
 	if settings.pricing_mode == "Manual":
 		return
 
-	val_rate = _get_current_valuation_rate(item_code)
-	if not val_rate:
+	val_rate, override = resolve_auto_valuation_rate(settings, force_sle=force_sle)
+	if not val_rate and not force_sle:
 		return
 
 	tiers = compute_tiers(
@@ -377,42 +415,13 @@ def recompute_suggested_price(item_code):
 		commission_pct=flt(settings.commission_pct) or None,
 		wht_pct=flt(settings.wht_pct) or None,
 	)
-	standard_rate = get_standard_rate(tiers, settings.standard_selling_source_tier)
 
-	# Standard Selling is the live price
-	price_list = settings.price_list_30 or settings.price_list or "Standard Selling"
-	current_sp = flt(
-		frappe.db.get_value(
-			"Item Price",
-			{"item_code": item_code, "price_list": price_list, "selling": 1},
-			"price_list_rate",
-		)
-	)
-
-	frappe.db.set_value(
-		"Item Pricing Settings",
-		settings_name,
-		{
-			"current_valuation_rate": flt(val_rate, 4),
-			"basic_rate": flt(tiers.get("basic_rate") or 0, 2),
-			"target_rate": flt(tiers.get("target_rate") or 0, 2),
-			"rate_15": flt(tiers.get("rate_15") or 0, 2),
-			"rate_30": flt(tiers.get("rate_30") or 0, 2),
-			"rate_45": flt(tiers.get("rate_45") or 0, 2),
-			"rate_commission": flt(tiers.get("rate_commission") or 0, 2),
-			"rate_commission_tax": flt(tiers.get("rate_commission_tax") or 0, 2),
-			"rate_target_commission": flt(tiers.get("rate_target_commission") or 0, 2),
-			"rate_target_commission_tax": flt(tiers.get("rate_target_commission_tax") or 0, 2),
-			"final_rate_per_unit": flt(tiers.get("final_rate_per_unit") or 0, 2),
-			"suggested_selling_price": flt(standard_rate, 2),
-			"current_selling_price": flt(current_sp, 2),
-			"last_updated": now_datetime(),
-		},
-		update_modified=False,
-	)
+	values = _tier_values_for_settings(settings, val_rate, tiers)
+	values["valuation_rate_override"] = override
+	frappe.db.set_value("Item Pricing Settings", settings_name, values, update_modified=False)
 
 
-def _get_current_valuation_rate(item_code):
+def get_current_valuation_rate(item_code):
 	"""
 	Returns the valuation rate from the most recent inbound Stock Ledger
 	Entry for the item. This is ERPNext's own computed rate — moving average
