@@ -134,6 +134,7 @@ class TestSalesInvoiceTaxWithholding(IntegrationTestCase):
 
 		self.assertEqual(si.apply_tds, 1)
 		self.assertEqual({item.tax_withholding_category for item in si.items}, {CATEGORY})
+		self.assertEqual(si.custom_copied_tax_withholding_category, CATEGORY)
 		self.assertTrue(si.tax_withholding_entries)
 
 	def test_customer_change_refreshes_copied_category(self):
@@ -142,6 +143,19 @@ class TestSalesInvoiceTaxWithholding(IntegrationTestCase):
 		si.save()
 
 		self.assertEqual({item.tax_withholding_category for item in si.items}, {CATEGORY_ALT})
+		self.assertEqual(si.custom_copied_tax_withholding_category, CATEGORY_ALT)
+		self.assertEqual(
+			{entry.tax_withholding_category for entry in si.tax_withholding_entries},
+			{CATEGORY_ALT},
+		)
+
+	def test_customer_category_edit_refreshes_copied_category(self):
+		si = self._draft(self.customer_with)
+		frappe.get_doc("Customer", self.customer_with).db_set("tax_withholding_category", CATEGORY_ALT)
+		si.save()
+
+		self.assertEqual({item.tax_withholding_category for item in si.items}, {CATEGORY_ALT})
+		self.assertEqual(si.custom_copied_tax_withholding_category, CATEGORY_ALT)
 		self.assertEqual(
 			{entry.tax_withholding_category for entry in si.tax_withholding_entries},
 			{CATEGORY_ALT},
@@ -153,6 +167,17 @@ class TestSalesInvoiceTaxWithholding(IntegrationTestCase):
 		si.save()
 
 		self.assertFalse(any(item.tax_withholding_category for item in si.items))
+		self.assertFalse(si.custom_copied_tax_withholding_category)
+		self.assertFalse(si.tax_withholding_entries)
+
+	def test_customer_change_after_category_edit_clears_copied_category(self):
+		si = self._draft(self.customer_with)
+		frappe.get_doc("Customer", self.customer_with).db_set("tax_withholding_category", CATEGORY_ALT)
+		si.customer = self.customer_without
+		si.save()
+
+		self.assertFalse(any(item.tax_withholding_category for item in si.items))
+		self.assertFalse(si.custom_copied_tax_withholding_category)
 		self.assertFalse(si.tax_withholding_entries)
 
 	def test_customer_change_preserves_item_override(self):
