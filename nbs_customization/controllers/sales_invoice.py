@@ -4,6 +4,7 @@ Currently handles:
   - Denormalizing the linked Sales Order(s) up to the SI header
     so that custom_sales_order is available in the list view,
     standard filters, and reports without any JOIN queries.
+  - Enabling tax withholding when the customer is configured for it.
 """
 
 import frappe
@@ -48,6 +49,48 @@ def _set_custom_sales_order(doc):
 		doc.custom_sales_order = None
 
 
+def _get_customer_withholding(customer):
+	if not customer:
+		return {}
+
+	return (
+		frappe.get_cached_value(
+			"Customer",
+			customer,
+			["tax_withholding_category", "tax_withholding_group"],
+			as_dict=True,
+		)
+		or {}
+	)
+
+
+def _apply_customer_tax_withholding(doc):
+	"""
+	Withhold tax whenever the customer is configured for it.
+
+	Item-level categories drive ERPNext's withholding engine, so copy the
+	customer category into rows that do not carry their own. Opening entries
+	are exempt, matching erpnext's own controller.
+	"""
+	if doc.get("is_opening") == "Yes":
+		return
+
+	withholding = _get_customer_withholding(doc.get("customer"))
+	category = withholding.get("tax_withholding_category")
+
+	if not (category or withholding.get("tax_withholding_group")):
+		return
+
+	doc.apply_tds = 1
+
+	if not category:
+		return
+
+	for item in doc.get("items") or []:
+		if not item.get("tax_withholding_category"):
+			item.tax_withholding_category = category
+
+
 # ---------------------------------------------------------------------------
 # Hook entry-points  (referenced in hooks.py → doc_events)
 # ---------------------------------------------------------------------------
@@ -55,6 +98,7 @@ def _set_custom_sales_order(doc):
 
 def before_save(doc, method=None):
 	_set_custom_sales_order(doc)
+	_apply_customer_tax_withholding(doc)
 
 
 def before_submit(doc, method=None):

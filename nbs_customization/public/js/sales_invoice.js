@@ -1,4 +1,20 @@
 frappe.ui.form.on("Sales Invoice", {
+	onload(frm) {
+		if (frm.is_new()) _sync_customer_withholding(frm, true);
+	},
+
+	customer(frm) {
+		_sync_customer_withholding(frm, true);
+	},
+
+	apply_tds(frm) {
+		_restore_required_withholding(frm);
+	},
+
+	validate(frm) {
+		_sync_customer_withholding(frm, false);
+	},
+
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1) return;
 
@@ -25,6 +41,98 @@ frappe.ui.form.on("Sales Invoice Item", {
 });
 
 let _contract_data_cache = {};
+let _customer_withholding_cache = {};
+
+function _sync_customer_withholding(frm, notify) {
+	if (frm.doc.docstatus !== 0 || frm.doc.is_opening === "Yes") return;
+
+	const customer = frm.doc.customer;
+	if (Object.prototype.hasOwnProperty.call(_customer_withholding_cache, customer)) {
+		_apply_customer_withholding(frm, _customer_withholding_cache[customer], notify);
+		return;
+	}
+
+	_fetch_customer_withholding(customer, (info) => {
+		_apply_customer_withholding(frm, info, notify);
+	});
+}
+
+function _restore_required_withholding(frm) {
+	if (frm.doc.docstatus !== 0 || frm.doc.apply_tds || frm._nbs_setting_apply_tds) return;
+	if (frm.doc.is_opening === "Yes") return;
+
+	const customer = frm.doc.customer;
+	const cached = _customer_withholding_cache[customer];
+	if (cached !== undefined) {
+		_restore_withholding_if_required(frm, cached);
+		return;
+	}
+
+	_fetch_customer_withholding(customer, (info) => {
+		_restore_withholding_if_required(frm, info);
+	});
+}
+
+function _apply_customer_withholding(frm, info, notify) {
+	if (!info || !info.category || frm.doc.apply_tds) return;
+
+	_set_apply_tds(frm, 1);
+
+	if (notify) {
+		frappe.show_alert(
+			{
+				message: __(
+					"Tax Withholding Category {0} is set for {1}. Tax withholding enabled.",
+					[info.category, frm.doc.customer]
+				),
+				indicator: "blue",
+			},
+			5
+		);
+	}
+}
+
+function _restore_withholding_if_required(frm, info) {
+	if (!info || !info.category) return;
+
+	_set_apply_tds(frm, 1);
+	frappe.show_alert(
+		{
+			message: __(
+				"Tax withholding is required for {0} (Category: {1}). The checkbox was re-enabled.",
+				[frm.doc.customer, info.category]
+			),
+			indicator: "orange",
+		},
+		7
+	);
+}
+
+function _set_apply_tds(frm, value) {
+	frm._nbs_setting_apply_tds = true;
+	frm.set_value("apply_tds", value).finally(() => {
+		frm._nbs_setting_apply_tds = false;
+	});
+}
+
+function _fetch_customer_withholding(customer, callback) {
+	if (!customer) {
+		callback(null);
+		return;
+	}
+
+	frappe.db.get_value(
+		"Customer",
+		customer,
+		["tax_withholding_category", "tax_withholding_group"],
+		(r) => {
+			const category = r && (r.tax_withholding_category || r.tax_withholding_group);
+			const info = category ? { category } : null;
+			_customer_withholding_cache[customer] = info;
+			callback(info);
+		}
+	);
+}
 
 function _setup_placement_contract(frm) {
 	_refresh_contract_indicator(frm);
