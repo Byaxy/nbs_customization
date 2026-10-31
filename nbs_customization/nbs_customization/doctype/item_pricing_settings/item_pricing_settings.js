@@ -12,27 +12,40 @@ const FIXED_TIER_SET = [
 
 frappe.ui.form.on("Item Pricing Settings", {
 	refresh(frm) {
+		_apply_valuation_mode(frm);
 		if (frm.is_new()) {
 			frm.enable_save();
+			_sync_item_live_rates(frm);
 			return;
 		}
 		frm.disable_save();
-		_add_action_buttons(frm);
-		_render_price_comparison(frm);
-		_render_manual_totals_helper(frm);
-		_render_converted_hints(frm);
+		_sync_current_selling_price(frm, () => {
+			_add_action_buttons(frm);
+			_render_price_comparison(frm);
+			_render_manual_totals_helper(frm);
+			_render_converted_hints(frm);
+			_render_valuation_hint(frm);
+		});
 	},
 
 	after_save(frm) {
 		frm.disable_save();
-		_add_action_buttons(frm);
-		_render_price_comparison(frm);
-		_render_manual_totals_helper(frm);
-		_render_converted_hints(frm);
+		_apply_valuation_mode(frm);
+		_sync_current_selling_price(frm, () => {
+			_add_action_buttons(frm);
+			_render_price_comparison(frm);
+			_render_manual_totals_helper(frm);
+			_render_converted_hints(frm);
+			_render_valuation_hint(frm);
+		});
 	},
 
 	validate(frm) {
 		_validate_no_duplicate_price_lists(frm);
+	},
+
+	item_code(frm) {
+		_sync_item_live_rates(frm);
 	},
 
 	target_margin_pct(frm) {
@@ -58,7 +71,29 @@ frappe.ui.form.on("Item Pricing Settings", {
 
 	pricing_mode(frm) {
 		if (!frm.is_new()) frm.enable_save();
+		_apply_valuation_mode(frm);
+		_render_valuation_hint(frm);
 		_render_converted_hints(frm);
+	},
+
+	current_valuation_rate(frm) {
+		if (frm.doc.pricing_mode !== "Auto") return;
+		if (!flt(frm.doc.valuation_rate_override)) {
+			frm.set_value("valuation_rate_override", 1);
+		}
+		_render_valuation_hint(frm);
+		if (!frm.is_new()) {
+			frm.enable_save();
+			frm.clear_custom_buttons();
+		}
+	},
+
+	valuation_rate_override(frm) {
+		_render_valuation_hint(frm);
+		if (!frm.is_new() && frm.doc.pricing_mode === "Auto") {
+			frm.enable_save();
+			frm.clear_custom_buttons();
+		}
 	},
 
 	standard_selling_source_tier(frm) {
@@ -409,6 +444,80 @@ function _add_action_buttons(frm) {
 	}
 }
 
+function _apply_valuation_mode(frm) {
+	const auto = frm.doc.pricing_mode === "Auto";
+	frm.set_df_property("current_valuation_rate", "read_only", auto ? 0 : 1);
+	frm.set_df_property("valuation_rate_override", "hidden", auto ? 0 : 1);
+}
+
+function _sync_current_selling_price(frm, callback) {
+	const done = () => (callback ? callback() : null);
+	if (!frm.doc.item_code) {
+		done();
+		return;
+	}
+	frappe.call({
+		method: "nbs_customization.nbs_customization.doctype.item_pricing_settings.item_pricing_settings.get_standard_selling_price",
+		args: { item_code: frm.doc.item_code },
+		callback(r) {
+			if (!r.exc) {
+				frm.doc.current_selling_price = flt(r.message);
+				frm.refresh_field("current_selling_price");
+			}
+			done();
+		},
+		error() {
+			done();
+		},
+	});
+}
+
+function _sync_item_live_rates(frm) {
+	const item_code = frm.doc.item_code;
+	if (!item_code) {
+		frm.doc.current_valuation_rate = 0;
+		frm.doc.current_selling_price = 0;
+		if (frm.doc.pricing_mode === "Auto") {
+			frm.doc.valuation_rate_override = 0;
+			frm.refresh_field("valuation_rate_override");
+		}
+		frm.refresh_field("current_valuation_rate");
+		frm.refresh_field("current_selling_price");
+		_render_valuation_hint(frm);
+		return;
+	}
+	frappe.call({
+		method: "nbs_customization.nbs_customization.doctype.item_pricing_settings.item_pricing_settings.get_item_live_rates",
+		args: { item_code },
+		callback(r) {
+			if (r.exc || frm.doc.item_code !== item_code) return;
+			const rates = r.message || {};
+			// Assign directly so the current_valuation_rate handler does not pin the rate.
+			frm.doc.current_valuation_rate = flt(rates.current_valuation_rate);
+			frm.doc.current_selling_price = flt(rates.current_selling_price);
+			if (frm.doc.pricing_mode === "Auto") {
+				frm.doc.valuation_rate_override = 0;
+				frm.refresh_field("valuation_rate_override");
+			}
+			frm.refresh_field("current_valuation_rate");
+			frm.refresh_field("current_selling_price");
+			_render_valuation_hint(frm);
+			_render_price_comparison(frm);
+		},
+	});
+}
+
+function _render_valuation_hint(frm) {
+	const field = frm.get_field("current_valuation_rate");
+	if (!field) return;
+	field.$wrapper.find(".valuation-hint").remove();
+	if (frm.doc.pricing_mode !== "Auto") return;
+	const hint = flt(frm.doc.valuation_rate_override)
+		? `<div class="valuation-hint text-muted small" style="margin-top:2px;">Pinned — tiers use this rate. <b>Refresh Valuation</b> resumes automatic updates.</div>`
+		: `<div class="valuation-hint text-muted small" style="margin-top:2px;">Auto-filled from the latest Stock Ledger / Landed Cost. Editing pins this rate.</div>`;
+	field.$wrapper.find(".control-value").after(hint);
+}
+
 function _validate_no_duplicate_price_lists(frm) {
 	const lists = [
 		["Price List — Target Margin", frm.doc.price_list],
@@ -447,6 +556,10 @@ function _validate_no_duplicate_price_lists(frm) {
 }
 
 function _show_preview(frm) {
+	_sync_current_selling_price(frm, () => _build_preview(frm));
+}
+
+function _build_preview(frm) {
 	const d = frm.doc;
 	const hasTarget = flt(d.target_margin_pct) && d.price_list;
 	const hasTC = flt(d.commission_pct) && d.price_list_target_commission;

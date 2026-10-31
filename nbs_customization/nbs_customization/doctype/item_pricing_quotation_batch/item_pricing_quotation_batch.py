@@ -6,7 +6,12 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, today
 
-from nbs_customization.utils.pricing import FIXED_TIER_SET, allocate_shared_costs, get_exchange_rate
+from nbs_customization.utils.pricing import (
+	FIXED_TIER_SET,
+	allocate_shared_costs,
+	get_current_selling_price,
+	get_exchange_rate,
+)
 
 
 class ItemPricingQuotationBatch(Document):
@@ -617,11 +622,11 @@ def _apply_tiers_from_batch(batch, row, settings_doc, uom, standard_rate):
 				}
 			).insert(ignore_permissions=True)
 
-	# update live current_selling_price on settings
+	# update live current_selling_price on settings from Standard Selling
 	frappe.db.set_value(
 		"Item Pricing Settings",
 		settings_doc.name,
 		"current_selling_price",
-		flt(standard_rate, 2),
+		get_current_selling_price(row.item_code),
 		update_modified=False,
 	)
