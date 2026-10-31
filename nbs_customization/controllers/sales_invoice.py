@@ -64,13 +64,25 @@ def _get_customer_withholding(customer):
 	)
 
 
+def _get_previous_customer_category(doc):
+	"""Category copied from the customer on the last save, if the customer changed."""
+	previous = doc.get_doc_before_save()
+	previous_customer = previous.get("customer") if previous else None
+
+	if not previous_customer or previous_customer == doc.get("customer"):
+		return None
+
+	return _get_customer_withholding(previous_customer).get("tax_withholding_category")
+
+
 def _apply_customer_tax_withholding(doc):
 	"""
 	Withhold tax whenever the customer is configured for it.
 
-	Item-level categories drive ERPNext's withholding engine, so copy the
-	customer category into rows that do not carry their own. Opening entries
-	are exempt, matching erpnext's own controller.
+	Item-level categories drive ERPNext's withholding engine. Rows still
+	carrying the previous customer's category follow the customer change;
+	any other non-blank category is a real item override and stays put.
+	Opening entries are exempt, matching erpnext's own controller.
 	"""
 	if doc.get("is_opening") == "Yes":
 		return
@@ -78,17 +90,16 @@ def _apply_customer_tax_withholding(doc):
 	withholding = _get_customer_withholding(doc.get("customer"))
 	category = withholding.get("tax_withholding_category")
 
-	if not (category or withholding.get("tax_withholding_group")):
-		return
+	if category or withholding.get("tax_withholding_group"):
+		doc.apply_tds = 1
 
-	doc.apply_tds = 1
-
-	if not category:
-		return
+	previous_category = _get_previous_customer_category(doc)
 
 	for item in doc.get("items") or []:
-		if not item.get("tax_withholding_category"):
-			item.tax_withholding_category = category
+		item_category = item.get("tax_withholding_category")
+		if item_category and item_category != previous_category:
+			continue
+		item.tax_withholding_category = category
 
 
 # ---------------------------------------------------------------------------
@@ -96,9 +107,12 @@ def _apply_customer_tax_withholding(doc):
 # ---------------------------------------------------------------------------
 
 
+def before_validate(doc, method=None):
+	_apply_customer_tax_withholding(doc)
+
+
 def before_save(doc, method=None):
 	_set_custom_sales_order(doc)
-	_apply_customer_tax_withholding(doc)
 
 
 def before_submit(doc, method=None):

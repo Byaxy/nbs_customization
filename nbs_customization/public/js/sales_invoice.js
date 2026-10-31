@@ -47,12 +47,14 @@ function _sync_customer_withholding(frm, notify) {
 	if (frm.doc.docstatus !== 0 || frm.doc.is_opening === "Yes") return;
 
 	const customer = frm.doc.customer;
+	const docname = frm.doc.name;
 	if (Object.prototype.hasOwnProperty.call(_customer_withholding_cache, customer)) {
 		_apply_customer_withholding(frm, _customer_withholding_cache[customer], notify);
 		return;
 	}
 
 	_fetch_customer_withholding(customer, (info) => {
+		if (!_is_current_withholding_target(frm, customer, docname)) return;
 		_apply_customer_withholding(frm, info, notify);
 	});
 }
@@ -62,6 +64,7 @@ function _restore_required_withholding(frm) {
 	if (frm.doc.is_opening === "Yes") return;
 
 	const customer = frm.doc.customer;
+	const docname = frm.doc.name;
 	const cached = _customer_withholding_cache[customer];
 	if (cached !== undefined) {
 		_restore_withholding_if_required(frm, cached);
@@ -69,8 +72,18 @@ function _restore_required_withholding(frm) {
 	}
 
 	_fetch_customer_withholding(customer, (info) => {
+		if (!_is_current_withholding_target(frm, customer, docname)) return;
 		_restore_withholding_if_required(frm, info);
 	});
+}
+
+function _is_current_withholding_target(frm, customer, docname) {
+	return (
+		frm.doc.customer === customer &&
+		frm.doc.name === docname &&
+		frm.doc.docstatus === 0 &&
+		frm.doc.is_opening !== "Yes"
+	);
 }
 
 function _apply_customer_withholding(frm, info, notify) {

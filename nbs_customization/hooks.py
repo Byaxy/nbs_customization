@@ -386,6 +386,7 @@ doc_events = {
 		"on_cancel": "nbs_customization.controllers.delivery_note.on_cancel",
 	},
 	"Sales Invoice": {
+		"before_validate": "nbs_customization.controllers.sales_invoice.before_validate",
 		"validate": [
 			"nbs_customization.controllers.validations.stock.validate_unique_item_batch",
 			"nbs_customization.controllers.placement.sales_invoice.validate",
