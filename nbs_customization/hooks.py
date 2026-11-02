@@ -434,6 +434,10 @@ doc_events = {
 		"before_save": "nbs_customization.controllers.purchase_invoice.before_save",
 		"before_submit": "nbs_customization.controllers.purchase_invoice.before_submit",
 	},
+	"Request for Quotation": {
+		"before_save": "nbs_customization.controllers.request_for_quotation.before_save",
+		"before_submit": "nbs_customization.controllers.request_for_quotation.before_submit",
+	},
 	"Shipment": {
 		"validate": "nbs_customization.controllers.shipment.validate",
 	},
