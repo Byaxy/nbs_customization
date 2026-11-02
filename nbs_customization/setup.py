@@ -45,6 +45,13 @@ NBS_SIDEBAR_PLACEMENTS = {
 			"sheet",
 			"Item Pricing Quotation Batch",
 		),
+		(
+			"Item Pricing Tier Lookup",
+			"Item Pricing Tier Lookup",
+			"Report",
+			"table",
+			"Instrument Pricing Worksheet",
+		),
 	],
 	"Buying": [
 		("Inbound Shipment", "Inbound Shipment", "DocType", "package-check", "Purchase Invoice"),
@@ -102,9 +109,26 @@ NBS_SIDEBAR_PLACEMENTS = {
 			"Monthly Reconciliation",
 		),
 		("Daily Income & Expense", "daily_income_expense", "Page", "bar-chart", "Revenue Share Statement"),
+		(
+			"Daily Income & Expense Report",
+			"Daily Income and Expense",
+			"Report",
+			"bar-chart",
+			"Daily Income & Expense",
+		),
+		(
+			"Cheques in Transit",
+			"Cheques in Transit",
+			"Report",
+			"banknote",
+			"Daily Income & Expense Report",
+		),
 		("Commission Payout", "Commission Payout", "DocType", "banknote-check", "Payment Entry"),
 		("Expense Tax", "Expense Tax", "DocType", "scale", "Tax Withholding Category"),
 		("Expense Category", "Expense Category", "DocType", "table", "Currency Exchange"),
+	],
+	"Setup": [
+		("Desk Theme", "Desk Theme", "DocType", "palette", "Global Defaults"),
 	],
 }
 
@@ -660,7 +684,7 @@ def after_migrate():
 	"""
 	1. Drop leftover legacy `paying_account` columns.
 	2. Interleave NBS items flat into the site-wide sidebar layers
-	   (Selling, Buying, Stock, Assets, Accounts).
+	   (Selling, Buying, Stock, Assets, Accounts, Setup).
 	3. Rename dock entries + hide unused modules.
 	4. Create cheque clearing accounts + the Check Mode of Payment.
 	5. Ensure pricing tier Price Lists (Standard Selling = 30% reuse).
