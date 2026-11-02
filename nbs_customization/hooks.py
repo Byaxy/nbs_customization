@@ -5,6 +5,12 @@ app_description = "Custom app for Northland Biomedical Solutions"
 app_email = "charlesbyaxy@gmail.com"
 app_license = "mit"
 
+# NBS navigation lives in ERPNext's module sidebars. Keep this module out of the
+# dock while leaving its doctypes, reports, and pages reachable through its heirs.
+code_only_modules = {
+	"NBS Customization": ["Selling", "Buying", "Stock", "Assets", "Accounts", "Setup"],
+}
+
 # Apps
 # ------------------
 
@@ -30,6 +36,8 @@ app_include_css = [
 	"/assets/nbs_customization/css/list_view_row_number.css",
 ]
 app_include_js = [
+	"/assets/nbs_customization/js/nbs_logo_recolor.js",
+	"/assets/nbs_customization/js/nbs_desk_icons.js",
 	"/assets/nbs_customization/js/nbs_theme.js",
 	"/assets/nbs_customization/js/list_view_row_number.js",
 	"/assets/nbs_customization/js/report_row_number.js",

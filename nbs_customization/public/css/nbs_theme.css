@@ -305,9 +305,7 @@ body.desktop-page .desktop-avatar .avatar-frame {
 	gap: 8px;
 	border-radius: 6px;
 	color: var(--nbs-sidebar-text) !important;
-	transition:
-		background-color 0.15s ease,
-		color 0.15s ease;
+	transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .body-sidebar .standard-sidebar-item svg,
@@ -419,6 +417,24 @@ body.dock-pinned .dock {
 .es-tooltip.es-tooltip--plain {
 	background-color: var(--nbs-btn-primary-bg);
 	color: #ffffff;
+}
+
+.desktop-icon .icon-container:not(.folder-icon),
+.body-sidebar .sidebar-header .header-logo,
+.body-sidebar .sidebar-header .header-logo img,
+.body-sidebar .sidebar-header .header-logo .icon-container {
+	background-color: var(--nbs-primary) !important;
+}
+
+.body-sidebar .sidebar-header .header-logo {
+	border-radius: 6px;
+}
+
+.desktop-icon .desktop-alphabet,
+.body-sidebar .sidebar-header .header-logo,
+.body-sidebar .sidebar-header .header-logo svg,
+.body-sidebar .sidebar-header .header-logo .desktop-alphabet {
+	color: var(--nbs-accent-color) !important;
 }
 
 /* ============================================================

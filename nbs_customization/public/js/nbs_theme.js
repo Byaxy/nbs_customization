@@ -146,6 +146,8 @@ class NBSTheme {
 		const cached = this.loadCache();
 		if (cached) {
 			this.applyConfig(cached);
+		} else if (window.NBSDeskIcons) {
+			window.NBSDeskIcons.refresh();
 		}
 
 		// Fetch fresh config from the server in the background
@@ -190,6 +192,10 @@ class NBSTheme {
 				root.style.setProperty(cssVar, value);
 			}
 		});
+
+		if (window.NBSDeskIcons) {
+			window.NBSDeskIcons.refresh();
+		}
 	}
 
 	// -------------------------------------------------------------------------
@@ -243,6 +249,10 @@ class NBSTheme {
 			img.src = logoSrc;
 			img.style.cssText =
 				"width:110px;height:110px;object-fit:contain;display:block;margin:0 auto 20px;";
+		}
+
+		if (window.NBSDeskIcons) {
+			window.NBSDeskIcons.scheduleRefresh(el);
 		}
 	}
 

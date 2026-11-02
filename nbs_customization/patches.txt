@@ -13,3 +13,4 @@ nbs_customization.patches.v1.backfill_placement_mirror_fields
 nbs_customization.patches.v1.backfill_placement_recovery_flags
 nbs_customization.patches.v1.set_nbs_print_format_defaults
 nbs_customization.patches.v1.ensure_nbs_letter_head
+nbs_customization.patches.v1.remove_legacy_nbs_workspace_sidebar
