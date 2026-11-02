@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe.utils import flt
+from frappe.utils import flt, strip_html
 
 
 def execute(filters=None):
@@ -10,7 +10,7 @@ def execute(filters=None):
 	filters = filters or {}
 	columns = [
 		{"label": "Item", "fieldname": "item_code", "fieldtype": "Link", "options": "Item", "width": 140},
-		{"label": "Item Name", "fieldname": "item_name", "fieldtype": "Data", "width": 180},
+		{"label": "Description", "fieldname": "description", "fieldtype": "Data", "width": 240},
 		{
 			"label": "Category",
 			"fieldname": "item_group",
@@ -85,9 +85,8 @@ def execute(filters=None):
 			ips.reference_quotation_batch,
 			ips.current_valuation_rate,
 			ips.manual_true_cost,
-			ips.quote_currency,
 			ips.company_currency,
-			i.item_name
+			i.description
 		FROM `tabItem Pricing Settings` ips
 		LEFT JOIN `tabItem` i ON i.name = ips.item_code
 		WHERE {where}
@@ -107,7 +106,7 @@ def execute(filters=None):
 		data.append(
 			{
 				"item_code": r.item_code,
-				"item_name": r.item_name,
+				"description": strip_html(r.description or ""),
 				"item_group": r.item_group,
 				"pricing_mode": r.pricing_mode,
 				"true_cost": true_cost,
