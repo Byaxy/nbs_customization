@@ -371,6 +371,55 @@ doctype_js = {
 doctype_list_js = {"Expense": "public/js/expense_list.js"}
 
 doc_events = {
+	"Analyzer Test Application": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Analyzer Assay Group": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Analyzer Calibration Rule": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Analyzer Consumable Requirement": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Analyzer Maintenance Part": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Test Panel": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Test Parameter": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Reagent Specification": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Instrument Specification": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Item Price": {
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
 	"Quotation": {
 		"validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
 		"before_test_insert": "nbs_customization.controllers.validations.sales.prepare_quotation_test_record",

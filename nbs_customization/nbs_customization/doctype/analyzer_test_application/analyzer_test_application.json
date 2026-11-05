@@ -1,0 +1,198 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ATA-{#####}",
+ "creation": "2026-11-05 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "analyzer_item",
+  "test_parameter",
+  "application_code",
+  "analyzer_test_code",
+  "column_break_main",
+  "assay_group",
+  "sample_type",
+  "method",
+  "result_type",
+  "is_default",
+  "section_break_result",
+  "result_unit",
+  "measuring_range_low",
+  "measuring_range_high",
+  "dilution_factor",
+  "calculation_formula",
+  "section_break_validity",
+  "valid_from",
+  "valid_upto",
+  "section_break_reagents",
+  "reagents"
+ ],
+ "fields": [
+  {
+   "fieldname": "analyzer_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Analyzer Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "test_parameter",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Test Parameter",
+   "options": "Test Parameter",
+   "reqd": 1
+  },
+  {
+   "fieldname": "application_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Application Code"
+  },
+  {
+   "fieldname": "analyzer_test_code",
+   "fieldtype": "Data",
+   "label": "Analyzer Test Code"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "assay_group",
+   "fieldtype": "Link",
+   "label": "Assay Group",
+   "options": "Analyzer Assay Group"
+  },
+  {
+   "fieldname": "sample_type",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Sample Type"
+  },
+  {
+   "fieldname": "method",
+   "fieldtype": "Data",
+   "label": "Method"
+  },
+  {
+   "fieldname": "result_type",
+   "fieldtype": "Select",
+   "label": "Result Type",
+   "options": "Measured\nCalculated\nQualitative"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "label": "Default Application"
+  },
+  {
+   "fieldname": "section_break_result",
+   "fieldtype": "Section Break",
+   "label": "Result"
+  },
+  {
+   "fieldname": "result_unit",
+   "fieldtype": "Data",
+   "label": "Result Unit"
+  },
+  {
+   "fieldname": "measuring_range_low",
+   "fieldtype": "Float",
+   "label": "Measuring Range Low"
+  },
+  {
+   "fieldname": "measuring_range_high",
+   "fieldtype": "Float",
+   "label": "Measuring Range High"
+  },
+  {
+   "fieldname": "dilution_factor",
+   "fieldtype": "Float",
+   "label": "Dilution Factor"
+  },
+  {
+   "fieldname": "calculation_formula",
+   "fieldtype": "Small Text",
+   "label": "Calculation Formula"
+  },
+  {
+   "fieldname": "section_break_validity",
+   "fieldtype": "Section Break",
+   "label": "Validity"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "label": "Valid From"
+  },
+  {
+   "fieldname": "valid_upto",
+   "fieldtype": "Date",
+   "label": "Valid Upto"
+  },
+  {
+   "fieldname": "section_break_reagents",
+   "fieldtype": "Section Break",
+   "label": "Reagent Components"
+  },
+  {
+   "fieldname": "reagents",
+   "fieldtype": "Table",
+   "label": "Reagents",
+   "options": "Analyzer Application Reagent"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Analyzer Test Application",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Auditor"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

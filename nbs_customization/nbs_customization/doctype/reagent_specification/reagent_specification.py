@@ -7,9 +7,16 @@ from frappe.model.document import Document
 
 class ReagentSpecification(Document):
 	def validate(self):
+		self._validate_percentages()
 		if self.is_new() or not self.has_value_changed("reagent_role"):
 			return
 		self._validate_no_active_downstream_references()
+
+	def _validate_percentages(self):
+		for field in ("calibration_control_pct", "dead_volume_pct"):
+			value = self.get(field)
+			if value is not None and (value < 0 or value > 100):
+				frappe.throw(frappe._("{0} must be between 0 and 100.").format(field))
 
 	def _validate_no_active_downstream_references(self):
 		item = self.item

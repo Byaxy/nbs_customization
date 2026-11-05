@@ -5,11 +5,19 @@
  "creation": "2026-07-08 18:08:28.664877",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
+  "field_order": [
   "item",
   "description",
   "column_break_bqid",
   "analyzer_type",
+  "manufacturer",
+  "model",
+  "category",
+  "system_type",
+  "sample_types",
+  "throughput",
+  "channel_count",
+  "reagent_lock",
   "section_break_vtgp",
   "supported_test_methods",
   "section_break_mpbp",
@@ -55,6 +63,46 @@
    "fieldtype": "Link",
    "label": "Analyzer Type",
    "options": "Analyzer Type"
+  },
+  {
+   "fieldname": "manufacturer",
+   "fieldtype": "Data",
+   "label": "Manufacturer"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Data",
+   "label": "Model"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "label": "Category"
+  },
+  {
+   "fieldname": "system_type",
+   "fieldtype": "Data",
+   "label": "System Type"
+  },
+  {
+   "fieldname": "sample_types",
+   "fieldtype": "Small Text",
+   "label": "Sample Types"
+  },
+  {
+   "fieldname": "throughput",
+   "fieldtype": "Data",
+   "label": "Throughput"
+  },
+  {
+   "fieldname": "channel_count",
+   "fieldtype": "Int",
+   "label": "Channel Count"
+  },
+  {
+   "fieldname": "reagent_lock",
+   "fieldtype": "Data",
+   "label": "Reagent Lock"
   },
   {
    "fetch_from": "item.description",

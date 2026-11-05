@@ -15,3 +15,5 @@ nbs_customization.patches.v1.set_nbs_print_format_defaults
 nbs_customization.patches.v1.ensure_nbs_letter_head
 nbs_customization.patches.v1.remove_legacy_nbs_workspace_sidebar
 nbs_customization.patches.v1.backfill_rfq_vendor
+nbs_customization.patches.v1.migrate_test_panel_group_to_test_panel
+nbs_customization.patches.v1.migrate_legacy_placement_masters

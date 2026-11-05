@@ -70,6 +70,42 @@ NBS_SIDEBAR_PLACEMENTS = {
 		),
 		("Test Panel Group", "Test Panel Group", "DocType", "table", "Reagent Specification"),
 		("Test Parameter", "Test Parameter", "DocType", "sliders-horizontal", "Test Panel Group"),
+		("Test Panel", "Test Panel", "DocType", "table", "Test Parameter"),
+		(
+			"Analyzer Test Application",
+			"Analyzer Test Application",
+			"DocType",
+			"clipboard-check",
+			"Test Panel",
+		),
+		(
+			"Analyzer Assay Group",
+			"Analyzer Assay Group",
+			"DocType",
+			"layers",
+			"Analyzer Test Application",
+		),
+		(
+			"Analyzer Calibration Rule",
+			"Analyzer Calibration Rule",
+			"DocType",
+			"flask-conical",
+			"Analyzer Assay Group",
+		),
+		(
+			"Analyzer Consumable Requirement",
+			"Analyzer Consumable Requirement",
+			"DocType",
+			"package",
+			"Analyzer Calibration Rule",
+		),
+		(
+			"Analyzer Maintenance Part",
+			"Analyzer Maintenance Part",
+			"DocType",
+			"wrench",
+			"Analyzer Consumable Requirement",
+		),
 	],
 	"Assets": [
 		(
@@ -722,6 +758,10 @@ def after_migrate():
 	from nbs_customization.placement_contract_templates import ensure_placement_contract_templates
 
 	ensure_placement_contract_templates()
+
+	from nbs_customization.utils.placement.analyzer_menu import clear_analyzer_menu_cache
+
+	clear_analyzer_menu_cache()
 
 
 def _ensure_placement_roles():

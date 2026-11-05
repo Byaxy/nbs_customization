@@ -1,0 +1,137 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:AAG-{#####}",
+ "creation": "2026-11-05 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "analyzer_item",
+  "group_code",
+  "group_name",
+  "column_break_main",
+  "test_panel",
+  "run_basis",
+  "sample_type",
+  "section_break_tests",
+  "tests",
+  "section_break_reagents",
+  "reagents"
+ ],
+ "fields": [
+  {
+   "fieldname": "analyzer_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Analyzer Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "group_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Group Code"
+  },
+  {
+   "fieldname": "group_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Group Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "test_panel",
+   "fieldtype": "Link",
+   "label": "Test Panel",
+   "options": "Test Panel"
+  },
+  {
+   "fieldname": "run_basis",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Run Basis",
+   "options": "Per Sample\nSum of Tests",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sample_type",
+   "fieldtype": "Data",
+   "label": "Sample Type"
+  },
+  {
+   "fieldname": "section_break_tests",
+   "fieldtype": "Section Break",
+   "label": "Tests"
+  },
+  {
+   "fieldname": "tests",
+   "fieldtype": "Table",
+   "label": "Tests",
+   "options": "Assay Group Test"
+  },
+  {
+   "fieldname": "section_break_reagents",
+   "fieldtype": "Section Break",
+   "label": "Reagents"
+  },
+  {
+   "fieldname": "reagents",
+   "fieldtype": "Table",
+   "label": "Reagents",
+   "options": "Assay Group Reagent"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Analyzer Assay Group",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Auditor"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

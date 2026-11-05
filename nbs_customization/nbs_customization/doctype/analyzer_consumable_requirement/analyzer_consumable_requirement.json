@@ -1,0 +1,147 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:ACN-{#####}",
+ "creation": "2026-11-05 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "analyzer_item",
+  "consumable_item",
+  "consumable_role",
+  "scope",
+  "column_break_main",
+  "assay_group",
+  "consumption_basis",
+  "qty",
+  "services_per_year",
+  "section_break_applications",
+  "applications"
+ ],
+ "fields": [
+  {
+   "fieldname": "analyzer_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Analyzer Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "consumable_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Consumable Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "consumable_role",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Consumable Role",
+   "options": "System Solution\nWash\nSample Consumable\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "scope",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Scope",
+   "options": "All Assays\nSelected Applications\nAssay Group",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.scope==\"Assay Group\";",
+   "fieldname": "assay_group",
+   "fieldtype": "Link",
+   "label": "Assay Group",
+   "options": "Analyzer Assay Group",
+   "mandatory_depends_on": "eval:doc.scope==\"Assay Group\";"
+  },
+  {
+   "fieldname": "consumption_basis",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Consumption Basis",
+   "options": "Per Test\nPer Sample\nPer Run\nPer Day\nPer Month\nPer Calibration\nPer Service Interval\nPer Year\nFixed Per Contract",
+   "reqd": 1
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Quantity",
+   "reqd": 1
+  },
+  {
+   "fieldname": "services_per_year",
+   "fieldtype": "Float",
+   "label": "Services per Year"
+  },
+  {
+   "depends_on": "eval:doc.scope==\"Selected Applications\";",
+   "fieldname": "section_break_applications",
+   "fieldtype": "Section Break",
+   "label": "Applications"
+  },
+  {
+   "fieldname": "applications",
+   "fieldtype": "Table",
+   "label": "Applications",
+   "options": "Analyzer Consumable Application"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-05 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Analyzer Consumable Requirement",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Auditor"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

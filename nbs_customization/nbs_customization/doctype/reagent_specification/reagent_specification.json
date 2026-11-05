@@ -10,12 +10,25 @@
   "description",
   "column_break_azyb",
   "reagent_role",
+  "item_role",
+  "component_type",
   "test_panel_group",
   "test_reagent_details_section",
   "default_pack_volume_ml",
+  "pack_volume_ml",
+  "pack_uom",
   "default_cogs_per_pack",
+  "standard_cost_per_pack",
   "column_break_ahme",
   "default_tests_per_pack",
+  "gross_tests_per_pack",
+  "calibration_control_pct",
+  "dead_volume_pct",
+  "shelf_life_days",
+  "onboard_stability_days",
+  "manufacturer",
+  "catalog_no",
+  "standard_cost_per_unit",
   "non_test_consumable_details_section",
   "default_consumption_qty",
   "default_cogs_per_unit",
@@ -54,6 +67,18 @@
    "reqd": 1
   },
   {
+   "fieldname": "item_role",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Item Role",
+   "options": "Test Reagent\nDiluent\nLyse\nCleaner\nCalibrator\nControl"
+  },
+  {
+   "fieldname": "component_type",
+   "fieldtype": "Data",
+   "label": "Component Type"
+  },
+  {
    "fieldname": "test_panel_group",
    "fieldtype": "Link",
    "label": "Test Panel Group",
@@ -87,6 +112,68 @@
    "fieldname": "default_cogs_per_pack",
    "fieldtype": "Currency",
    "label": "Default COGS per Pack",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "pack_volume_ml",
+   "fieldtype": "Float",
+   "label": "Pack Volume (ml)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "pack_uom",
+   "fieldtype": "Link",
+   "label": "Pack UOM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "gross_tests_per_pack",
+   "fieldtype": "Int",
+   "label": "Gross Tests per Pack",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "calibration_control_pct",
+   "fieldtype": "Percent",
+   "label": "Calibration/Control %"
+  },
+  {
+   "fieldname": "dead_volume_pct",
+   "fieldtype": "Percent",
+   "label": "Dead Volume %"
+  },
+  {
+   "fieldname": "shelf_life_days",
+   "fieldtype": "Int",
+   "label": "Shelf Life (Days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "onboard_stability_days",
+   "fieldtype": "Int",
+   "label": "Onboard Stability (Days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "manufacturer",
+   "fieldtype": "Data",
+   "label": "Manufacturer"
+  },
+  {
+   "fieldname": "catalog_no",
+   "fieldtype": "Data",
+   "label": "Catalog No"
+  },
+  {
+   "fieldname": "standard_cost_per_pack",
+   "fieldtype": "Currency",
+   "label": "Standard Cost per Pack",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "standard_cost_per_unit",
+   "fieldtype": "Currency",
+   "label": "Standard Cost per Unit",
    "non_negative": 1
   },
   {
