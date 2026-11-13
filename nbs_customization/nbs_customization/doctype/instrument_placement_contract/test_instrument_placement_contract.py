@@ -137,6 +137,7 @@ class TestContractLifecycle(FrappeTestCase):
 				{
 					"item_code": self.reagent.item_code,
 					"test_parameter": self.param.name,
+					"component_role": ws_line.component_role or "",
 					"pack_volume_ml": ws_line.pack_volume_ml,
 					"contract_price": ws_line.selling_price_per_pack,
 					"standard_price": ws_line.cogs_per_pack,
@@ -154,6 +155,18 @@ class TestContractLifecycle(FrappeTestCase):
 		data.update(overrides)
 		doc = frappe.get_doc(data).insert()
 		return doc
+
+	def test_component_role_is_part_of_line_key(self):
+		from nbs_customization.nbs_customization.doctype.instrument_placement_contract.instrument_placement_contract import (
+			_contract_line_key,
+		)
+
+		first = frappe._dict(item_code="R", test_parameter="T", component_role="R1")
+		second = frappe._dict(item_code="R", test_parameter="T", component_role="R2")
+		self.assertNotEqual(_contract_line_key(first), _contract_line_key(second))
+		self.assertNotEqual(
+			_contract_line_key(first), _contract_line_key(frappe._dict(item_code="R", test_parameter="T"))
+		)
 
 	def test_validate_reagent_restriction(self):
 		invalid_item = frappe.get_doc(

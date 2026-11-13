@@ -56,12 +56,15 @@
 {# Schedule B on the contract: mirrors of the locked worksheet. Bg columns
 render only when set on at least one line (any analyzer type). #}
 {% macro contract_schedule_b(doc) %}
-{%- set ns = namespace(show_bg=false, total_ml=0, monthly_tests=0) -%}
+{%- set ns = namespace(show_bg=false, total_ml=0, monthly_tests=0, seen_tests=[], seen_values=[]) -%}
 {%- for l in doc.contract_reagent_lines -%}
 {%- if l.bg_consumption_ml_day or l.bg_consumption_ml_month or l.consumption_ml_per_test -%}
 {%- set ns.show_bg = true -%}{%- endif -%}
 {%- set ns.total_ml = ns.total_ml + (l.total_consumption_ml_month or 0) -%}
+{%- if l.test_parameter not in ns.seen_tests -%}
 {%- set ns.monthly_tests = ns.monthly_tests + (l.monthly_test_volume or 0) -%}
+{%- set ns.seen_tests = ns.seen_tests + [l.test_parameter] -%}
+{%- endif -%}
 {%- endfor -%}
 {{ matrix_preamble(doc.avg_samples_per_day, doc.operational_days_per_month,
 	ns.monthly_tests, doc.contract_duration_months or 0,
@@ -104,7 +107,11 @@ render only when set on at least one line (any analyzer type). #}
 			{%- if doc.contract_type == "CPT" -%}{{ l.agreed_test_price or 0 }}
 			{%- else -%}{{ l.contract_price or 0 }}{%- endif -%}</td>
 		<td style="border: 1px solid #000; padding: 3px 4px; text-align: right;">
-			{%- if doc.contract_type == "CPT" -%}{{ (l.monthly_test_volume or 0) * (l.agreed_test_price or 0) }}
+			{%- if doc.contract_type == "CPT" -%}
+			{%- if l.test_parameter not in ns.seen_values -%}
+			{{ (l.monthly_test_volume or 0) * (l.agreed_test_price or 0) }}
+			{%- set ns.seen_values = ns.seen_values + [l.test_parameter] -%}
+			{%- else -%}—{%- endif -%}
 			{%- else -%}{{ (l.min_monthly_qty or 0) * (l.contract_price or 0) }}{%- endif -%}</td>
 	</tr>
 	{%- endfor -%}
@@ -113,12 +120,15 @@ render only when set on at least one line (any analyzer type). #}
 
 {# Standalone matrix on the worksheet: live calculated values. #}
 {% macro worksheet_matrix_table(doc) %}
-{%- set ns = namespace(show_bg=false, total_ml=0, monthly_tests=0) -%}
+{%- set ns = namespace(show_bg=false, total_ml=0, monthly_tests=0, seen_tests=[]) -%}
 {%- for l in doc.reagent_lines -%}
 {%- if l.bg_consumption_ml_day or l.bg_consumption_ml_month or l.consumption_ml_per_test -%}
 {%- set ns.show_bg = true -%}{%- endif -%}
 {%- set ns.total_ml = ns.total_ml + (l.total_consumption_ml_month or 0) -%}
+{%- if l.test_parameter not in ns.seen_tests -%}
 {%- set ns.monthly_tests = ns.monthly_tests + (l.monthly_test_volume or 0) -%}
+{%- set ns.seen_tests = ns.seen_tests + [l.test_parameter] -%}
+{%- endif -%}
 {%- endfor -%}
 {{ matrix_preamble(doc.avg_samples_per_day, doc.operational_days_per_month,
 	ns.monthly_tests, (doc.contract_years or 0) * 12,

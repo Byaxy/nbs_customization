@@ -6,6 +6,7 @@ from frappe import _
 from frappe.model.document import Document
 
 from nbs_customization.utils.placement.dates import validate_not_future
+from nbs_customization.utils.placement.permissions import require_doc_access
 
 
 class DeploymentAcceptance(Document):
@@ -23,6 +24,8 @@ class DeploymentAcceptance(Document):
 	def before_submit(self):
 		if not self.customer_signed:
 			frappe.throw(_("Customer Signed must be checked before submitting acceptance."))
+		self._lock_deployment()
+		self._validate_duplicate(self._get_deployment())
 
 	def on_submit(self):
 		frappe.db.set_value(
@@ -44,7 +47,14 @@ class DeploymentAcceptance(Document):
 	def _get_deployment(self):
 		if not self.deployment:
 			frappe.throw(_("Analyzer Deployment is required."))
+		require_doc_access("Analyzer Deployment", self.deployment, "read")
 		return frappe.get_doc("Analyzer Deployment", self.deployment)
+
+	def _lock_deployment(self):
+		frappe.db.sql(
+			"select name from `tabAnalyzer Deployment` where name = %s for update",
+			(self.deployment,),
+		)
 
 	def _validate_status(self, deployment):
 		if deployment.deployment_status not in ("Deployed", "Under Service"):

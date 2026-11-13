@@ -37,15 +37,18 @@ MAX_ROWS = 500
 
 
 def get_sales_order_candidates(contract, search=None):
+	if not frappe.has_permission("Sales Order", "read"):
+		return []
 	filters = {
 		"docstatus": 1,
 		"customer": contract.customer,
+		"company": contract.company,
 		"custom_instrument_placement_contract": ["is", "not set"],
 	}
 	if search:
 		filters["name"] = ["like", f"%{search}%"]
 
-	documents = frappe.get_all(
+	documents = frappe.get_list(
 		"Sales Order",
 		filters=filters,
 		fields=[

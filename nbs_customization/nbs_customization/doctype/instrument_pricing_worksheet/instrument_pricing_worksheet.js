@@ -246,6 +246,7 @@ function _load_cost_basis(frm) {
 			analyzer_item: frm.doc.analyzer_pid,
 			term_months: frm.doc.term_months,
 			operational_days_per_month: frm.doc.operational_days_per_month || 0,
+			monthly_test_volume: frm.doc.total_monthly_tests || 0,
 			posting_date: frm.doc.posting_date,
 		},
 		freeze: true,

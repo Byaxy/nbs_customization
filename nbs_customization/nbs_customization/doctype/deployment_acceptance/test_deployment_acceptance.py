@@ -29,6 +29,14 @@ class TestDeploymentAcceptance(IntegrationTestCase):
 		values.update(overrides)
 		return frappe.get_doc(values)
 
+	def test_field_engineer_has_deployment_read_access(self):
+		rows = [
+			row
+			for row in frappe.get_meta("Analyzer Deployment").permissions
+			if row.role == "Field Engineer" and row.read
+		]
+		self.assertTrue(rows)
+
 	def test_submit_updates_deployment(self):
 		_ctx, dep = self._deployed("_TST-ACC1")
 		acc = self._acceptance(dep).insert()

@@ -14,6 +14,15 @@ class TestAnalyzerType(FrappeTestCase):
 	def tearDown(self):
 		frappe.db.rollback()
 
+	def test_migration_keeps_analyzer_type(self):
+		from nbs_customization.patches.v1.restore_analyzer_type import execute
+		from nbs_customization.patches.v1.simplify_analyzer_placement import REMOVED_DOCTYPES
+
+		self.assertNotIn("Analyzer Type", REMOVED_DOCTYPES)
+		execute()
+		self.assertTrue(frappe.db.exists("Analyzer Type", "Chemistry"))
+		self.assertTrue(frappe.db.exists("Analyzer Type", "Haematology"))
+
 	def test_fixture_types_exist(self):
 		self.assertTrue(frappe.db.exists("Analyzer Type", "Chemistry"))
 		self.assertTrue(frappe.db.exists("Analyzer Type", "Haematology"))

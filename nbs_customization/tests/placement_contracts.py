@@ -220,12 +220,21 @@ def make_contract(
 				{
 					"item_code": reagent.name,
 					"test_parameter": param["param"].name,
+					"component_role": ws_line.component_role or "",
 					"pack_volume_ml": ws_line.pack_volume_ml,
 					"contract_price": ws_line.selling_price_per_pack,
 					"standard_price": ws_line.cogs_per_pack,
 					"monthly_test_volume": ws_line.monthly_test_volume,
 					"qty_required_total": ws_line.packs_needed,
-					"min_monthly_qty": ceil(ws_line.monthly_test_volume / (ws_line.tests_per_pack or 1)),
+					"min_monthly_qty": ceil(
+						ws_line.monthly_test_volume
+						/ (
+							ws_line.reportable_tests_per_pack
+							or ws_line.gross_tests_per_pack
+							or ws_line.tests_per_pack
+							or 1
+						)
+					),
 					"cogs_per_unit": ws_line.cogs_per_pack,
 					"agreed_test_price": ws_line.price_per_test or 0,
 					"bg_consumption_ml_day": ws_line.bg_consumption_ml_day,

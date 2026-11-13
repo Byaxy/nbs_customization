@@ -170,6 +170,15 @@ def _validate_link(contract, doc, transaction_type):
 	require_doc_access(doc.doctype, doc.name, "write")
 	if doc.docstatus != 1:
 		frappe.throw(_("{0} {1} is not submitted.").format(frappe.bold(doc.doctype), frappe.bold(doc.name)))
+	if doc.get("company") != contract.company:
+		frappe.throw(
+			_("{0} {1} belongs to company {2}, not contract company {3}.").format(
+				frappe.bold(doc.doctype),
+				frappe.bold(doc.name),
+				frappe.bold(doc.get("company")),
+				frappe.bold(contract.company),
+			)
+		)
 	if doc.customer != contract.customer:
 		frappe.throw(
 			_("{0} {1} belongs to customer {2}, not contract customer {3}.").format(

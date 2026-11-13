@@ -62,6 +62,7 @@ def _draft_contract(prefix, analyzer, reagent, param, customer, site, worksheet)
 				{
 					"item_code": reagent.name,
 					"test_parameter": param["param"].name,
+					"component_role": ws_line.component_role or "",
 					"pack_volume_ml": ws_line.pack_volume_ml,
 					"contract_price": ws_line.selling_price_per_pack,
 					"standard_price": ws_line.cogs_per_pack,

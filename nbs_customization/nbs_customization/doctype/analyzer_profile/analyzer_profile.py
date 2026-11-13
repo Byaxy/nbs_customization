@@ -29,9 +29,46 @@ class AnalyzerProfile(Document):
 			frappe.db.set_value("Item", self.analyzer_item, "custom_analyzer_profile", None)
 
 	def validate(self):
+		self._validate_item_links()
+		self._validate_item_change()
 		self._validate_duplicates()
 		self._validate_reagent_roles()
 		self._validate_maintenance_schedule()
+
+	def _validate_item_links(self):
+		if not self.analyzer_item:
+			frappe.throw(_("Analyzer Item is required."))
+		if frappe.db.exists("Reagent Specification", {"item": self.analyzer_item}):
+			frappe.throw(
+				_("Item {0} already has a Reagent Specification and cannot be an analyzer.").format(
+					frappe.bold(self.analyzer_item)
+				)
+			)
+		other = frappe.db.get_value(
+			"Analyzer Profile",
+			{"analyzer_item": self.analyzer_item, "name": ("!=", self.name or "")},
+			"name",
+		)
+		if other:
+			frappe.throw(
+				_("Item {0} already belongs to Analyzer Profile {1}.").format(
+					frappe.bold(self.analyzer_item), frappe.bold(other)
+				)
+			)
+		linked_profile = frappe.db.get_value("Item", self.analyzer_item, "custom_analyzer_profile")
+		if linked_profile and linked_profile != self.name:
+			frappe.throw(
+				_("Item {0} is already linked to Analyzer Profile {1}.").format(
+					frappe.bold(self.analyzer_item), frappe.bold(linked_profile)
+				)
+			)
+
+	def _validate_item_change(self):
+		if self.is_new():
+			return
+		before = self.get_doc_before_save()
+		if before and before.analyzer_item and before.analyzer_item != self.analyzer_item:
+			frappe.throw(_("Analyzer Item cannot be changed after the profile is created."))
 
 	def _validate_duplicates(self):
 		seen = set()

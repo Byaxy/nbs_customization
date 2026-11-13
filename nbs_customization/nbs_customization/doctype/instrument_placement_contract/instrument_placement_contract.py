@@ -15,6 +15,7 @@ from nbs_customization.utils.placement.permissions import (
 	require_contract_access,
 	require_roles,
 )
+from nbs_customization.utils.placement.pricing_terms import test_revenue, unique_test_terms
 from nbs_customization.utils.placement.progress import apply_progress
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery as _recompute
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
@@ -183,21 +184,28 @@ class InstrumentPlacementContract(Document):
 		if self.contract_type != "CPT":
 			return
 		pct = (self.revenue_share_pct or 0) / 100
+		terms = unique_test_terms(self.contract_reagent_lines, "agreed_test_price")
 		total_gross = 0
+		seen_tests = set()
 		for line in self.contract_reagent_lines:
-			gross = (line.monthly_test_volume or 0) * (line.agreed_test_price or 0)
+			if line.test_parameter in seen_tests:
+				line.fixed_monthly_gross_revenue = 0
+				line.fixed_monthly_share_amount = 0
+				continue
+			term = terms.get(line.test_parameter) or {"volume": 0, "price": 0}
+			gross = term["volume"] * term["price"]
 			line.fixed_monthly_gross_revenue = gross
 			line.fixed_monthly_share_amount = gross * pct
 			total_gross += gross
+			seen_tests.add(line.test_parameter)
 		self.fixed_monthly_gross_revenue = total_gross
 		self.fixed_monthly_share_amount = total_gross * pct
 
 	def _compute_benchmark(self):
 		term_months = flt(self.term_months or self.contract_duration_months)
 		if self.contract_type == "CPT":
-			self.contract_gross_test_revenue = sum(
-				flt(line.monthly_test_volume) * flt(line.agreed_test_price) * term_months
-				for line in self.contract_reagent_lines
+			self.contract_gross_test_revenue = test_revenue(
+				self.contract_reagent_lines, term_months, "agreed_test_price"
 			)
 			self.contract_charged_value = (
 				flt(self.revenue_share_pct) / 100 * flt(self.contract_gross_test_revenue)
@@ -380,9 +388,18 @@ class InstrumentPlacementContract(Document):
 	def _backfill_legacy_mirror_fields(self, ws):
 		# pack_volume_ml postdates some drafts; fill blanks from the
 		# worksheet so the next save enforces rather than rejects them.
-		by_key = {(l.item_code, l.test_parameter): l for l in ws.reagent_lines}
+		by_key = {(l.item_code, l.test_parameter, l.component_role or ""): l for l in ws.reagent_lines}
+		by_item_test = {}
+		for ws_line in ws.reagent_lines:
+			by_item_test.setdefault((ws_line.item_code, ws_line.test_parameter), []).append(ws_line)
 		for line in self.contract_reagent_lines:
-			src = by_key.get((line.item_code, line.test_parameter))
+			key = (line.item_code, line.test_parameter, line.component_role or "")
+			src = by_key.get(key)
+			if not src and not line.component_role:
+				matches = by_item_test.get((line.item_code, line.test_parameter), [])
+				if len(matches) == 1:
+					src = matches[0]
+					line.component_role = src.component_role or ""
 			if src and not line.pack_volume_ml and src.pack_volume_ml:
 				line.pack_volume_ml = src.pack_volume_ml
 
@@ -542,7 +559,7 @@ def _close(a, b, tol=0.01):
 
 
 def _contract_line_key(line):
-	return (line.item_code, line.test_parameter)
+	return (line.item_code, line.test_parameter, line.get("component_role") or "")
 
 
 def _consumable_key(line):

@@ -22,6 +22,16 @@ class TestWorksheetPricing(FrappeTestCase):
 		self.consumable = frappe.get_doc(
 			{"doctype": "Item", "item_code": f"{self.prefix}-CN", "item_group": "Products"}
 		).insert()
+		for item in (self.consumable,):
+			frappe.get_doc(
+				{
+					"doctype": "Item Price",
+					"item_code": item.name,
+					"price_list": "Standard Selling",
+					"selling": 1,
+					"price_list_rate": 1000,
+				}
+			).insert(ignore_permissions=True)
 		self.param = frappe.get_doc(
 			{
 				"doctype": "Test Parameter",
@@ -92,6 +102,70 @@ class TestWorksheetPricing(FrappeTestCase):
 		self.assertEqual(ws.standard_sale_base, 825000)
 		self.assertEqual(ws.final_revenue_target, 1031250)
 		self.assertEqual(ws.benchmark_status, "At or Above Outright")
+
+	def test_manual_consumable_gets_dated_selling_price(self):
+		ws = self._worksheet(
+			consumable_lines=[
+				{
+					"item_code": self.consumable.name,
+					"consumption_qty": 1,
+					"consumption_frequency": "Per Month",
+					"cogs_per_unit": 500,
+				}
+			]
+		)
+		self.assertEqual(ws.consumable_lines[0].standard_selling_price_per_unit, 1000)
+
+	def test_multi_component_test_counts_tests_once(self):
+		second = frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": f"{self.prefix}-LYSE",
+				"item_group": "Products",
+			}
+		).insert()
+		frappe.get_doc(
+			{
+				"doctype": "Reagent Specification",
+				"item": second.name,
+				"reagent_role": "Test Reagent",
+				"default_cogs_per_pack": 10000,
+				"default_tests_per_pack": 500,
+			}
+		).insert()
+		profile = frappe.get_doc("Analyzer Profile", {"analyzer_item": self.analyzer.name})
+		profile.append(
+			"reagents",
+			{
+				"test_parameter": self.param.name,
+				"reagent_item": second.name,
+				"component_role": "R2",
+				"is_default": 1,
+			},
+		)
+		profile.save(ignore_permissions=True)
+		line = {
+			"test_parameter": self.param.name,
+			"monthly_test_volume": 100,
+			"gross_tests_per_pack": 500,
+			"standard_selling_price_per_pack": 50000,
+			"cogs_per_pack": 10000,
+			"price_per_test": 600,
+		}
+		ws = self._worksheet(
+			term_months=12,
+			calculation_output_type="Revenue Share Percentage",
+			reagent_lines=[
+				{**line, "item_code": self.reagent.name, "component_role": "Single"},
+				{**line, "item_code": second.name, "component_role": "R2"},
+			],
+		)
+		self.assertEqual(ws.total_monthly_tests, 100)
+		self.assertEqual(ws.total_tests_over_term, 1200)
+		self.assertEqual(ws.total_gross_test_revenue_over_term, 720000)
+		self.assertAlmostEqual(
+			ws.required_revenue_share_pct, ws.final_revenue_target / 720000 * 100, places=6
+		)
 
 	def test_landed_cost_does_not_change_pricing(self):
 		ws = self._worksheet()

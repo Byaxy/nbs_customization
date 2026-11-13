@@ -17,6 +17,10 @@ from nbs_customization.utils.placement.analyzer_menu import (
 	resolve_test,
 )
 from nbs_customization.utils.placement.dates import validate_not_future
+from nbs_customization.utils.placement.pricing_terms import (
+	monthly_test_count,
+	test_revenue,
+)
 from nbs_customization.utils.placement.settings import get_placement_settings
 from nbs_customization.utils.pricing import get_current_selling_price
 
@@ -103,6 +107,8 @@ class InstrumentPricingWorksheet(Document):
 				frappe.throw(_("Row {0}: duplicate reagent component.").format(row.idx))
 			seen_reagents.add(key)
 
+		self._validate_component_terms()
+
 		allowed_consumables = {row["item"] for row in resolve_consumable_requirements(self.analyzer_pid)}
 		allowed_calibration = _calibration_items(self.analyzer_pid)
 		allowed_maintenance = _maintenance_items(self.analyzer_pid)
@@ -138,6 +144,26 @@ class InstrumentPricingWorksheet(Document):
 					)
 				)
 
+	def _validate_component_terms(self):
+		by_test = {}
+		for row in self.reagent_lines:
+			by_test.setdefault(row.test_parameter, []).append(row)
+		for test_parameter, rows in by_test.items():
+			volumes = {flt(row.monthly_test_volume) for row in rows}
+			prices = {flt(row.price_per_test) for row in rows}
+			if len(volumes) > 1:
+				frappe.throw(
+					_("All reagent components for test {0} must use the same Monthly Test Volume.").format(
+						frappe.bold(test_parameter)
+					)
+				)
+			if len(prices) > 1:
+				frappe.throw(
+					_("All reagent components for test {0} must use the same Price per Test.").format(
+						frappe.bold(test_parameter)
+					)
+				)
+
 	def _validate_annual_interest(self):
 		if self.contract_type != "RLO":
 			self.annual_interest_rate = 0
@@ -146,8 +172,8 @@ class InstrumentPricingWorksheet(Document):
 			frappe.throw(frappe._("Annual Interest Rate is required for RLO contracts."))
 
 	def _run_calculation(self):
-		_resolve_standard_selling_prices(self)
 		_refresh_auto_cost_basis(self)
+		_resolve_standard_selling_prices(self)
 		_compute_lines(self)
 		_compute_rollups(self)
 		_compute_markup(self)
@@ -179,6 +205,40 @@ class InstrumentPricingWorksheet(Document):
 			serial_no=serial_no,
 			company=self.company,
 		)
+
+
+def apply_worksheet_pricing(target, source):
+	for field in (
+		"term_months",
+		"analyzer_standard_selling_price",
+		"annual_service_maintenance_rate_pct",
+		"total_maintenance_cost",
+		"standard_sale_base",
+		"total_test_reagent_value",
+		"total_consumable_value",
+		"net_revenue_target",
+		"wht_rate_pct",
+		"wht_amount",
+		"wht_category",
+		"wht_rate_date",
+		"price_snapshot_date",
+		"total_outright_sale_value",
+		"outright_gap_amount",
+		"outright_gap_pct",
+		"benchmark_tolerance_pct",
+		"benchmark_status",
+		"product_only_standard_sale_base",
+		"product_only_outright_value",
+		"product_only_contract_value",
+		"product_only_gap_pct",
+	):
+		target.set(field, source.get(field))
+	target.term_months = source.term_months or 12
+	target.total_recovery_target = source.final_revenue_target
+	target.contract_gross_test_revenue = source.total_gross_test_revenue_over_term
+	target.contract_charged_value = source.contract_charged_value
+	target.min_monthly_value = _worksheet_min_monthly(source)
+	target.revenue_share_pct = source.required_revenue_share_pct if source.contract_type == "CPT" else 0
 
 
 @frappe.whitelist()
@@ -216,34 +276,9 @@ def make_instrument_placement_contract(source_name: str, target_doc=None):
 		target.start_date = source.posting_date or frappe.utils.today()
 		target.term_months = source.term_months or 12
 		target.end_date = frappe.utils.add_months(target.start_date, target.term_months)
-		target.total_recovery_target = source.final_revenue_target
-		target.analyzer_standard_selling_price = source.analyzer_standard_selling_price
-		target.annual_service_maintenance_rate_pct = source.annual_service_maintenance_rate_pct
-		target.total_maintenance_cost = source.total_maintenance_cost
-		target.standard_sale_base = source.standard_sale_base
-		target.total_test_reagent_value = source.total_test_reagent_value
-		target.total_consumable_value = source.total_consumable_value
-		target.contract_gross_test_revenue = source.total_gross_test_revenue_over_term
-		target.contract_charged_value = source.contract_charged_value
-		target.net_revenue_target = source.net_revenue_target
-		target.wht_rate_pct = source.wht_rate_pct
-		target.wht_amount = source.wht_amount
-		target.wht_category = source.wht_category
-		target.wht_rate_date = source.wht_rate_date
-		target.price_snapshot_date = source.price_snapshot_date
-		target.total_outright_sale_value = source.total_outright_sale_value
-		target.outright_gap_amount = source.outright_gap_amount
-		target.outright_gap_pct = source.outright_gap_pct
-		target.benchmark_tolerance_pct = source.benchmark_tolerance_pct
-		target.benchmark_status = source.benchmark_status
-		target.product_only_standard_sale_base = source.product_only_standard_sale_base
-		target.product_only_outright_value = source.product_only_outright_value
-		target.product_only_contract_value = source.product_only_contract_value
-		target.product_only_gap_pct = source.product_only_gap_pct
-		target.min_monthly_value = _worksheet_min_monthly(source)
+		apply_worksheet_pricing(target, source)
 		target.breach_threshold = 3
 		target.grace_period_days = 30
-		target.revenue_share_pct = source.required_revenue_share_pct if source.contract_type == "CPT" else 0
 
 	def update_reagent_row(source_row, target_row, source_parent):
 		target_row.uom = frappe.db.get_value("Item", source_row.item_code, "stock_uom")
@@ -270,6 +305,7 @@ def make_instrument_placement_contract(source_name: str, target_doc=None):
 			"Worksheet Test Reagent Line": {
 				"doctype": "Contract Test Reagent Line",
 				"field_map": {
+					"component_role": "component_role",
 					"cogs_per_pack": "standard_price",
 					"selling_price_per_pack": "contract_price",
 					"packs_needed": "qty_required_total",
@@ -307,7 +343,13 @@ def _refresh_auto_cost_basis(ws):
 		return
 	if not get_analyzer_profile(ws.analyzer_pid):
 		return
-	rows = resolve_cost_basis(ws.analyzer_pid, ws.term_months, ws.operational_days_per_month)
+	rows = resolve_cost_basis(
+		ws.analyzer_pid,
+		ws.term_months,
+		ws.operational_days_per_month,
+		on_date=ws.posting_date,
+		monthly_test_volume=monthly_test_count(ws.reagent_lines),
+	)
 	by_key = {(row["source_type"], row["source_reference"] or "", row["item_code"]): row for row in rows}
 	for line in list(ws.consumable_lines):
 		if not line.is_auto:
@@ -355,6 +397,9 @@ def _resolve_standard_selling_prices(ws):
 					frappe.bold(line.item_code)
 				)
 			)
+	for line in ws.consumable_lines:
+		if not flt(line.standard_selling_price_per_unit):
+			line.standard_selling_price_per_unit = get_current_selling_price(line.item_code, ws.posting_date)
 
 
 def _term_months(ws):
@@ -366,6 +411,7 @@ def _term_months(ws):
 
 def _compute_lines(ws):
 	term_months = _term_months(ws)
+	seen_revenue_tests = set()
 	for line in ws.reagent_lines:
 		line.gross_tests_per_pack = flt(line.gross_tests_per_pack or line.tests_per_pack)
 		if line.gross_tests_per_pack <= 0:
@@ -383,8 +429,13 @@ def _compute_lines(ws):
 		line.total_consumption_ml_month = bg_month + flt(line.consumption_ml_per_test) * flt(
 			line.monthly_test_volume
 		)
-		if ws.calculation_output_type == "Revenue Share Percentage" and flt(line.price_per_test):
+		if (
+			ws.calculation_output_type == "Revenue Share Percentage"
+			and flt(line.price_per_test)
+			and line.test_parameter not in seen_revenue_tests
+		):
 			line.total_gross_revenue_line = flt(line.total_tests_over_term) * flt(line.price_per_test)
+			seen_revenue_tests.add(line.test_parameter)
 		else:
 			line.total_gross_revenue_line = 0
 
@@ -403,6 +454,12 @@ def _compute_lines(ws):
 				line.total_units_over_term = qty * term_years
 			else:
 				line.total_units_over_term = 0
+		if flt(line.total_units_over_term) > 0 and flt(line.standard_selling_price_per_unit) <= 0:
+			frappe.throw(
+				_("Consumable {0} needs a Standard Selling Item Price before pricing.").format(
+					frappe.bold(line.item_code)
+				)
+			)
 		line.total_value_line = flt(line.total_units_over_term) * flt(line.standard_selling_price_per_unit)
 		line.total_cost_line = flt(line.total_units_over_term) * flt(line.cogs_per_unit)
 
@@ -412,8 +469,8 @@ def _compute_rollups(ws):
 	ws.total_consumable_value = flt(sum(flt(line.total_value_line) for line in ws.consumable_lines), 2)
 	ws.total_test_reagent_cogs = flt(sum(flt(line.total_cost_line) for line in ws.reagent_lines), 2)
 	ws.total_consumable_cost = flt(sum(flt(line.total_cost_line) for line in ws.consumable_lines), 2)
-	ws.total_monthly_tests = flt(sum(flt(line.monthly_test_volume) for line in ws.reagent_lines), 2)
-	ws.total_tests_over_term = flt(sum(flt(line.total_tests_over_term) for line in ws.reagent_lines), 2)
+	ws.total_monthly_tests = flt(monthly_test_count(ws.reagent_lines), 2)
+	ws.total_tests_over_term = flt(ws.total_monthly_tests * _term_months(ws), 2)
 	ws.total_reagent_packs = sum(int(line.packs_needed or 0) for line in ws.reagent_lines)
 	ws.total_consumable_units = flt(sum(flt(line.total_units_over_term) for line in ws.consumable_lines), 2)
 	ws.total_cogs = flt(ws.total_test_reagent_cogs + ws.total_consumable_cost, 2)
@@ -515,7 +572,7 @@ def _compute_markup(ws):
 				else 0
 			)
 	else:
-		total_gross = sum((line.total_gross_revenue_line or 0) for line in ws.reagent_lines)
+		total_gross = test_revenue(ws.reagent_lines, _term_months(ws), "price_per_test")
 		ws.total_gross_test_revenue_over_term = total_gross
 		ws.required_revenue_share_pct = flt(ws.final_revenue_target) / total_gross * 100 if total_gross else 0
 		ws.required_revenue_share_amount = flt(ws.final_revenue_target, 2)

@@ -137,12 +137,22 @@ def expand_panel(analyzer_item: str, panel: str, posting_date: str | None = None
 
 @frappe.whitelist()
 def get_analyzer_cost_basis(
-	analyzer_item: str, term_months: float = 0, operational_days_per_month: float = 0
+	analyzer_item: str,
+	term_months: float = 0,
+	operational_days_per_month: float = 0,
+	posting_date: str | None = None,
+	monthly_test_volume: float = 0,
 ):
 	if not analyzer_item or not term_months:
 		return []
 	require_analyzer_item_read(analyzer_item)
-	return resolve_cost_basis(analyzer_item, term_months, operational_days_per_month)
+	return resolve_cost_basis(
+		analyzer_item,
+		term_months,
+		operational_days_per_month,
+		on_date=posting_date,
+		monthly_test_volume=monthly_test_volume,
+	)
 
 
 @frappe.whitelist()

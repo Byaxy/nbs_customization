@@ -57,6 +57,7 @@ class ContractAmendment(Document):
 		# values. An explicit new_min_value still wins over the recompute.
 		contract._compute_min_monthly_value()
 		contract._compute_cpt_fields()
+		contract._compute_benchmark()
 		if self.new_min_value:
 			contract.min_monthly_value = self.new_min_value
 
@@ -181,18 +182,15 @@ def _remap_lines_from_worksheet(contract, ws_name):
 				"Pricing Worksheet {0} has no revenue target — it cannot replace the contract target."
 			).format(frappe.bold(ws_name))
 		)
+	from nbs_customization.nbs_customization.doctype.instrument_pricing_worksheet.instrument_pricing_worksheet import (
+		apply_worksheet_pricing,
+	)
+
 	old_ws = contract.pricing_worksheet
 	contract.pricing_worksheet = ws.name
-	contract.total_recovery_target = ws.final_revenue_target
 	contract.avg_samples_per_day = ws.avg_samples_per_day
 	contract.operational_days_per_month = ws.operational_days_per_month
-	contract.revenue_share_pct = ws.required_revenue_share_pct if ws.contract_type == "CPT" else 0
-	contract.wht_rate_pct = ws.wht_rate_pct
-	contract.wht_amount = ws.wht_amount
-	contract.wht_category = ws.wht_category
-	contract.wht_rate_date = ws.wht_rate_date
-	contract.price_snapshot_date = ws.price_snapshot_date
-	contract.net_revenue_target = ws.net_revenue_target
+	apply_worksheet_pricing(contract, ws)
 	contract.set("contract_reagent_lines", [])
 	for src in ws.reagent_lines:
 		contract.append(
@@ -200,12 +198,16 @@ def _remap_lines_from_worksheet(contract, ws_name):
 			{
 				"item_code": src.item_code,
 				"test_parameter": src.test_parameter,
+				"component_role": src.component_role or "",
 				"uom": frappe.db.get_value("Item", src.item_code, "stock_uom"),
 				"standard_price": src.cogs_per_pack,
 				"contract_price": src.selling_price_per_pack or 0,
 				"qty_required_total": src.packs_needed or 0,
-				"min_monthly_qty": ceil(flt(src.monthly_test_volume) / flt(src.tests_per_pack))
-				if flt(src.tests_per_pack)
+				"min_monthly_qty": ceil(
+					flt(src.monthly_test_volume)
+					/ flt(src.reportable_tests_per_pack or src.gross_tests_per_pack or src.tests_per_pack)
+				)
+				if flt(src.reportable_tests_per_pack or src.gross_tests_per_pack or src.tests_per_pack)
 				else 0,
 				"cogs_per_unit": src.cogs_per_pack,
 				"monthly_test_volume": src.monthly_test_volume,
@@ -232,6 +234,10 @@ def _remap_lines_from_worksheet(contract, ws_name):
 				"source_reference": src.source_reference or "",
 			},
 		)
+	if contract.start_date:
+		contract.end_date = frappe.utils.add_months(contract.start_date, contract.term_months or 0)
+	contract._compute_duration()
+
 	if old_ws and old_ws != ws.name:
 		old = frappe.get_doc("Instrument Pricing Worksheet", old_ws)
 		old.db_set("status", "Approved")

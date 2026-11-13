@@ -5,7 +5,6 @@ import frappe
 
 REMOVED_DOCTYPES = (
 	"Instrument Specification",
-	"Analyzer Type",
 	"Analyzer Test Application",
 	"Analyzer Application Reagent",
 	"Analyzer Consumable Requirement",

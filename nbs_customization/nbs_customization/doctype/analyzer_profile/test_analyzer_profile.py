@@ -1,20 +1,36 @@
 # Copyright (c) 2026, Charles Byakutaga/NBS and Contributors
 # See license.txt
 
-# import frappe
+import frappe
 from frappe.tests import IntegrationTestCase
 
-# On IntegrationTestCase, the doctype test records and all
-# link-field test record dependencies are recursively loaded
-# Use these module variables to add/remove to/from that list
-EXTRA_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
-IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 
+class TestAnalyzerProfileIntegrity(IntegrationTestCase):
+	def _item(self, suffix):
+		return frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": f"_TST-AP-{suffix}-{frappe.generate_hash(length=5)}",
+				"item_group": "Products",
+			}
+		).insert()
 
-class IntegrationTestAnalyzerProfile(IntegrationTestCase):
-	"""
-	Integration tests for AnalyzerProfile.
-	Use this class for testing interactions between multiple components.
-	"""
+	def test_rejects_item_with_reagent_specification(self):
+		item = self._item("REAGENT")
+		frappe.get_doc(
+			{
+				"doctype": "Reagent Specification",
+				"item": item.name,
+				"reagent_role": "Test Reagent",
+			}
+		).insert()
+		with self.assertRaises(frappe.ValidationError):
+			frappe.get_doc({"doctype": "Analyzer Profile", "analyzer_item": item.name}).insert()
 
-	pass
+	def test_blocks_changing_analyzer_item(self):
+		first = self._item("FIRST")
+		second = self._item("SECOND")
+		profile = frappe.get_doc({"doctype": "Analyzer Profile", "analyzer_item": first.name}).insert()
+		profile.analyzer_item = second.name
+		with self.assertRaises(frappe.ValidationError):
+			profile.save()

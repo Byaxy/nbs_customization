@@ -216,6 +216,36 @@ class TestHistoricalLink(IntegrationTestCase):
 		si.reload()
 		self.assertEqual(si.custom_counts_toward_recovery, 0)
 
+	def test_other_company_sales_order_is_not_a_candidate(self):
+		ctx = make_contract_kit("_TST-HL9")
+		so = self._make_order(ctx, qty=1)
+		frappe.db.set_value("Sales Order", so.name, "company", "OTHER COMPANY")
+
+		rows = get_linkable_sales_orders(ctx["contract"].name)
+		self.assertNotIn(so.name, {row["name"] for row in rows})
+
+		with self.assertRaises(frappe.ValidationError):
+			link_historical_sales_orders(ctx["contract"].name, [so.name])
+
+	def test_candidate_search_requires_sales_order_read(self):
+		ctx = make_contract_kit("_TST-HL10")
+		so = self._make_order(ctx, qty=1)
+		user = frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": f"hist-{frappe.generate_hash(length=6)}@example.com",
+				"first_name": "Historical Link Test",
+				"send_welcome_email": 0,
+			}
+		).insert(ignore_permissions=True)
+		user.add_roles("Placement Manager")
+		frappe.set_user(user.name)
+		try:
+			rows = get_linkable_sales_orders(ctx["contract"].name)
+		finally:
+			frappe.set_user("Administrator")
+		self.assertNotIn(so.name, {row["name"] for row in rows})
+
 	def test_chain_document_linked_to_other_contract_blocks_sales_order(self):
 		ctx = make_contract_kit("_TST-HL7")
 		other = make_contract_kit("_TST-HL8")

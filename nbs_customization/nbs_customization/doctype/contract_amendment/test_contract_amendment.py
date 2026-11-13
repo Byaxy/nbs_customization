@@ -146,6 +146,46 @@ class TestContractAmendment(IntegrationTestCase):
 		ct.reload()
 		self.assertEqual(ct.total_recovery_target, 77777)
 
+	def test_apply_worksheet_refreshes_all_pricing_mirrors(self):
+		ctx = make_contract_kit("_TST-AMD15")
+		ws2 = make_worksheet(
+			"_TST-AMD15W",
+			ctx["analyzer"],
+			ctx["reagent"],
+			ctx["analyzer"],
+			ctx["customer"],
+			analyzer_landed_cost=9000,
+		)
+		am = self._amendment(ctx, new_pricing_worksheet=ws2.name)
+		am.apply_to_contract()
+		ct = frappe.get_doc("Instrument Placement Contract", ctx["contract"].name)
+		ws2.reload()
+		for field in (
+			"term_months",
+			"analyzer_standard_selling_price",
+			"annual_service_maintenance_rate_pct",
+			"total_maintenance_cost",
+			"standard_sale_base",
+			"total_test_reagent_value",
+			"total_consumable_value",
+			"net_revenue_target",
+			"wht_rate_pct",
+			"wht_amount",
+			"total_outright_sale_value",
+			"outright_gap_amount",
+			"outright_gap_pct",
+			"benchmark_tolerance_pct",
+			"benchmark_status",
+			"product_only_standard_sale_base",
+			"product_only_outright_value",
+			"product_only_contract_value",
+			"product_only_gap_pct",
+		):
+			self.assertEqual(ct.get(field), ws2.get(field), field)
+		self.assertEqual(ct.contract_gross_test_revenue, ws2.total_gross_test_revenue_over_term)
+		self.assertEqual(ct.contract_charged_value, ws2.contract_charged_value)
+		self.assertEqual(ct.revenue_share_pct, 0)
+
 	def test_mark_effective_delegates(self):
 		ctx = make_contract_kit("_TST-AMD3")
 		am = self._amendment(ctx)

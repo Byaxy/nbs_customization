@@ -10,7 +10,7 @@ from frappe.utils import flt
 def delivered_by_item(contract_name):
 	rows = frappe.db.sql(
 		"""
-		SELECT dni.item_code, SUM(dni.qty) AS qty
+		SELECT dni.item_code, SUM(COALESCE(dni.stock_qty, dni.qty)) AS qty
 		FROM `tabDelivery Note Item` dni
 		JOIN `tabDelivery Note` dn ON dn.name = dni.parent
 		WHERE dn.docstatus = 1
@@ -26,22 +26,26 @@ def delivered_by_item(contract_name):
 
 def apply_progress(contract):
 	delivered = delivered_by_item(contract.name) if not contract.is_new() else {}
-	reagent_required = reagent_delivered = 0
-	consumable_required = consumable_delivered = 0
-	for line in contract.contract_reagent_lines:
-		required = flt(line.qty_required_total)
-		got = flt(delivered.get(line.item_code))
-		line.delivered_qty = got
-		line.remaining_qty = max(required - got, 0)
-		reagent_required += required
-		reagent_delivered += got
-	for line in contract.contract_consumable_lines:
-		required = flt(line.qty_required_total)
-		got = flt(delivered.get(line.item_code))
-		line.delivered_qty = got
-		line.remaining_qty = max(required - got, 0)
-		consumable_required += required
-		consumable_delivered += got
+	lines = list(contract.contract_reagent_lines) + list(contract.contract_consumable_lines)
+	by_item = {}
+	for line in lines:
+		if line.item_code:
+			by_item.setdefault(line.item_code, []).append(line)
+
+	for item_code, item_lines in by_item.items():
+		total_required = sum(flt(line.qty_required_total) for line in item_lines)
+		total_delivered = flt(delivered.get(item_code))
+		for line in item_lines:
+			required = flt(line.qty_required_total)
+			allocated = total_delivered * required / total_required if total_required else 0
+			line.delivered_qty = allocated
+			line.remaining_qty = max(required - allocated, 0)
+
+	reagent_required = sum(flt(line.qty_required_total) for line in contract.contract_reagent_lines)
+	reagent_delivered = sum(flt(line.delivered_qty) for line in contract.contract_reagent_lines)
+	consumable_required = sum(flt(line.qty_required_total) for line in contract.contract_consumable_lines)
+	consumable_delivered = sum(flt(line.delivered_qty) for line in contract.contract_consumable_lines)
+
 	contract.progress_reagent_required = reagent_required
 	contract.progress_reagent_delivered = reagent_delivered
 	contract.progress_reagent_remaining = max(reagent_required - reagent_delivered, 0)

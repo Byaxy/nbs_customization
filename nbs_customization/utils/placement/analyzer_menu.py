@@ -88,7 +88,13 @@ def resolve_consumable_requirements(analyzer_item):
 	return [row.as_dict() for row in profile.consumables] if profile else []
 
 
-def resolve_cost_basis(analyzer_item, term_months, operational_days_per_month=0, on_date=None):
+def resolve_cost_basis(
+	analyzer_item,
+	term_months,
+	operational_days_per_month=0,
+	on_date=None,
+	monthly_test_volume=0,
+):
 	"""Calibrators, controls, solutions and maintenance parts over the term."""
 	profile = get_analyzer_profile(analyzer_item)
 	term_months = flt(term_months)
@@ -96,7 +102,7 @@ def resolve_cost_basis(analyzer_item, term_months, operational_days_per_month=0,
 		return []
 	rows = []
 	for item in profile.consumables:
-		quantity = _consumable_quantity(item, term_months, operational_days_per_month)
+		quantity = _consumable_quantity(item, term_months, operational_days_per_month, monthly_test_volume)
 		if quantity > 0:
 			rows.append(
 				_cost_row(
@@ -116,7 +122,7 @@ def resolve_cost_basis(analyzer_item, term_months, operational_days_per_month=0,
 	return rows
 
 
-def _consumable_quantity(row, term_months, operational_days_per_month):
+def _consumable_quantity(row, term_months, operational_days_per_month, monthly_test_volume=0):
 	role = row.role
 	if role == "Control":
 		daily = flt(row.controls_per_day) or flt(row.qty)
@@ -136,16 +142,29 @@ def _consumable_quantity(row, term_months, operational_days_per_month):
 		return qty * term_months / 12
 	if basis == "Per Service Interval":
 		return qty * flt(row.services_per_year) * term_months / 12
+	if basis == "Per Day":
+		return qty * flt(operational_days_per_month) * term_months
+	if basis == "Per Test":
+		return qty * flt(monthly_test_volume) * term_months
 	return 0
 
 
 def _maintenance_quantity(row, term_months):
 	if row.action == "Inspect":
 		return 0
-	replacements = math.ceil(term_months / 12)
-	if row.action == "As Needed":
-		return flt(row.qty) * replacements
-	return flt(row.qty) * max(replacements, 1)
+	term_months = flt(term_months)
+	month_no = int(row.month_no or 0)
+	if month_no:
+		replacements = 0
+		month = month_no
+		while month <= term_months:
+			replacements += 1
+			month += 12
+	else:
+		replacements = math.ceil(term_months / 12)
+		if row.action != "As Needed":
+			replacements = max(replacements, 1)
+	return flt(row.qty) * replacements
 
 
 def _cost_row(item_code, source_type, source_reference, quantity, on_date=None):

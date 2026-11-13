@@ -56,6 +56,75 @@ def _item(code):
 	return frappe.get_doc({"doctype": "Item", "item_code": code, "item_group": "Products"}).insert().name
 
 
+class TestCostBasisOptions(FrappeTestCase):
+	def setUp(self):
+		self.prefix = f"CB2{frappe.generate_hash(length=5)}"
+		self.analyzer = _item(f"{self.prefix}-AN")
+		self.day_item = _item(f"{self.prefix}-DAY")
+		self.test_item = _item(f"{self.prefix}-TEST")
+		self.part = _item(f"{self.prefix}-PART")
+		for code, rate in (
+			(self.day_item, 100),
+			(self.test_item, 200),
+		):
+			frappe.get_doc(
+				{
+					"doctype": "Item Price",
+					"item_code": code,
+					"price_list": "Standard Selling",
+					"price_list_rate": rate,
+					"selling": 1,
+					"valid_from": "2025-01-01",
+				}
+			).insert()
+		frappe.get_doc(
+			{
+				"doctype": "Analyzer Profile",
+				"analyzer_item": self.analyzer,
+				"consumables": [
+					{
+						"item": self.day_item,
+						"role": "Wash",
+						"consumption_basis": "Per Day",
+						"qty": 1,
+					},
+					{
+						"item": self.test_item,
+						"role": "System Solution",
+						"consumption_basis": "Per Test",
+						"qty": 2,
+					},
+				],
+				"maintenance": [{"item": self.part, "qty": 1, "month_no": 12, "action": "Replace"}],
+			}
+		).insert()
+
+	def tearDown(self):
+		frappe.db.rollback()
+
+	def test_per_day_per_test_and_scheduled_maintenance(self):
+		rows = resolve_cost_basis(
+			self.analyzer,
+			6,
+			20,
+			on_date="2025-06-01",
+			monthly_test_volume=100,
+		)
+		by_item = {row["item_code"]: row for row in rows}
+		self.assertEqual(by_item[self.day_item]["quantity_over_term"], 120)
+		self.assertEqual(by_item[self.test_item]["quantity_over_term"], 1200)
+		self.assertEqual(by_item[self.day_item]["standard_selling_price_per_unit"], 100)
+		self.assertNotIn(self.part, by_item)
+
+		rows = resolve_cost_basis(self.analyzer, 18, 20, monthly_test_volume=100)
+		by_item = {row["item_code"]: row for row in rows}
+		self.assertEqual(by_item[self.part]["quantity_over_term"], 1)
+
+		rows = resolve_cost_basis(self.analyzer, 24, 20, monthly_test_volume=100)
+		by_item = {row["item_code"]: row for row in rows}
+		self.assertEqual(by_item[self.part]["quantity_over_term"], 2)
+
+
 class TestTestParameterQuery(FrappeTestCase):
 	def setUp(self):
 		self.code = f"TSTQ-{frappe.generate_hash(length=5)}"
@@ -138,6 +207,17 @@ class TestAnalyzerSellingPriceLookup(FrappeTestCase):
 		with patch.object(frappe, "has_permission", return_value=False):
 			with self.assertRaises(frappe.PermissionError):
 				get_analyzer_standard_selling_price(self.item.name)
+
+
+class TestPricingTerms(FrappeTestCase):
+	def test_multi_component_test_revenue_counted_once(self):
+		from nbs_customization.utils.placement.pricing_terms import test_revenue
+
+		lines = [
+			frappe._dict(test_parameter="T", monthly_test_volume=100, agreed_test_price=600),
+			frappe._dict(test_parameter="T", monthly_test_volume=100, agreed_test_price=600),
+		]
+		self.assertEqual(test_revenue(lines, 12, "agreed_test_price"), 720000)
 
 
 class TestPlacementDateRules(FrappeTestCase):
