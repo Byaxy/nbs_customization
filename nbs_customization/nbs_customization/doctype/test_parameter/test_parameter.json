@@ -7,9 +7,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
   "field_order": [
-  "parameter_code",
-  "test_panel_group",
-  "result_type",
+   "parameter_code",
+   "result_type",
   "default_unit",
   "decimals",
   "specimen_types",
@@ -50,12 +49,6 @@
    "fieldname": "description",
    "fieldtype": "Small Text",
    "label": "Description"
-  },
-  {
-   "fieldname": "test_panel_group",
-   "fieldtype": "Link",
-   "label": "Test Panel Group",
-   "options": "Test Panel Group"
   },
   {
    "fieldname": "result_type",

@@ -3,9 +3,11 @@
 
 import frappe
 
-PLACEMENT_MANAGERS = ("System Manager", "Sales Manager")
+PLACEMENT_MANAGERS = ("System Manager", "Sales Manager", "Placement Manager", "Placement Director")
 FINANCE_MANAGERS = ("System Manager", "Accounts Manager")
-STOCK_MANAGERS = ("System Manager", "Sales Manager", "Stock Manager")
+STOCK_MANAGERS = ("System Manager", "Sales Manager", "Stock Manager", "Placement Manager")
+FIELD_ENGINEERS = ("System Manager", "Field Engineer", "Placement Manager")
+PLACEMENT_DIRECTORS = ("System Manager", "Placement Director")
 
 
 def require_roles(*roles):

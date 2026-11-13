@@ -164,3 +164,36 @@ class TestDeploymentSideEffects(IntegrationTestCase):
 		)
 		after = frappe.db.count("Asset Movement", {"company": "NORTHLAND BIOMEDICAL SOLUTIONS"})
 		self.assertGreaterEqual(after - before, 2)
+
+	def test_deployed_fields_locked(self):
+		ctx = make_contract_kit("_TST-DEP7")
+		dep = make_deployed(ctx)
+		dep.asset_location = "Field 1"
+		with self.assertRaises(frappe.ValidationError):
+			dep.save()
+
+	def test_non_draft_deployment_cannot_be_deleted(self):
+		ctx = make_contract_kit("_TST-DEP8")
+		dep = make_deployed(ctx)
+		with self.assertRaises(frappe.ValidationError):
+			frappe.delete_doc("Analyzer Deployment", dep.name, force=True)
+
+	def test_acceptance_mirrors_are_server_locked(self):
+		ctx = make_contract_kit("_TST-DEP9")
+		dep = frappe.get_doc(
+			{
+				"doctype": "Analyzer Deployment",
+				"naming_series": "NBSAD-.YYYY./.####",
+				"contract": ctx["contract"].name,
+				"asset": ctx["asset"].name,
+				"customer": ctx["customer"].name,
+				"customer_site": ctx["site"].name,
+				"asset_location": "Block 1",
+				"asset_storage_location": "Field 1",
+				"deployment_date": frappe.utils.today(),
+				"deployment_status": "Draft",
+			}
+		).insert()
+		dep.acceptance_date = frappe.utils.today()
+		with self.assertRaises(frappe.ValidationError):
+			dep.save()

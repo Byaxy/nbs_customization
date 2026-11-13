@@ -17,7 +17,7 @@ frappe.ui.form.on("Asset", {
 			.then((r) => {
 				if (r.message && r.message.contract_status === "Active") {
 					frm.set_df_property("custom_serial_no", "read_only", 1);
-					frm.set_df_property("custom_instrument_specification", "read_only", 1);
+					frm.set_df_property("custom_analyzer_profile", "read_only", 1);
 				}
 			});
 	},

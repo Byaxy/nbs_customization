@@ -2,15 +2,16 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "field:panel_code",
- "creation": "2026-11-05 00:00:00.000000",
+ "creation": "2026-11-05 00:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "panel_code",
-  "panel_name",
   "panel_type",
-  "specialty",
   "is_active",
+  "column_break_vxst",
+  "panel_name",
+  "specialty",
   "section_break_parameters",
   "parameters",
   "section_break_description",
@@ -69,12 +70,16 @@
    "fieldname": "description",
    "fieldtype": "Small Text",
    "label": "Description"
+  },
+  {
+   "fieldname": "column_break_vxst",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-11-05 00:00:00.000000",
+ "modified": "2026-11-06 15:54:33.897856",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Test Panel",

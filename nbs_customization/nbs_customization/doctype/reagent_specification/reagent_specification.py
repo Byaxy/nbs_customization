@@ -7,16 +7,53 @@ from frappe.model.document import Document
 
 class ReagentSpecification(Document):
 	def validate(self):
-		self._validate_percentages()
+		if not self.is_new() and self.has_value_changed("item"):
+			frappe.throw(frappe._("Item cannot be changed after the Reagent Specification is created."))
+		self._validate_item_is_not_analyzer()
+		self._set_item_defaults()
 		if self.is_new() or not self.has_value_changed("reagent_role"):
 			return
 		self._validate_no_active_downstream_references()
 
-	def _validate_percentages(self):
-		for field in ("calibration_control_pct", "dead_volume_pct"):
-			value = self.get(field)
-			if value is not None and (value < 0 or value > 100):
-				frappe.throw(frappe._("{0} must be between 0 and 100.").format(field))
+	def on_update(self):
+		_set_item_specification(self.item, self.name)
+
+	def on_trash(self):
+		_clear_item_specification(self.item, self.name)
+
+	def _validate_item_is_not_analyzer(self):
+		if not self.item:
+			return
+		is_analyzer = frappe.db.get_value("Item", self.item, "custom_analyzer_profile") or frappe.db.exists(
+			"Analyzer Profile", {"analyzer_item": self.item}
+		)
+		if is_analyzer:
+			frappe.throw(
+				frappe._("Item {0} is an analyzer and cannot have a Reagent Specification.").format(
+					frappe.bold(self.item)
+				)
+			)
+
+	def _set_item_defaults(self):
+		if not self.item:
+			return
+		item = frappe.db.get_value(
+			"Item", self.item, ["stock_uom", "valuation_rate", "last_purchase_rate"], as_dict=True
+		)
+		if not item:
+			return
+		self.pack_uom = item.stock_uom
+		if not (self.is_new() or self.has_value_changed("item")):
+			return
+		if self.default_cogs_per_pack or self.default_cogs_per_unit:
+			return
+		cost = item.valuation_rate or item.last_purchase_rate or 0
+		if self.reagent_role == "Test Reagent":
+			self.default_cogs_per_pack = cost
+			self.default_cogs_per_unit = 0
+		elif self.reagent_role == "Non-Test Consumable":
+			self.default_cogs_per_unit = cost
+			self.default_cogs_per_pack = 0
 
 	def _validate_no_active_downstream_references(self):
 		item = self.item
@@ -113,3 +150,15 @@ class ReagentSpecification(Document):
 			"<ol>" + "".join(msg_parts) + "</ol>",
 			title=frappe._("Reagent Role Change Blocked"),
 		)
+
+
+def _set_item_specification(item, specification):
+	if item and specification:
+		frappe.db.set_value("Item", item, "custom_reagent_specification", specification)
+
+
+def _clear_item_specification(item, specification):
+	if not item or not specification:
+		return
+	if frappe.db.get_value("Item", item, "custom_reagent_specification") == specification:
+		frappe.db.set_value("Item", item, "custom_reagent_specification", None)

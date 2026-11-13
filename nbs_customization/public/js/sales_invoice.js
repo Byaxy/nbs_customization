@@ -5,6 +5,7 @@ frappe.ui.form.on("Sales Invoice", {
 
 	customer(frm) {
 		_sync_customer_withholding(frm, true);
+		_clear_contract_on_customer_change(frm);
 	},
 
 	apply_tds(frm) {
@@ -16,12 +17,11 @@ frappe.ui.form.on("Sales Invoice", {
 	},
 
 	refresh(frm) {
-		if (frm.doc.docstatus !== 1) return;
-
-		setTimeout(() => {
-			frm.page.remove_inner_button(__("Delivery Note"), __("Create"));
-		}, 100);
-
+		if (frm.doc.docstatus === 1) {
+			setTimeout(() => {
+				frm.page.remove_inner_button(__("Delivery Note"), __("Create"));
+			}, 100);
+		}
 		_setup_placement_contract(frm);
 	},
 
@@ -148,8 +148,19 @@ function _fetch_customer_withholding(customer, callback) {
 }
 
 function _setup_placement_contract(frm) {
+	_setup_contract_query(frm);
 	_refresh_contract_indicator(frm);
+	_sync_transaction_type_options(frm);
 	_setup_item_query(frm);
+}
+
+function _setup_contract_query(frm) {
+	frm.set_query("custom_instrument_placement_contract", () => ({
+		filters: {
+			customer: frm.doc.customer,
+			contract_status: ["in", ["Active", "Ownership Pending"]],
+		},
+	}));
 }
 
 function _on_contract_change(frm) {
@@ -158,6 +169,8 @@ function _on_contract_change(frm) {
 	if (!contract_name) {
 		_contract_data_cache = {};
 		frm.set_value("selling_price_list", null);
+		_sync_transaction_type_options(frm);
+		_reset_item_query(frm);
 		_refresh_contract_indicator(frm);
 		return;
 	}
@@ -178,38 +191,81 @@ function _on_contract_change(frm) {
 				frm.trigger("selling_price_list");
 			}
 
+			_sync_transaction_type_options(frm);
 			_setup_item_query(frm);
 			_refresh_contract_indicator(frm);
 		},
 	});
 }
 
-function _setup_item_query(frm) {
+function _sync_transaction_type_options(frm) {
+	if (frm.doc.docstatus !== 0) return;
+
+	const field = "custom_placement_transaction_type";
 	const contract = frm.doc.custom_instrument_placement_contract;
-	if (!contract) return;
-
-	const child_table = _get_child_table(frm);
-	const item_field = _get_item_field(frm);
-	const ttype = frm.doc.custom_placement_transaction_type;
-	const cached = _contract_data_cache;
-	const analyzer_item = cached?.name === contract ? cached.analyzer_pid : null;
-
-	if (ttype === "Ownership Transfer") {
-		frm.set_query(item_field, child_table, () => ({
-			filters: analyzer_item ? { name: analyzer_item } : {},
-		}));
+	if (!contract) {
+		frm.toggle_display(field, false);
+		if (frm.doc[field]) frm.set_value(field, null);
 		return;
 	}
 
-	const filters = analyzer_item ? { analyzer_item } : { contract_name: contract };
-	if (ttype === "Contract Reagent Sale") filters.reagent_role = "Test Reagent";
-	if (ttype === "Contract Consumable Replenishment")
-		filters.reagent_role = "Non-Test Consumable";
+	frm.toggle_display(field, true);
+	const cached = _contract_data_cache;
+	if (cached && cached.name === contract) {
+		_apply_transaction_type_options(frm, cached.contract_type);
+		return;
+	}
 
-	frm.set_query(item_field, child_table, () => ({
-		query: "nbs_customization.utils.placement.valid_items.get_valid_reagent_items",
-		filters,
+	frappe.db.get_value("Instrument Placement Contract", contract, "contract_type").then((r) => {
+		if (frm.doc.custom_instrument_placement_contract !== contract) return;
+		if (r.message) _apply_transaction_type_options(frm, r.message.contract_type);
+	});
+}
+
+function _apply_transaction_type_options(frm, contract_type) {
+	const field = "custom_placement_transaction_type";
+	const options =
+		contract_type === "CPT"
+			? ["", "Contract Free Issue", "Contract Consumable Free Issue"]
+			: ["", "Contract Reagent Sale", "Contract Consumable Replenishment"];
+	frm.set_df_property(field, "options", options.join("\n"));
+	if (!options.includes(frm.doc[field] || "")) frm.set_value(field, null);
+	frm.refresh_field(field);
+}
+
+function _clear_contract_on_customer_change(frm) {
+	const contract = frm.doc.custom_instrument_placement_contract;
+	if (!contract) return;
+	const customer = frm.doc.customer;
+	frappe.db.get_value("Instrument Placement Contract", contract, "customer").then((r) => {
+		if (!r.message || r.message.customer === customer) return;
+		frm.set_value("custom_instrument_placement_contract", null);
+		frm.set_value("custom_placement_transaction_type", null);
+		frappe.show_alert({
+			message: __("Contract cleared because the customer changed."),
+			indicator: "orange",
+		});
+	});
+}
+
+function _setup_item_query(frm) {
+	const contract = frm.doc.custom_instrument_placement_contract;
+	if (!contract) {
+		_reset_item_query(frm);
+		return;
+	}
+
+	frm.set_query(_get_item_field(frm), _get_child_table(frm), () => ({
+		query: "nbs_customization.utils.placement.valid_items.get_contract_placement_items",
+		filters: {
+			contract: frm.doc.custom_instrument_placement_contract,
+			transaction_type: frm.doc.custom_placement_transaction_type,
+		},
 	}));
+}
+
+function _reset_item_query(frm) {
+	frm.set_query(_get_item_field(frm), _get_child_table(frm), () => ({}));
 }
 
 function _on_item_change(frm, cdt, cdn) {

@@ -1,0 +1,162 @@
+{
+ "actions": [],
+ "autoname": "field:analyzer_item",
+ "creation": "2026-11-09 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "analyzer_item",
+  "description",
+  "column_break_kvye",
+  "analyzer_type",
+  "manufacturer",
+  "model",
+  "system_type",
+  "section_break_tish",
+  "reagents",
+  "section_break_hdkn",
+  "consumables",
+  "section_break_sokb",
+  "maintenance"
+ ],
+ "fields": [
+  {
+   "fieldname": "analyzer_item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Analyzer Item",
+   "options": "Item",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "analyzer_type",
+   "fieldtype": "Link",
+   "label": "Analyzer Type",
+   "options": "Analyzer Type"
+  },
+  {
+   "fieldname": "manufacturer",
+   "fieldtype": "Data",
+   "label": "Manufacturer"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Data",
+   "label": "Model"
+  },
+  {
+   "fieldname": "system_type",
+   "fieldtype": "Select",
+   "label": "System Type",
+   "options": "\nOpen\nClosed"
+  },
+  {
+   "fetch_from": "analyzer_item.description",
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "consumables",
+   "fieldtype": "Table",
+   "label": "Consumables and Controls",
+   "options": "Analyzer Profile Consumable"
+  },
+  {
+   "fieldname": "maintenance",
+   "fieldtype": "Table",
+   "label": "Maintenance Parts",
+   "options": "Analyzer Profile Maintenance"
+  },
+  {
+   "fieldname": "reagents",
+   "fieldtype": "Table",
+   "label": "Tests and Reagents",
+   "options": "Analyzer Profile Reagent"
+  },
+  {
+   "fieldname": "column_break_kvye",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_tish",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_hdkn",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_sokb",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-11 19:40:58.010113",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Analyzer Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Placement Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales User",
+   "write": 1
+  },
+  {
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Auditor"
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

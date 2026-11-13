@@ -29,9 +29,6 @@ def make_analyzer(prefix):
 			"stock_uom": "Nos",
 		}
 	).insert(ignore_if_duplicate=True)
-	atype = frappe.get_doc({"doctype": "Analyzer Type", "title": f"{prefix}-AT"}).insert(
-		ignore_if_duplicate=True
-	)
 	param = frappe.get_doc(
 		{
 			"doctype": "Test Parameter",
@@ -39,7 +36,7 @@ def make_analyzer(prefix):
 			"parameter_code": prefix[-4:],
 		}
 	).insert(ignore_if_duplicate=True)
-	return {"item": item, "atype": atype, "param": param}
+	return {"item": item, "param": param}
 
 
 def make_reagent(prefix, role="Test Reagent", cogs=50, tpp=100):
@@ -67,29 +64,31 @@ def make_reagent(prefix, role="Test Reagent", cogs=50, tpp=100):
 
 
 def link_reagent_to_spec(analyzer_item, param, reagent_item):
-	# Register reagent as valid for the analyzer (drives placement validation).
-	spec_name = frappe.db.get_value("Instrument Specification", {"item": analyzer_item}, "name")
-	if spec_name:
-		spec = frappe.get_doc("Instrument Specification", spec_name)
-	else:
-		atype = frappe.db.get_value("Analyzer Type", {}, "name")
-		spec = frappe.get_doc(
-			{
-				"doctype": "Instrument Specification",
-				"item": analyzer_item,
-				"analyzer_type": atype,
-				"supported_test_methods": [],
-			}
-		).insert(ignore_if_duplicate=True)
-	spec.append(
-		"supported_test_methods",
-		{
-			"test_parameter": param if isinstance(param, str) else param.name,
-			"required_reagent": reagent_item if isinstance(reagent_item, str) else reagent_item.name,
-		},
+	# Register reagent as a component of the analyzer's profile test.
+	analyzer = analyzer_item if isinstance(analyzer_item, str) else analyzer_item.name
+	parameter = param if isinstance(param, str) else param.name
+	reagent = reagent_item if isinstance(reagent_item, str) else reagent_item.name
+
+	profile_name = frappe.db.get_value("Analyzer Profile", {"analyzer_item": analyzer}, "name")
+	profile = (
+		frappe.get_doc("Analyzer Profile", profile_name)
+		if profile_name
+		else frappe.get_doc({"doctype": "Analyzer Profile", "analyzer_item": analyzer}).insert(
+			ignore_if_duplicate=True
+		)
 	)
-	spec.save(ignore_permissions=True)
-	return spec
+	if not any(row.test_parameter == parameter and row.reagent_item == reagent for row in profile.reagents):
+		profile.append(
+			"reagents",
+			{
+				"test_parameter": parameter,
+				"reagent_item": reagent,
+				"component_role": "Single",
+				"is_default": 1,
+			},
+		)
+		profile.save(ignore_permissions=True)
+	return profile
 
 
 def make_customer(prefix):
@@ -115,24 +114,26 @@ def make_site(prefix):
 	).insert(ignore_if_duplicate=True)
 
 
-def ensure_stock(item_name, qty=50, rate=50):
-	se = frappe.get_doc(
-		{
-			"doctype": "Stock Entry",
-			"stock_entry_type": "Material Receipt",
-			"company": COMPANY,
-			"to_warehouse": WAREHOUSE,
-			"items": [
-				{
-					"item_code": item_name,
-					"qty": qty,
-					"transfer_qty": qty,
-					"uom": "Nos",
-					"basic_rate": rate,
-				}
-			],
-		}
-	).insert()
+def ensure_stock(item_name, qty=50, rate=50, posting_date=None):
+	data = {
+		"doctype": "Stock Entry",
+		"stock_entry_type": "Material Receipt",
+		"company": COMPANY,
+		"to_warehouse": WAREHOUSE,
+		"items": [
+			{
+				"item_code": item_name,
+				"qty": qty,
+				"transfer_qty": qty,
+				"uom": "Nos",
+				"basic_rate": rate,
+			}
+		],
+	}
+	if posting_date:
+		data["posting_date"] = posting_date
+		data["set_posting_time"] = 1
+	se = frappe.get_doc(data).insert()
 	se.submit()
 	return se
 

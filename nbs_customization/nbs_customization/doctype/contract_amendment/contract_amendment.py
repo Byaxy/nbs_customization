@@ -6,10 +6,14 @@ from math import ceil
 import frappe
 from frappe.model.document import Document
 
+from nbs_customization.utils.placement.dates import validate_not_future
 from nbs_customization.utils.placement.permissions import PLACEMENT_MANAGERS, require_roles
 
 
 class ContractAmendment(Document):
+	def validate(self):
+		validate_not_future(self.amendment_date, frappe._("Amendment Date"))
+
 	def on_submit(self):
 		self.status = "Pending Customer Signature"
 		self.db_set("status", "Pending Customer Signature")
@@ -183,6 +187,12 @@ def _remap_lines_from_worksheet(contract, ws_name):
 	contract.avg_samples_per_day = ws.avg_samples_per_day
 	contract.operational_days_per_month = ws.operational_days_per_month
 	contract.revenue_share_pct = ws.required_revenue_share_pct if ws.contract_type == "CPT" else 0
+	contract.wht_rate_pct = ws.wht_rate_pct
+	contract.wht_amount = ws.wht_amount
+	contract.wht_category = ws.wht_category
+	contract.wht_rate_date = ws.wht_rate_date
+	contract.price_snapshot_date = ws.price_snapshot_date
+	contract.net_revenue_target = ws.net_revenue_target
 	contract.set("contract_reagent_lines", [])
 	for src in ws.reagent_lines:
 		contract.append(
@@ -218,6 +228,8 @@ def _remap_lines_from_worksheet(contract, ws_name):
 				"contract_price": 0,
 				"qty_required_total": src.total_units_over_term or 0,
 				"cogs_per_unit": src.cogs_per_unit,
+				"source_type": src.source_type or "Analyzer Consumable",
+				"source_reference": src.source_reference or "",
 			},
 		)
 	if old_ws and old_ws != ws.name:

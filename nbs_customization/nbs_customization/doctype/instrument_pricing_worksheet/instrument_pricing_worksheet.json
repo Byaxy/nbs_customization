@@ -6,13 +6,14 @@
  "creation": "2026-07-10 16:05:04.281587",
  "doctype": "DocType",
  "engine": "InnoDB",
-  "field_order": [
-   "naming_series",
-   "company",
-   "analyzer_pid",
+ "field_order": [
+  "naming_series",
+  "company",
+  "analyzer_pid",
   "description",
   "customer",
   "customer_name",
+  "posting_date",
   "column_break_lusk",
   "contract_type",
   "calculation_output_type",
@@ -25,12 +26,20 @@
   "operational_days_per_month",
   "economics_inputs_section",
   "analyzer_landed_cost",
-  "contract_years",
+  "analyzer_standard_selling_price",
+  "term_months",
   "profit_margin_pct",
   "column_break_hjfi",
   "annual_interest_rate",
-  "annual_maintenance_cost_rate",
+  "annual_service_maintenance_rate_pct",
   "total_maintenance_cost",
+  "total_interest_cost",
+  "volume_summary_section",
+  "total_monthly_tests",
+  "total_tests_over_term",
+  "column_break_volume_summary",
+  "total_reagent_packs",
+  "total_consumable_units",
   "reagent_and_consumable_lines_section",
   "reagent_lines",
   "worksheet_consumable_lines_section",
@@ -41,14 +50,36 @@
   "profit_amount",
   "column_break_ukya",
   "total_consumable_cost",
+  "total_cogs",
   "total_cost_base",
+  "net_revenue_target",
   "final_revenue_target",
+  "wht_category",
+  "wht_rate_date",
+  "price_snapshot_date",
+  "wht_rate_pct",
+  "wht_amount",
+  "pricing_benchmark_section",
+  "total_test_reagent_value",
+  "total_consumable_value",
+  "standard_sale_base",
+  "contract_charged_value",
+  "total_outright_sale_value",
+  "outright_gap_amount",
+  "outright_gap_pct",
+  "benchmark_tolerance_pct",
+  "benchmark_status",
+  "product_only_standard_sale_base",
+  "product_only_outright_value",
+  "product_only_contract_value",
+  "product_only_gap_pct",
   "markup_output_section",
   "markup_factor",
   "revenue_share_output_section",
   "total_gross_test_revenue_over_term",
   "column_break_hkpj",
   "required_revenue_share_pct",
+  "required_revenue_share_amount",
   "admin_section",
   "calculated_by",
   "approved_by",
@@ -75,8 +106,13 @@
    "reqd": 1
   },
   {
-   "fieldname": "column_break_lusk",
-   "fieldtype": "Column Break"
+   "fieldname": "analyzer_pid",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Analyzer PID",
+   "options": "Item",
+   "reqd": 1
   },
   {
    "fetch_from": "analyzer_pid.description",
@@ -86,6 +122,26 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Description"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Customer Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_lusk",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "contract_type",
@@ -104,19 +160,10 @@
    "reqd": 1
   },
   {
-   "fieldname": "customer",
-   "fieldtype": "Link",
-   "label": "Customer",
-   "options": "Customer",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "customer.customer_name",
-   "fieldname": "customer_name",
+   "fieldname": "analyzer_type",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Customer Name",
+   "label": "Analyzer Type",
    "read_only": 1
   },
   {
@@ -142,11 +189,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "economics_inputs_section",
-   "fieldtype": "Section Break",
-   "label": "Economics Inputs"
-  },
-  {
    "fieldname": "volume_basis_section",
    "fieldtype": "Section Break",
    "label": "Volume Basis (for price matrix preamble)"
@@ -159,6 +201,10 @@
    "non_negative": 1
   },
   {
+   "fieldname": "column_break_cwkn",
+   "fieldtype": "Column Break"
+  },
+  {
    "description": "Operational days per month (customer input).",
    "fieldname": "operational_days_per_month",
    "fieldtype": "Int",
@@ -166,12 +212,46 @@
    "non_negative": 1
   },
   {
+   "fieldname": "economics_inputs_section",
+   "fieldtype": "Section Break",
+   "label": "Economics Inputs"
+  },
+  {
    "fieldname": "analyzer_landed_cost",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Analyzer Landed Cost",
    "non_negative": 1,
+   "permlevel": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "analyzer_standard_selling_price",
+   "fieldtype": "Currency",
+   "label": "Analyzer Standard Selling Price",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "term_months",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Contract Term (Months)",
+   "non_negative": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "profit_margin_pct",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Desired Profit Margin %",
+   "non_negative": 1
+  },
+  {
+   "default": "12",
+   "fieldname": "annual_service_maintenance_rate_pct",
+   "fieldtype": "Percent",
+   "label": "Annual Maintenance and Service Rate %",
+   "non_negative": 1
   },
   {
    "fieldname": "column_break_hjfi",
@@ -182,29 +262,6 @@
    "fieldname": "annual_interest_rate",
    "fieldtype": "Percent",
    "label": "Annual Interest Rate %",
-   "non_negative": 1
-  },
-  {
-   "fieldname": "contract_years",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Contract Period (Years)",
-   "non_negative": 1,
-   "reqd": 1
-  },
-  {
-   "default": "10",
-   "fieldname": "annual_maintenance_cost_rate",
-   "fieldtype": "Percent",
-   "label": "Annual Maintenance Cost Rate %",
-   "non_negative": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "profit_margin_pct",
-   "fieldtype": "Percent",
-   "in_list_view": 1,
-   "label": "Desired Profit Margin %",
    "non_negative": 1
   },
   {
@@ -220,6 +277,22 @@
    "label": "Worksheet Test Reagent Lines"
   },
   {
+   "fieldname": "reagent_lines",
+   "fieldtype": "Table",
+   "options": "Worksheet Test Reagent Line",
+   "reqd": 1
+  },
+  {
+   "fieldname": "worksheet_consumable_lines_section",
+   "fieldtype": "Section Break",
+   "label": "Consumables, Calibration and Maintenance"
+  },
+  {
+   "fieldname": "consumable_lines",
+   "fieldtype": "Table",
+   "options": "Worksheet Consumable Line"
+  },
+  {
    "fieldname": "computed_outputs_section",
    "fieldtype": "Section Break",
    "label": "Computed Outputs"
@@ -228,6 +301,22 @@
    "fieldname": "total_test_reagent_cogs",
    "fieldtype": "Currency",
    "label": "Total Test Reagent COGS",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "fixed_cost_to_recover",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Fixed Cost to Recover",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "profit_amount",
+   "fieldtype": "Currency",
+   "label": "Profit Amount",
+   "permlevel": 1,
    "read_only": 1
   },
   {
@@ -237,33 +326,128 @@
   {
    "fieldname": "total_consumable_cost",
    "fieldtype": "Currency",
-   "label": "Total Non-Test Consumable Cost",
-   "read_only": 1
-  },
-  {
-   "fieldname": "fixed_cost_to_recover",
-   "fieldtype": "Currency",
-   "in_list_view": 1,
-   "label": "Fixed Cost to Recover",
+   "label": "Total Non-Test COGS",
+   "permlevel": 1,
    "read_only": 1
   },
   {
    "fieldname": "total_cost_base",
    "fieldtype": "Currency",
    "label": "Total Cost Base",
+   "permlevel": 1,
    "read_only": 1
   },
   {
-   "fieldname": "profit_amount",
+   "fieldname": "net_revenue_target",
    "fieldtype": "Currency",
-   "label": "Profit Amount",
-   "read_only": 1
+   "label": "Net Revenue Target (Before WHT)",
+   "read_only": 1,
+   "non_negative": 1
   },
   {
    "fieldname": "final_revenue_target",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Final Revenue Target",
+   "label": "Final Revenue Target (Gross)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "wht_rate_pct",
+   "fieldtype": "Percent",
+   "label": "Withholding Tax Rate %",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "wht_amount",
+   "fieldtype": "Currency",
+   "label": "Withholding Tax Amount",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "pricing_benchmark_section",
+   "fieldtype": "Section Break",
+   "label": "Standard Selling, Service, and Benchmark"
+  },
+  {
+   "fieldname": "total_test_reagent_value",
+   "fieldtype": "Currency",
+   "label": "Total Test Reagent Value (Standard Selling)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_consumable_value",
+   "fieldtype": "Currency",
+   "label": "Total Consumable Value (Standard Selling)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "standard_sale_base",
+   "fieldtype": "Currency",
+   "label": "Standard Sale Base",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_charged_value",
+   "fieldtype": "Currency",
+   "label": "Contract Charged Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_outright_sale_value",
+   "fieldtype": "Currency",
+   "label": "Total Outright Sale Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "outright_gap_amount",
+   "fieldtype": "Currency",
+   "label": "Outright Gap Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "outright_gap_pct",
+   "fieldtype": "Percent",
+   "label": "Outright Gap %",
+   "read_only": 1
+  },
+  {
+   "default": "5",
+   "fieldname": "benchmark_tolerance_pct",
+   "fieldtype": "Percent",
+   "label": "Benchmark Tolerance %",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "benchmark_status",
+   "fieldtype": "Select",
+   "label": "Benchmark Status",
+   "options": "Below Tolerance\nWithin Tolerance\nAt or Above Outright",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_only_standard_sale_base",
+   "fieldtype": "Currency",
+   "label": "Product-Only Standard Sale Base",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_only_outright_value",
+   "fieldtype": "Currency",
+   "label": "Product-Only Outright Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_only_contract_value",
+   "fieldtype": "Currency",
+   "label": "Product-Only Contract Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_only_gap_pct",
+   "fieldtype": "Percent",
+   "label": "Product-Only Gap %",
    "read_only": 1
   },
   {
@@ -303,6 +487,13 @@
    "read_only": 1
   },
   {
+   "fieldname": "required_revenue_share_amount",
+   "fieldtype": "Currency",
+   "label": "Required Revenue Share Amount",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
    "fieldname": "admin_section",
    "fieldtype": "Section Break",
    "label": "Admin"
@@ -315,6 +506,14 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_jdzz",
    "fieldtype": "Column Break"
   },
@@ -322,14 +521,6 @@
    "fieldname": "calculated_date",
    "fieldtype": "Date",
    "label": "Calculated Date",
-   "read_only": 1
-  },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "approved_by",
-   "fieldtype": "Link",
-   "label": "Approved By",
-   "options": "User",
    "read_only": 1
   },
   {
@@ -349,22 +540,6 @@
    "label": "Notes"
   },
   {
-   "fieldname": "analyzer_type",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Analyzer Type",
-   "read_only": 1
-  },
-  {
-   "fieldname": "analyzer_pid",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Analyzer PID",
-   "options": "Item",
-   "reqd": 1
-  },
-  {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
@@ -375,31 +550,85 @@
    "search_index": 1
   },
   {
-   "fieldname": "reagent_lines",
-   "fieldtype": "Table",
-   "options": "Worksheet Test Reagent Line",
-   "reqd": 1
+   "fieldname": "wht_category",
+   "fieldtype": "Link",
+   "label": "WHT Category",
+   "options": "Tax Withholding Category",
+   "read_only": 1
   },
   {
-   "fieldname": "worksheet_consumable_lines_section",
+   "fieldname": "wht_rate_date",
+   "fieldtype": "Date",
+   "label": "WHT Rate Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "price_snapshot_date",
+   "fieldtype": "Date",
+   "label": "Price Snapshot Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_interest_cost",
+   "fieldtype": "Currency",
+   "label": "Total Interest Cost",
+   "read_only": 1,
+   "permlevel": 1
+  },
+  {
+   "fieldname": "volume_summary_section",
    "fieldtype": "Section Break",
-   "label": "Worksheet Consumable Lines"
+   "label": "Volume Summary"
   },
   {
-   "fieldname": "consumable_lines",
-   "fieldtype": "Table",
-   "options": "Worksheet Consumable Line"
+   "fieldname": "total_monthly_tests",
+   "fieldtype": "Float",
+   "label": "Total Monthly Tests",
+   "read_only": 1
   },
   {
-   "fieldname": "column_break_cwkn",
+   "fieldname": "total_tests_over_term",
+   "fieldtype": "Float",
+   "label": "Total Tests Over Term",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_volume_summary",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_reagent_packs",
+   "fieldtype": "Int",
+   "label": "Total Reagent Packs",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_consumable_units",
+   "fieldtype": "Float",
+   "label": "Total Consumable Units",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_cogs",
+   "fieldtype": "Currency",
+   "label": "Total COGS",
+   "read_only": 1,
+   "permlevel": 1
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "default": "Today",
+   "reqd": 1,
+   "in_list_view": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-08 16:00:21.624111",
+ "modified": "2026-11-06 20:01:03.397644",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Instrument Pricing Worksheet",
@@ -462,6 +691,55 @@
    "read": 1,
    "report": 1,
    "role": "Auditor"
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "write": 1
+  },
+  {
+   "role": "Placement Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1,
+   "delete": 1
+  },
+  {
+   "role": "Placement Director",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1,
+   "delete": 1
+  },
+  {
+   "role": "Field Engineer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
   }
  ],
  "row_format": "Dynamic",

@@ -1,343 +1,173 @@
 # Copyright (c) 2026, Charles Byakutaga/NBS and contributors
 # For license information, please see license.txt
 
-"""Contract-free analyzer menu resolver."""
+"""Analyzer Profile resolution for the pricing worksheet."""
 
 import math
 
 import frappe
-from frappe.utils import flt, getdate, today
+from frappe.utils import flt
 
 from nbs_customization.utils.pricing import get_current_selling_price
 
-CACHE_PREFIX = "analyzer_menu:"
-CACHE_TTL = 300
+CACHE_PREFIX = "analyzer_profile:"
 
 
 def clear_analyzer_menu_cache(doc=None, method=None):
-	"""Clear cached analyzer menus after a master change."""
 	frappe.cache.delete_keys(CACHE_PREFIX)
 
 
-def _cache_key(analyzer_item):
-	return f"{CACHE_PREFIX}{analyzer_item}"
-
-
-def _is_valid(row, on_date=None):
-	on_date = getdate(on_date or today())
-	valid_from = row.get("valid_from")
-	valid_upto = row.get("valid_upto")
-	if valid_from and getdate(valid_from) > on_date:
-		return False
-	if valid_upto and getdate(valid_upto) < on_date:
-		return False
-	return True
-
-
-def _get_applications(analyzer_item):
-	return frappe.get_all(
-		"Analyzer Test Application",
-		filters={"analyzer_item": analyzer_item},
-		fields=[
-			"name",
-			"analyzer_item",
-			"test_parameter",
-			"assay_group",
-			"application_code",
-			"analyzer_test_code",
-			"sample_type",
-			"method",
-			"result_type",
-			"is_default",
-			"valid_from",
-			"valid_upto",
-		],
-		order_by="application_code asc, name asc",
-	)
-
-
-def _get_assay_groups(analyzer_item):
-	groups = frappe.get_all(
-		"Analyzer Assay Group",
-		filters={"analyzer_item": analyzer_item},
-		fields=["name", "group_code", "group_name", "test_panel", "run_basis", "sample_type"],
-		order_by="group_code asc, name asc",
-	)
-	for group in groups:
-		group["tests"] = frappe.get_all(
-			"Assay Group Test",
-			filters={"parent": group["name"], "parenttype": "Analyzer Assay Group"},
-			fields=["test_parameter", "sequence", "is_optional"],
-			order_by="sequence asc, idx asc",
-		)
-		group["reagents"] = frappe.get_all(
-			"Assay Group Reagent",
-			filters={"parent": group["name"], "parenttype": "Analyzer Assay Group"},
-			fields=[
-				"reagent_item",
-				"component_role",
-				"consumption_basis",
-				"qty_per_group_test",
-				"qty_per_run",
-				"qty_per_day",
-				"efficiency_pct",
-				"allocation_method",
-				"allocation_weight",
-				"tests_per_pack_override",
-				"pack_volume_ml_override",
-			],
-			order_by="idx asc",
-		)
-	return groups
-
-
-def _get_panels(applications):
-	parameters = {row["test_parameter"] for row in applications if row.get("test_parameter")}
-	if not parameters:
-		return []
-	panel_names = frappe.get_all(
-		"Test Panel Parameter",
-		filters={"test_parameter": ("in", list(parameters))},
-		pluck="parent",
-		distinct=True,
-	)
-	if not panel_names:
-		return []
-	return frappe.get_all(
-		"Test Panel",
-		filters={"name": ("in", panel_names), "is_active": 1},
-		fields=["name", "panel_code", "panel_name", "panel_type", "specialty"],
-		order_by="panel_code asc",
-	)
-
-
-def _build_menu(analyzer_item):
-	applications = [row for row in _get_applications(analyzer_item) if _is_valid(row)]
-	app_names = {row["name"] for row in applications}
-	for row in applications:
-		row["reagents"] = frappe.get_all(
-			"Analyzer Application Reagent",
-			filters={"parent": row["name"], "parenttype": "Analyzer Test Application"},
-			fields=[
-				"reagent_item",
-				"component_role",
-				"consumption_basis",
-				"qty_per_test",
-				"qty_per_day",
-				"qty_per_run",
-				"qty_per_calibration",
-				"efficiency_pct",
-				"calibration_control_pct_override",
-				"dead_volume_pct_override",
-				"tests_per_pack_override",
-				"pack_volume_ml_override",
-				"allocation_weight",
-			],
-			order_by="idx asc",
-		)
-	return {
-		"applications": applications,
-		"assay_groups": _get_assay_groups(analyzer_item),
-		"panels": _get_panels(applications),
-		"application_names": sorted(app_names),
-	}
-
-
-def get_analyzer_menu(analyzer_item):
-	"""Return the cached menu for *analyzer_item*."""
+def get_analyzer_profile(analyzer_item):
+	"""Return the Analyzer Profile for *analyzer_item*, or None."""
 	if not analyzer_item:
-		return {"applications": [], "assay_groups": [], "panels": [], "application_names": []}
-	key = _cache_key(analyzer_item)
-	cached = frappe.cache.get_value(key)
-	if cached:
-		return cached
-	menu = _build_menu(analyzer_item)
-	frappe.cache.set_value(key, menu, expires_in_sec=CACHE_TTL)
-	return menu
-
-
-def resolve_menu(analyzer_item):
-	"""Return panels, applications, and assay groups for an analyzer."""
-	return get_analyzer_menu(analyzer_item)
-
-
-def resolve_default_application(analyzer_item, parameter, sample_type=None, method=None):
-	"""Return the default application name for the key, or None."""
-	menu = get_analyzer_menu(analyzer_item)
-	candidates = [
-		row for row in menu["applications"] if row["test_parameter"] == parameter and row.get("is_default")
-	]
-	if not candidates:
 		return None
+	name = frappe.db.get_value("Analyzer Profile", {"analyzer_item": analyzer_item}, "name")
+	if not name:
+		return None
+	cache_key = f"{CACHE_PREFIX}{name}"
+	cached = frappe.cache.get_value(cache_key)
+	if cached:
+		return frappe.get_doc(cached)
+	doc = frappe.get_doc("Analyzer Profile", name)
+	frappe.cache.set_value(cache_key, doc.as_dict(), expires_in_sec=300)
+	return doc
 
-	def score(row):
-		return (
-			1 if sample_type and row.get("sample_type") == sample_type else 0,
-			1 if method and row.get("method") == method else 0,
-			1 if not sample_type and not row.get("sample_type") else 0,
-		)
 
-	candidates.sort(key=score, reverse=True)
-	return candidates[0]["name"]
+def get_profile_test_parameters(analyzer_item):
+	profile = get_analyzer_profile(analyzer_item)
+	return sorted({row.test_parameter for row in profile.reagents if row.test_parameter}) if profile else []
 
 
 def resolve_test(analyzer_item, parameter, application=None, sample_type=None, method=None):
-	"""Resolve one test to its application and reagent components."""
-	menu = get_analyzer_menu(analyzer_item)
-	app_name = application or resolve_default_application(analyzer_item, parameter, sample_type, method)
-	if not app_name:
+	"""Resolve one test from the analyzer profile to its reagent components."""
+	if not analyzer_item or not parameter:
 		return {}
-	for row in menu["applications"]:
-		if row["name"] == app_name:
-			return dict(row)
-	return {}
+	profile = get_analyzer_profile(analyzer_item)
+	if not profile:
+		return {}
+	rows = [row for row in profile.reagents if row.test_parameter == parameter]
+	if not rows:
+		return {}
+	return {
+		"test_parameter": parameter,
+		"application": rows[0].application_code,
+		"sample_type": rows[0].sample_type,
+		"method": rows[0].method,
+		"reagents": [
+			{"reagent_item": row.reagent_item, "component_role": row.component_role} for row in rows
+		],
+	}
 
 
-def resolve_panel(analyzer_item, panel, group_volumes=None):
-	"""Resolve a panel to test rows. Group volumes are passed through for Plan 2."""
-	group_volumes = group_volumes or {}
-	parameters = frappe.get_all(
+def resolve_panel(analyzer_item, panel):
+	"""Resolve a Test Panel to profile tests, keeping panel order."""
+	rows = frappe.get_all(
 		"Test Panel Parameter",
 		filters={"parent": panel, "parenttype": "Test Panel"},
 		fields=["test_parameter", "sequence", "is_optional"],
 		order_by="sequence asc, idx asc",
 	)
+	result = []
+	for row in rows:
+		test = resolve_test(analyzer_item, row["test_parameter"])
+		if test:
+			result.append(
+				{
+					"test_panel": panel,
+					"test_parameter": row["test_parameter"],
+					"sequence": row["sequence"],
+					"is_optional": row["is_optional"],
+					"application": test,
+				}
+			)
+	return result
+
+
+def resolve_consumable_requirements(analyzer_item):
+	profile = get_analyzer_profile(analyzer_item)
+	return [row.as_dict() for row in profile.consumables] if profile else []
+
+
+def resolve_cost_basis(analyzer_item, term_months, operational_days_per_month=0, on_date=None):
+	"""Calibrators, controls, solutions and maintenance parts over the term."""
+	profile = get_analyzer_profile(analyzer_item)
+	term_months = flt(term_months)
+	if not profile or term_months <= 0:
+		return []
 	rows = []
-	for param in parameters:
-		test = resolve_test(analyzer_item, param["test_parameter"])
-		if not test:
-			continue
-		rows.append(
-			{
-				"test_panel": panel,
-				"test_parameter": param["test_parameter"],
-				"sequence": param["sequence"],
-				"is_optional": param["is_optional"],
-				"application": test,
-				"group_sample_volume": group_volumes.get(test.get("assay_group")),
-			}
-		)
+	for item in profile.consumables:
+		quantity = _consumable_quantity(item, term_months, operational_days_per_month)
+		if quantity > 0:
+			rows.append(
+				_cost_row(
+					item.item,
+					"Calibration Material"
+					if item.role in ("Calibrator", "Control")
+					else "Analyzer Consumable",
+					f"{profile.name}:{item.role}",
+					quantity,
+					on_date,
+				)
+			)
+	for part in profile.maintenance:
+		quantity = _maintenance_quantity(part, term_months)
+		if quantity > 0:
+			rows.append(_cost_row(part.item, "Maintenance Part", profile.name, quantity, on_date))
 	return rows
 
 
-def _scope_includes(requirement, app_names, group_names):
-	scope = requirement.get("scope")
-	if scope == "All Assays":
-		return True
-	if scope == "Assay Group":
-		return requirement.get("assay_group") in group_names
-	if scope == "Selected Applications":
-		selected = frappe.get_all(
-			"Analyzer Consumable Application",
-			filters={"parent": requirement["name"], "parenttype": "Analyzer Consumable Requirement"},
-			pluck="application",
+def _consumable_quantity(row, term_months, operational_days_per_month):
+	role = row.role
+	if role == "Control":
+		daily = flt(row.controls_per_day) or flt(row.qty)
+		return daily * flt(operational_days_per_month) * term_months
+	if role == "Calibrator":
+		frequency = flt(row.calibration_frequency_days) or 30
+		events = math.ceil(term_months * 30.44 / frequency)
+		per_event = (
+			flt(row.qty_per_event) or (flt(row.levels) or 1) * (flt(row.vials_per_calibration) or 1) or 1
 		)
-		return bool(set(selected) & app_names)
-	return False
+		return events * per_event
+	basis = row.consumption_basis
+	qty = flt(row.qty)
+	if basis == "Per Month":
+		return qty * term_months
+	if basis == "Per Year":
+		return qty * term_months / 12
+	if basis == "Per Service Interval":
+		return qty * flt(row.services_per_year) * term_months / 12
+	return 0
 
 
-def resolve_consumable_requirements(analyzer_item, applications=None, assay_groups=None):
-	"""Expand and aggregate consumable requirements by item."""
-	menu = get_analyzer_menu(analyzer_item)
-	app_names = set(applications or menu["application_names"])
-	group_names = set(assay_groups or [g["name"] for g in menu["assay_groups"]])
-	requirements = frappe.get_all(
-		"Analyzer Consumable Requirement",
-		filters={"analyzer_item": analyzer_item},
-		fields=[
-			"name",
-			"consumable_item",
-			"consumable_role",
-			"scope",
-			"assay_group",
-			"consumption_basis",
-			"qty",
-			"services_per_year",
-		],
-	)
-	aggregated = {}
-	for row in requirements:
-		if not _scope_includes(row, app_names, group_names):
-			continue
-		key = (row["consumable_item"], row["consumable_role"], row["consumption_basis"])
-		if key not in aggregated:
-			aggregated[key] = dict(row, qty=0)
-		aggregated[key]["qty"] += row["qty"] or 0
-	return list(aggregated.values())
-
-
-def resolve_calibration_requirements(analyzer_item, applications=None):
-	"""Expand calibration rules and return unique material requirements."""
-	menu = get_analyzer_menu(analyzer_item)
-	app_names = set(applications or menu["application_names"])
-	rules = frappe.get_all(
-		"Analyzer Calibration Rule",
-		filters={"analyzer_item": analyzer_item},
-		fields=["name", "rule_name", "scope"],
-	)
-	result = {}
-	for rule in rules:
-		if rule["scope"] == "Selected Applications":
-			selected = frappe.get_all(
-				"Analyzer Calibration Application",
-				filters={"parent": rule["name"], "parenttype": "Analyzer Calibration Rule"},
-				pluck="application",
-			)
-			if not set(selected) & app_names:
-				continue
-		materials = frappe.get_all(
-			"Analyzer Calibration Material",
-			filters={"parent": rule["name"], "parenttype": "Analyzer Calibration Rule"},
-			fields=[
-				"material_item",
-				"material_role",
-				"levels",
-				"vials_per_calibration",
-				"tests_per_vial",
-				"calibration_frequency_days",
-				"onboard_stability_days",
-				"controls_per_day",
-				"qty_per_event",
-			],
-		)
-		for material in materials:
-			key = (
-				material["material_item"],
-				material["material_role"],
-				material["calibration_frequency_days"],
-				material["onboard_stability_days"],
-				material["controls_per_day"],
-			)
-			current = result.get(key)
-			if not current or (material["qty_per_event"] or 0) > (current["qty_per_event"] or 0):
-				result[key] = dict(material, rule=rule["name"])
-	return list(result.values())
-
-
-def resolve_maintenance(part, term_months):
-	"""Return quantity over term for one Analyzer Maintenance Part."""
-	if not part:
+def _maintenance_quantity(row, term_months):
+	if row.action == "Inspect":
 		return 0
-	term_years = (term_months or 0) / 12
-	part_name = part if isinstance(part, str) else part.name
-	schedule = frappe.get_all(
-		"Analyzer Maintenance Schedule",
-		filters={"parent": part_name, "parenttype": "Analyzer Maintenance Part"},
-		fields=["month_no", "action"],
+	replacements = math.ceil(term_months / 12)
+	if row.action == "As Needed":
+		return flt(row.qty) * replacements
+	return flt(row.qty) * max(replacements, 1)
+
+
+def _cost_row(item_code, source_type, source_reference, quantity, on_date=None):
+	item = (
+		frappe.db.get_value(
+			"Item",
+			item_code,
+			["item_name", "description", "valuation_rate", "last_purchase_rate"],
+			as_dict=True,
+		)
+		or {}
 	)
-	replace_months = len([row for row in schedule if row["action"] == "Replace"])
-	as_needed = 1 if any(row["action"] == "As Needed" for row in schedule) else 0
-	qty = flt(frappe.db.get_value("Analyzer Maintenance Part", part_name, "qty"))
-	replacements = math.ceil(replace_months * term_years) if replace_months else 0
-	as_needed_qty = math.ceil(term_years) if as_needed else 0
-	return qty * (replacements + as_needed_qty)
-
-
-def resolve_price(item, price_list=None, uom=None):
-	"""Return the current Standard Selling rate for an item."""
-	return get_current_selling_price(item)
-
-
-def apply_pack_time_floor(packs, onboard_stability_days=None, shelf_life_days=None):
-	"""No-op extension point for a future pack-count time floor."""
-	return packs
+	cogs = frappe.db.get_value("Reagent Specification", {"item": item_code}, "default_cogs_per_unit")
+	if not cogs:
+		cogs = flt(item.get("valuation_rate")) or flt(item.get("last_purchase_rate")) or 0
+	return {
+		"item_code": item_code,
+		"source_type": source_type,
+		"source_reference": source_reference,
+		"description": (item.get("description") or item.get("item_name") or "")[:140],
+		"quantity_over_term": flt(quantity, 4),
+		"cogs_per_unit": flt(cogs),
+		"standard_selling_price_per_unit": get_current_selling_price(item_code, on_date),
+		"is_auto": 1,
+	}

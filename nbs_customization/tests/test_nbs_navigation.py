@@ -3,10 +3,11 @@ from frappe.boot import get_module_sidebars
 from frappe.desk.doctype.sidebar.sidebar import ShellIndex, get_navigable_modules
 from frappe.tests import IntegrationTestCase
 
-from nbs_customization.setup import NBS_SIDEBAR_PLACEMENTS, _site_layer_name
+from nbs_customization.setup import NBS_RETIRED_LABELS, NBS_SIDEBAR_PLACEMENTS, _site_layer_name
 
 LEGACY_SIDEBAR = "NBS Customization"
 EXPECTED_HEIRS = ["Selling", "Buying", "Stock", "Assets", "Accounts", "Setup"]
+LEGACY_DOCTYPES = {"Test Panel Group"}
 
 
 class TestNBSNavigation(IntegrationTestCase):
@@ -36,6 +37,22 @@ class TestNBSNavigation(IntegrationTestCase):
 			present = {(row.label, row.link_type, row.link_to) for row in rows}
 			missing = [row[0] for row in spec if (row[0], row[2], row[1]) not in present]
 			self.assertFalse(missing, f"{module} is missing NBS links: {missing}")
+
+	def test_stock_sidebar_drops_retired_placement_items(self):
+		layer = _site_layer_name("Stock")
+		rows = frappe.get_all(
+			"Sidebar Item",
+			filters={"parenttype": "Custom Sidebar", "parent": layer},
+			fields=["label", "child"],
+		)
+		labels = {row.label for row in rows}
+		stale = sorted(labels & NBS_RETIRED_LABELS)
+		self.assertFalse(stale, f"Stock sidebar still has retired rows: {stale}")
+
+		analyzer_type = next(row for row in rows if row.label == "Analyzer Type")
+		profile = next(row for row in rows if row.label == "Analyzer Profile")
+		self.assertEqual(analyzer_type.child, 1)
+		self.assertEqual(profile.child, 1)
 
 	def test_nbs_entities_resolve_to_expected_sidebars(self):
 		index = ShellIndex(get_module_sidebars())
@@ -67,6 +84,7 @@ class TestNBSNavigation(IntegrationTestCase):
 			filters={"module": LEGACY_SIDEBAR, "istable": 0},
 			pluck="name",
 		)
+		doctypes = [name for name in doctypes if name not in LEGACY_DOCTYPES]
 		reports = frappe.get_all("Report", filters={"module": LEGACY_SIDEBAR}, pluck="name")
 		pages = frappe.get_all("Page", filters={"module": LEGACY_SIDEBAR}, pluck="name")
 

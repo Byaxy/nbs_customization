@@ -4,6 +4,33 @@
 import frappe
 from frappe.model.document import Document
 
+from nbs_customization.utils.placement.dates import validate_not_future
+
+PROTECTED_FIELDS = (
+	"contract",
+	"asset",
+	"serial_no",
+	"analyzer_pid",
+	"customer",
+	"customer_site",
+	"asset_location",
+	"asset_storage_location",
+	"deployment_date",
+	"installation_date",
+	"condition_at_deployment",
+	"installed_by",
+	"accessories_delivered",
+	"acceptance_document",
+	"acceptance_signed",
+	"acceptance_date",
+)
+
+ACCEPTANCE_MIRROR_FIELDS = (
+	"acceptance_document",
+	"acceptance_signed",
+	"acceptance_date",
+)
+
 ALLOWED_TRANSITIONS = {
 	"Draft": {"Deployed", "Under Service"},
 	"Deployed": {"Under Service", "Temporarily Retrieved", "Permanently Retrieved"},
@@ -15,6 +42,9 @@ ALLOWED_TRANSITIONS = {
 
 class AnalyzerDeployment(Document):
 	def validate(self):
+		validate_not_future(self.deployment_date, frappe._("Deployment Date"))
+		validate_not_future(self.installation_date, frappe._("Installation Date"))
+		validate_not_future(self.retrieval_date, frappe._("Retrieval Date"))
 		if not self.asset_storage_location:
 			from nbs_customization.utils.placement.assets import get_company_store_location
 
@@ -23,7 +53,38 @@ class AnalyzerDeployment(Document):
 				company = frappe.db.get_value("Asset", self.asset, "company")
 			self.asset_storage_location = get_company_store_location(company)
 		self._validate_deployment()
+		self._validate_acceptance_mirrors()
+		self._validate_locked_fields()
 		self._detect_status_transition()
+
+	def _validate_acceptance_mirrors(self):
+		old = self.get_doc_before_save()
+		if old:
+			changed = [field for field in ACCEPTANCE_MIRROR_FIELDS if self.has_value_changed(field)]
+		else:
+			changed = [field for field in ACCEPTANCE_MIRROR_FIELDS if self.get(field)]
+		if changed:
+			frappe.throw(
+				frappe._("Acceptance fields are derived from Deployment Acceptance: {0}.").format(
+					", ".join(frappe.bold(field) for field in changed)
+				)
+			)
+
+	def _validate_locked_fields(self):
+		old = self.get_doc_before_save()
+		if not old or old.deployment_status == "Draft":
+			return
+		changed = [field for field in PROTECTED_FIELDS if self.has_value_changed(field)]
+		if changed:
+			frappe.throw(
+				frappe._("Fields cannot be changed after deployment: {0}.").format(
+					", ".join(frappe.bold(field) for field in changed)
+				)
+			)
+
+	def on_trash(self):
+		if self.deployment_status != "Draft":
+			frappe.throw(frappe._("Only Draft deployments can be deleted."))
 
 	def _validate_deployment(self):
 		if not self.contract or not self.asset:

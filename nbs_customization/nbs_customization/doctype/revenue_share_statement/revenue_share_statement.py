@@ -5,8 +5,9 @@ from math import ceil
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, getdate, today
 
+from nbs_customization.utils.placement.dates import validate_not_future
 from nbs_customization.utils.placement.periods import (
 	period_end,
 	period_start,
@@ -24,6 +25,13 @@ REVENUE_SHARE_FEE_ITEM = "REVENUE-SHARE-FEE"
 
 
 class RevenueShareStatement(Document):
+	def validate(self):
+		if not self.posting_date:
+			self.posting_date = posting_date_for_period(self.period) if self.period else today()
+		validate_not_future(self.posting_date, frappe._("Posting Date"))
+		if self.period_start and getdate(self.period_start) > getdate(today()):
+			frappe.throw(frappe._("Cannot create a statement for a future period."))
+
 	def on_submit(self):
 		self.status = "Invoiced"
 		self.db_set("status", "Invoiced")
@@ -33,6 +41,8 @@ class RevenueShareStatement(Document):
 @frappe.whitelist()
 def generate_revenue_share_statement(contract_name, period):
 	validate_period(period)
+	if getdate(period_start(period)) > getdate(today()):
+		frappe.throw(frappe._("Cannot generate a statement for a future period."))
 	require_roles(*FINANCE_MANAGERS)
 	require_contract_access(contract_name, "write")
 	contract = frappe.get_doc("Instrument Placement Contract", contract_name)
@@ -73,6 +83,7 @@ def generate_revenue_share_statement(contract_name, period):
 				"period": period,
 				"period_start": period_start(period),
 				"period_end": period_end(period),
+				"posting_date": posting_date_for_period(period),
 			}
 		)
 		rss.insert(ignore_permissions=True)
@@ -241,7 +252,7 @@ def _resolve_source_warehouse(item_code, company):
 	return wh
 
 
-def _ensure_free_issue_order(contract, company, declared_volume):
+def _ensure_free_issue_order(contract, company, declared_volume, posting_date=None):
 	# Site requires SO links on SI/DN items — free issue ships against a zero-value order.
 	kits_per_line = _compute_kits_per_line(contract, declared_volume)
 	lines = [
@@ -264,8 +275,8 @@ def _ensure_free_issue_order(contract, company, declared_volume):
 			"doctype": "Sales Order",
 			"company": company,
 			"customer": contract.customer,
-			"transaction_date": frappe.utils.today(),
-			"delivery_date": frappe.utils.today(),
+			"transaction_date": posting_date or frappe.utils.today(),
+			"delivery_date": posting_date or frappe.utils.today(),
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Free Issue",
 			"items": lines,
@@ -276,7 +287,7 @@ def _ensure_free_issue_order(contract, company, declared_volume):
 	return so.name
 
 
-def _create_free_issue_delivery_note(contract, company, order_name, declared_volume):
+def _create_free_issue_delivery_note(contract, company, order_name, declared_volume, posting_date=None):
 	kits_per_line = _compute_kits_per_line(contract, declared_volume)
 	so_items = {}
 	if order_name:
@@ -288,7 +299,7 @@ def _create_free_issue_delivery_note(contract, company, order_name, declared_vol
 			"customer": contract.customer,
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Free Issue",
-			"posting_date": frappe.utils.today(),
+			"posting_date": posting_date or frappe.utils.today(),
 			"set_posting_time": 1,
 			"items": [
 				{
@@ -312,15 +323,15 @@ def _create_free_issue_delivery_note(contract, company, order_name, declared_vol
 	return dn
 
 
-def _create_revenue_share_invoice(rss, contract, company):
+def _create_revenue_share_invoice(rss, contract, company, posting_date=None):
 	# Site mandates SO links on SI items — bill the fee against its own order.
 	fee_order = frappe.get_doc(
 		{
 			"doctype": "Sales Order",
 			"company": company,
 			"customer": contract.customer,
-			"transaction_date": frappe.utils.today(),
-			"delivery_date": frappe.utils.today(),
+			"transaction_date": posting_date or frappe.utils.today(),
+			"delivery_date": posting_date or frappe.utils.today(),
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Reagent Sale",
 			"items": [
@@ -332,6 +343,7 @@ def _create_revenue_share_invoice(rss, contract, company):
 			],
 		}
 	)
+	fee_order.flags.allow_internal_placement_type = True
 	fee_order.insert(ignore_permissions=True)
 	fee_order.submit()
 	si = frappe.get_doc(
@@ -342,7 +354,7 @@ def _create_revenue_share_invoice(rss, contract, company):
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Reagent Sale",
 			"custom_counts_toward_recovery": 1,
-			"posting_date": posting_date_for_period(rss.period),
+			"posting_date": posting_date or posting_date_for_period(rss.period),
 			"set_posting_time": 1,
 			"items": [
 				{
@@ -355,6 +367,7 @@ def _create_revenue_share_invoice(rss, contract, company):
 			],
 		}
 	)
+	si.flags.allow_internal_placement_type = True
 	si.insert(ignore_permissions=True)
 	si.submit()
 	return si

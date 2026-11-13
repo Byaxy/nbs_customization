@@ -4,6 +4,8 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
+from nbs_customization.tests.placement_contracts import worksheet_pricing_mirror
+
 
 class TestContractLifecycle(FrappeTestCase):
 	def setUp(self):
@@ -21,9 +23,6 @@ class TestContractLifecycle(FrappeTestCase):
 				"asset_category": "Equipment",
 			}
 		).insert(ignore_if_duplicate=True)
-		at = frappe.get_doc({"doctype": "Analyzer Type", "title": "_TST CL Chem"}).insert(
-			ignore_if_duplicate=True
-		)
 		self.reagent = frappe.get_doc(
 			{"doctype": "Item", "item_code": "_TST CL Reagent", "item_group": "Products"}
 		).insert(ignore_if_duplicate=True)
@@ -42,13 +41,13 @@ class TestContractLifecycle(FrappeTestCase):
 		).insert(ignore_if_duplicate=True)
 		frappe.get_doc(
 			{
-				"doctype": "Instrument Specification",
-				"item": self.analyzer.item_code,
-				"analyzer_type": at.name,
-				"supported_test_methods": [
+				"doctype": "Analyzer Profile",
+				"analyzer_item": self.analyzer.item_code,
+				"reagents": [
 					{
 						"test_parameter": self.param.name,
-						"required_reagent": self.reagent.item_code,
+						"reagent_item": self.reagent.item_code,
+						"component_role": "Single",
 					}
 				],
 			}
@@ -90,16 +89,20 @@ class TestContractLifecycle(FrappeTestCase):
 				"contract_type": "RRA",
 				"calculation_output_type": "Markup Factor on Reagent Price",
 				"analyzer_landed_cost": 5000,
-				"contract_years": 2,
+				"analyzer_standard_selling_price": 5000,
+				"term_months": 24,
 				"profit_margin_pct": 20,
 				"customer": self.customer.name,
 				"reagent_lines": [
 					{
 						"item_code": self.reagent.item_code,
 						"test_parameter": self.param.name,
+						"component_role": "Single",
 						"monthly_test_volume": 50,
 						"cogs_per_pack": 50,
 						"tests_per_pack": 100,
+						"gross_tests_per_pack": 100,
+						"standard_selling_price_per_pack": 50,
 					}
 				],
 			}
@@ -129,6 +132,7 @@ class TestContractLifecycle(FrappeTestCase):
 			"breach_threshold": 3,
 			"avg_samples_per_day": self.worksheet.avg_samples_per_day,
 			"operational_days_per_month": self.worksheet.operational_days_per_month,
+			**worksheet_pricing_mirror(self.worksheet),
 			"contract_reagent_lines": [
 				{
 					"item_code": self.reagent.item_code,
@@ -192,23 +196,35 @@ class TestContractLifecycle(FrappeTestCase):
 		doc.cancel()
 		self.assertEqual(doc.docstatus, 2)
 
-	def test_worksheet_mirror_tie_out_blocks_drift(self):
+	def test_contract_price_edit_recomputes_benchmark(self):
 		doc = self._make_contract()
+		original = doc.contract_charged_value
 		doc.contract_reagent_lines[0].contract_price += 10
-		with self.assertRaises(frappe.ValidationError):
-			doc.save()
+		doc.save()
+		self.assertGreater(doc.contract_charged_value, original)
 
-	def test_worksheet_mirror_tie_out_blocks_submit_drift(self):
+	def test_contract_price_edit_can_submit(self):
 		doc = self._make_contract()
 		doc.contract_reagent_lines[0].contract_price += 10
+		doc.submit()
+		self.assertEqual(doc.docstatus, 1)
+
+	def test_contract_price_below_tolerance_blocks_submit(self):
+		doc = self._make_contract()
+		doc.total_outright_sale_value = (doc.contract_charged_value or 0) * 2
+		for line in doc.contract_reagent_lines:
+			line.contract_price = (line.contract_price or 0) * 0.5
 		with self.assertRaises(frappe.ValidationError):
 			doc.submit()
 
-	def test_worksheet_mirror_tie_out_blocks_share_drift(self):
+	def test_cpt_share_edit_recomputes_benchmark(self):
 		doc = self._make_contract(contract_type="CPT")
 		doc.revenue_share_pct = 45
-		with self.assertRaises(frappe.ValidationError):
-			doc.save()
+		doc.save()
+		self.assertEqual(
+			doc.contract_charged_value,
+			round(doc.contract_gross_test_revenue * 0.45, 2),
+		)
 
 	def test_company_defaults_from_site(self):
 		doc = self._make_contract()
