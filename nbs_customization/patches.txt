@@ -15,3 +15,17 @@ nbs_customization.patches.v1.set_nbs_print_format_defaults
 nbs_customization.patches.v1.ensure_nbs_letter_head
 nbs_customization.patches.v1.remove_legacy_nbs_workspace_sidebar
 nbs_customization.patches.v1.backfill_rfq_vendor
+
+nbs_customization.patches.v1.drop_legacy_placement_schema
+
+nbs_customization.patches.v1.seed_placement_policy
+
+nbs_customization.patches.v1.simplify_analyzer_placement
+nbs_customization.patches.v1.restore_analyzer_type
+nbs_customization.patches.v1.backfill_contract_component_roles
+
+nbs_customization.patches.v1.cleanup_reagent_spec_fields
+
+nbs_customization.patches.v1.drop_deployment_acceptance_attachment
+
+nbs_customization.patches.v1.backfill_placement_posting_dates

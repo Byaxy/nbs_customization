@@ -32,6 +32,7 @@ def capitalize_serial_for_placement(
 	analyzer_pid: str,
 	warehouse: str,
 	serial_no: str,
+	company: str | None = None,
 ):
 	"""Consume one serialized analyzer from stock into a placement Asset.
 
@@ -64,7 +65,7 @@ def capitalize_serial_for_placement(
 			_("Capital asset item '{0}' not found. Run migrate to create it.").format(capital_item)
 		)
 
-	company = _resolve_company()
+	company = company or _resolve_company()
 
 	asset_category = frappe.db.get_value("Item", capital_item, "asset_category")
 	if not asset_category:
@@ -72,7 +73,7 @@ def capitalize_serial_for_placement(
 			_("Item {0} has no Asset Category set. Set one on the Item master.").format(capital_item)
 		)
 
-	instrument_spec = frappe.db.get_value("Item", analyzer_pid, "custom_instrument_specification")
+	analyzer_profile = frappe.db.get_value("Item", analyzer_pid, "custom_analyzer_profile")
 
 	asset = frappe.get_doc(
 		{
@@ -83,7 +84,7 @@ def capitalize_serial_for_placement(
 			"asset_category": asset_category,
 			"location": _resolve_asset_location(company),
 			"custom_serial_no": serial_no,
-			"custom_instrument_specification": instrument_spec,
+			"custom_analyzer_profile": analyzer_profile,
 			"custom_current_deployment_status": "Warehouse",
 			"gross_purchase_amount": serial_doc.purchase_rate or 0,
 			"net_purchase_amount": serial_doc.purchase_rate or 0,

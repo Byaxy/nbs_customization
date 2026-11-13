@@ -31,7 +31,7 @@
   "accessories_delivered",
   "acceptance_signed",
   "acceptance_date",
-  "acceptance_attachment",
+  "acceptance_document",
   "notes",
   "service_schedule_tab",
   "biomedical_engineer",
@@ -53,9 +53,8 @@
   {
    "fieldname": "naming_series",
    "fieldtype": "Select",
-   "in_list_view": 1,
    "label": "Series",
-   "options": "NBSAD-.YYYY./.####",
+   "options": "NBSAD-.YYYY./.####\nPBSAD-.YYYY./.####",
    "reqd": 1
   },
   {
@@ -117,9 +116,10 @@
    "reqd": 1
   },
   {
+   "description": "Where the analyzer is installed at the customer site.",
    "fieldname": "asset_location",
    "fieldtype": "Link",
-   "label": "Asset Location",
+   "label": "Customer Site Location",
    "options": "Location",
    "reqd": 1
   },
@@ -156,6 +156,7 @@
    "in_standard_filter": 1,
    "label": "Deployment Status",
    "options": "Draft\nDeployed\nUnder Service\nTemporarily Retrieved\nPermanently Retrieved",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -179,18 +180,15 @@
    "default": "0",
    "fieldname": "acceptance_signed",
    "fieldtype": "Check",
-   "label": "Customer Acceptance Signed"
+   "label": "Customer Acceptance Signed",
+   "read_only": 1
   },
   {
    "depends_on": "eval:doc.acceptance_signed==1;",
    "fieldname": "acceptance_date",
    "fieldtype": "Date",
-   "label": "Acceptance Date"
-  },
-  {
-   "fieldname": "acceptance_attachment",
-   "fieldtype": "Attach",
-   "label": "Acceptance Attachment"
+   "label": "Acceptance Date",
+   "read_only": 1
   },
   {
    "fieldname": "service_schedule_tab",
@@ -296,17 +294,25 @@
    "read_only": 1
   },
   {
+   "description": "Company store used before deployment and after permanent return.",
    "fieldname": "asset_storage_location",
    "fieldtype": "Link",
-   "label": "Asset Storage Location",
+   "label": "Company Storage Location",
    "options": "Location",
    "reqd": 1
+  },
+  {
+   "fieldname": "acceptance_document",
+   "fieldtype": "Link",
+   "label": "Acceptance Document",
+   "options": "Deployment Acceptance",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-17 10:18:55.576652",
+ "modified": "2026-11-13 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "Analyzer Deployment",
@@ -323,7 +329,6 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {
@@ -336,7 +341,6 @@
    "report": 1,
    "role": "Sales Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {
@@ -349,7 +353,6 @@
    "report": 1,
    "role": "Accounts Manager",
    "share": 1,
-   "submit": 1,
    "write": 1
   },
   {
@@ -358,6 +361,10 @@
    "read": 1,
    "report": 1,
    "role": "Auditor"
+  },
+  {
+   "read": 1,
+   "role": "Field Engineer"
   }
  ],
  "row_format": "Dynamic",

@@ -6,12 +6,19 @@
  "creation": "2026-07-08 15:00:54.843913",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [
-  "parameter_code",
-  "test_panel_group",
+  "field_order": [
+   "parameter_code",
+   "result_type",
+  "default_unit",
+  "decimals",
+  "specimen_types",
+  "method_family",
+  "loinc_code",
+  "snomed_code",
   "column_break_orui",
   "parameter_name",
   "section_break_jxzj",
+  "calculated_from",
   "description"
  ],
  "fields": [
@@ -44,10 +51,47 @@
    "label": "Description"
   },
   {
-   "fieldname": "test_panel_group",
-   "fieldtype": "Link",
-   "label": "Test Panel Group",
-   "options": "Test Panel Group"
+   "fieldname": "result_type",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Result Type",
+   "options": "Measured\nCalculated\nQualitative"
+  },
+  {
+   "fieldname": "default_unit",
+   "fieldtype": "Data",
+   "label": "Default Unit"
+  },
+  {
+   "fieldname": "decimals",
+   "fieldtype": "Int",
+   "label": "Decimals"
+  },
+  {
+   "fieldname": "specimen_types",
+   "fieldtype": "Small Text",
+   "label": "Specimen Types"
+  },
+  {
+   "fieldname": "method_family",
+   "fieldtype": "Data",
+   "label": "Method Family"
+  },
+  {
+   "fieldname": "loinc_code",
+   "fieldtype": "Data",
+   "label": "LOINC Code"
+  },
+  {
+   "fieldname": "snomed_code",
+   "fieldtype": "Data",
+   "label": "SNOMED Code"
+  },
+  {
+   "fieldname": "calculated_from",
+   "fieldtype": "Table",
+   "label": "Calculated From",
+   "options": "Test Parameter Calculated From"
   }
  ],
  "grid_page_length": 50,

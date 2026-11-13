@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "creation": "2026-11-09 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_pricing",
+  "annual_service_rate_pct",
+  "default_profit_margin_pct",
+  "default_interest_rate_pct",
+  "column_break_pricing",
+  "section_break_checks",
+  "outright_floor_pct",
+  "column_break_checks",
+  "section_break_cpt",
+  "rounding_precision"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_pricing",
+   "fieldtype": "Section Break",
+   "label": "Pricing Defaults"
+  },
+  {
+   "default": "12",
+   "fieldname": "annual_service_rate_pct",
+   "fieldtype": "Percent",
+   "label": "Annual Service Rate %"
+  },
+  {
+   "default": "0",
+   "fieldname": "default_profit_margin_pct",
+   "fieldtype": "Percent",
+   "label": "Default Profit Margin %"
+  },
+  {
+   "default": "0",
+   "fieldname": "default_interest_rate_pct",
+   "fieldtype": "Percent",
+   "label": "Default Interest Rate %"
+  },
+  {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_checks",
+   "fieldtype": "Section Break",
+   "label": "Viability Checks"
+  },
+  {
+   "default": "5",
+   "fieldname": "outright_floor_pct",
+   "fieldtype": "Percent",
+   "label": "Outright Floor %"
+  },
+  {
+   "fieldname": "column_break_checks",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_cpt",
+   "fieldtype": "Section Break",
+   "label": "CPT Defaults"
+  },
+  {
+   "default": "2",
+   "fieldname": "rounding_precision",
+   "fieldtype": "Int",
+   "label": "Rounding Precision"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-09 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Placement Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "role": "Placement Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1,
+   "delete": 1
+  },
+  {
+   "role": "Placement Director",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1,
+   "delete": 1
+  },
+  {
+   "role": "Field Engineer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

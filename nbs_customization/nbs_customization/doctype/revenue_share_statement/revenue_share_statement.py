@@ -5,8 +5,9 @@ from math import ceil
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, getdate, today
 
+from nbs_customization.utils.placement.dates import validate_not_future
 from nbs_customization.utils.placement.periods import (
 	period_end,
 	period_start,
@@ -18,12 +19,24 @@ from nbs_customization.utils.placement.permissions import (
 	require_contract_access,
 	require_roles,
 )
+from nbs_customization.utils.placement.pricing_terms import (
+	allocated_test_volumes,
+	monthly_test_count,
+	unique_test_terms,
+)
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery
 
 REVENUE_SHARE_FEE_ITEM = "REVENUE-SHARE-FEE"
 
 
 class RevenueShareStatement(Document):
+	def validate(self):
+		if not self.posting_date:
+			self.posting_date = posting_date_for_period(self.period) if self.period else today()
+		validate_not_future(self.posting_date, frappe._("Posting Date"))
+		if self.period_start and getdate(self.period_start) > getdate(today()):
+			frappe.throw(frappe._("Cannot create a statement for a future period."))
+
 	def on_submit(self):
 		self.status = "Invoiced"
 		self.db_set("status", "Invoiced")
@@ -33,6 +46,8 @@ class RevenueShareStatement(Document):
 @frappe.whitelist()
 def generate_revenue_share_statement(contract_name, period):
 	validate_period(period)
+	if getdate(period_start(period)) > getdate(today()):
+		frappe.throw(frappe._("Cannot generate a statement for a future period."))
 	require_roles(*FINANCE_MANAGERS)
 	require_contract_access(contract_name, "write")
 	contract = frappe.get_doc("Instrument Placement Contract", contract_name)
@@ -49,8 +64,11 @@ def generate_revenue_share_statement(contract_name, period):
 	if declared_volume <= 0:
 		frappe.throw(frappe._("Declared test volume must be greater than zero."))
 
-	allocated = _allocate_declared_volume(contract, declared_volume)
-	gross_revenue = sum(volume * (line.agreed_test_price or 0) for line, volume in allocated)
+	terms = unique_test_terms(contract.contract_reagent_lines, "agreed_test_price")
+	allocations = allocated_test_volumes(contract.contract_reagent_lines, declared_volume)
+	gross_revenue = sum(
+		allocations.get(test_parameter, 0) * term["price"] for test_parameter, term in terms.items()
+	)
 	revenue_share_pct = (contract.revenue_share_pct or 0) / 100
 	our_share = gross_revenue * revenue_share_pct
 	customer_share = gross_revenue - our_share
@@ -73,6 +91,7 @@ def generate_revenue_share_statement(contract_name, period):
 				"period": period,
 				"period_start": period_start(period),
 				"period_end": period_end(period),
+				"posting_date": posting_date_for_period(period),
 			}
 		)
 		rss.insert(ignore_permissions=True)
@@ -93,14 +112,17 @@ def generate_revenue_share_statement(contract_name, period):
 
 	if rss.kits_to_deliver > 0 and not rss.waybill_kit_dispatch:
 		company = _resolve_company(contract)
-		order_name = _ensure_free_issue_order(contract, company, declared_volume)
-		dn = _create_free_issue_delivery_note(contract, company, order_name, declared_volume)
+		posting_date = rss.posting_date or posting_date_for_period(rss.period)
+		order_name = _ensure_free_issue_order(contract, company, declared_volume, posting_date)
+		dn = _create_free_issue_delivery_note(contract, company, order_name, declared_volume, posting_date)
 		rss.waybill_kit_dispatch = dn.name
 		rss.save(ignore_permissions=True)
 
 	if not rss.sales_invoice:
 		company = _resolve_company(contract)
-		si = _create_revenue_share_invoice(rss, contract, company)
+		si = _create_revenue_share_invoice(
+			rss, contract, company, rss.posting_date or posting_date_for_period(rss.period)
+		)
 		rss.sales_invoice = si.name
 
 	rss.status = "Invoiced"
@@ -126,7 +148,7 @@ def _resolve_declared_volume(contract, period):
 	if amendment and amendment[0].new_declared_volume:
 		return amendment[0].new_declared_volume, amendment[0].name
 
-	total_vol = sum((line.monthly_test_volume or 0) for line in contract.contract_reagent_lines)
+	total_vol = monthly_test_count(contract.contract_reagent_lines)
 	return total_vol, None
 
 
@@ -136,14 +158,12 @@ def _allocate_declared_volume(contract, declared_volume):
 	if not lines:
 		frappe.throw(frappe._("Contract has no reagent lines to allocate volume to."))
 
-	total_contract_volume = sum((line.monthly_test_volume or 0) for line in lines)
-	if total_contract_volume <= 0:
+	allocations = allocated_test_volumes(lines, declared_volume)
+	if not allocations:
 		share = declared_volume / len(lines)
 		return [(line, share) for line in lines]
 
-	return [
-		(line, declared_volume * (line.monthly_test_volume or 0) / total_contract_volume) for line in lines
-	]
+	return [(line, allocations.get(line.test_parameter, 0)) for line in lines]
 
 
 def _compute_kits_per_line(contract, declared_volume):
@@ -241,7 +261,7 @@ def _resolve_source_warehouse(item_code, company):
 	return wh
 
 
-def _ensure_free_issue_order(contract, company, declared_volume):
+def _ensure_free_issue_order(contract, company, declared_volume, posting_date=None):
 	# Site requires SO links on SI/DN items — free issue ships against a zero-value order.
 	kits_per_line = _compute_kits_per_line(contract, declared_volume)
 	lines = [
@@ -264,8 +284,8 @@ def _ensure_free_issue_order(contract, company, declared_volume):
 			"doctype": "Sales Order",
 			"company": company,
 			"customer": contract.customer,
-			"transaction_date": frappe.utils.today(),
-			"delivery_date": frappe.utils.today(),
+			"transaction_date": posting_date or frappe.utils.today(),
+			"delivery_date": posting_date or frappe.utils.today(),
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Free Issue",
 			"items": lines,
@@ -276,7 +296,7 @@ def _ensure_free_issue_order(contract, company, declared_volume):
 	return so.name
 
 
-def _create_free_issue_delivery_note(contract, company, order_name, declared_volume):
+def _create_free_issue_delivery_note(contract, company, order_name, declared_volume, posting_date=None):
 	kits_per_line = _compute_kits_per_line(contract, declared_volume)
 	so_items = {}
 	if order_name:
@@ -288,7 +308,7 @@ def _create_free_issue_delivery_note(contract, company, order_name, declared_vol
 			"customer": contract.customer,
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Free Issue",
-			"posting_date": frappe.utils.today(),
+			"posting_date": posting_date or frappe.utils.today(),
 			"set_posting_time": 1,
 			"items": [
 				{
@@ -312,15 +332,15 @@ def _create_free_issue_delivery_note(contract, company, order_name, declared_vol
 	return dn
 
 
-def _create_revenue_share_invoice(rss, contract, company):
+def _create_revenue_share_invoice(rss, contract, company, posting_date=None):
 	# Site mandates SO links on SI items — bill the fee against its own order.
 	fee_order = frappe.get_doc(
 		{
 			"doctype": "Sales Order",
 			"company": company,
 			"customer": contract.customer,
-			"transaction_date": frappe.utils.today(),
-			"delivery_date": frappe.utils.today(),
+			"transaction_date": posting_date or frappe.utils.today(),
+			"delivery_date": posting_date or frappe.utils.today(),
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Reagent Sale",
 			"items": [
@@ -332,6 +352,7 @@ def _create_revenue_share_invoice(rss, contract, company):
 			],
 		}
 	)
+	fee_order.flags.allow_internal_placement_type = True
 	fee_order.insert(ignore_permissions=True)
 	fee_order.submit()
 	si = frappe.get_doc(
@@ -342,7 +363,7 @@ def _create_revenue_share_invoice(rss, contract, company):
 			"custom_instrument_placement_contract": contract.name,
 			"custom_placement_transaction_type": "Contract Reagent Sale",
 			"custom_counts_toward_recovery": 1,
-			"posting_date": posting_date_for_period(rss.period),
+			"posting_date": posting_date or posting_date_for_period(rss.period),
 			"set_posting_time": 1,
 			"items": [
 				{
@@ -355,6 +376,7 @@ def _create_revenue_share_invoice(rss, contract, company):
 			],
 		}
 	)
+	si.flags.allow_internal_placement_type = True
 	si.insert(ignore_permissions=True)
 	si.submit()
 	return si

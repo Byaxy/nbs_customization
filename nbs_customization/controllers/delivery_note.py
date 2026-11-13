@@ -162,6 +162,11 @@ def _set_custom_sales_order(doc):
 def on_submit(doc, method=None):
 	_update_promissory_note_directly(doc)
 
+	if doc.get("custom_instrument_placement_contract"):
+		from nbs_customization.utils.placement.progress import update_contract_progress
+
+		update_contract_progress(doc.custom_instrument_placement_contract)
+
 	if doc.custom_waybill_type != "Loan Conversion Waybill":
 		return
 
@@ -175,6 +180,11 @@ def on_cancel(doc, method=None):
 	"""
 	Reverse loan conversion when DN is cancelled.
 	"""
+	if doc.get("custom_instrument_placement_contract"):
+		from nbs_customization.utils.placement.progress import update_contract_progress
+
+		update_contract_progress(doc.custom_instrument_placement_contract)
+
 	# Check cancellation permissions
 	if not frappe.has_permission("Delivery Note", "cancel", doc.name):
 		frappe.throw("You do not have permission to cancel Delivery Notes.")

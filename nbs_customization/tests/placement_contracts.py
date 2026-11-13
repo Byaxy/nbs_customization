@@ -19,6 +19,29 @@ from nbs_customization.tests.placement_fixtures import (
 )
 
 
+def worksheet_pricing_mirror(worksheet):
+	# Commercial mirrors the contract must copy verbatim from the worksheet.
+	return {
+		field: worksheet.get(field)
+		for field in (
+			"term_months",
+			"analyzer_standard_selling_price",
+			"annual_service_maintenance_rate_pct",
+			"total_maintenance_cost",
+			"standard_sale_base",
+			"total_test_reagent_value",
+			"total_consumable_value",
+			"net_revenue_target",
+			"wht_rate_pct",
+			"wht_amount",
+			"total_outright_sale_value",
+			"product_only_standard_sale_base",
+			"product_only_outright_value",
+			"benchmark_tolerance_pct",
+		)
+	}
+
+
 def make_worksheet(
 	prefix,
 	analyzer,
@@ -42,7 +65,9 @@ def make_worksheet(
 			if contract_type == "CPT"
 			else "Markup Factor on Reagent Price",
 			"analyzer_landed_cost": analyzer_landed_cost,
-			"contract_years": 2,
+			"analyzer_standard_selling_price": analyzer_landed_cost or 1,
+			"term_months": 24,
+			"annual_service_maintenance_rate_pct": 10,
 			"profit_margin_pct": 20,
 			"customer": customer.name,
 			"annual_interest_rate": 5 if contract_type == "RLO" else 0,
@@ -52,9 +77,12 @@ def make_worksheet(
 				{
 					"item_code": reagent.name,
 					"test_parameter": param["param"].name,
+					"component_role": "Single",
 					"monthly_test_volume": monthly_test_volume,
 					"cogs_per_pack": 50,
 					"tests_per_pack": 100,
+					"gross_tests_per_pack": 100,
+					"standard_selling_price_per_pack": 50,
 					"price_per_test": price_per_test,
 				}
 			],
@@ -187,16 +215,26 @@ def make_contract(
 			"revenue_share_pct": worksheet.required_revenue_share_pct if contract_type == "CPT" else 0,
 			"avg_samples_per_day": worksheet.avg_samples_per_day,
 			"operational_days_per_month": worksheet.operational_days_per_month,
+			**worksheet_pricing_mirror(worksheet),
 			"contract_reagent_lines": [
 				{
 					"item_code": reagent.name,
 					"test_parameter": param["param"].name,
+					"component_role": ws_line.component_role or "",
 					"pack_volume_ml": ws_line.pack_volume_ml,
 					"contract_price": ws_line.selling_price_per_pack,
 					"standard_price": ws_line.cogs_per_pack,
 					"monthly_test_volume": ws_line.monthly_test_volume,
 					"qty_required_total": ws_line.packs_needed,
-					"min_monthly_qty": ceil(ws_line.monthly_test_volume / (ws_line.tests_per_pack or 1)),
+					"min_monthly_qty": ceil(
+						ws_line.monthly_test_volume
+						/ (
+							ws_line.reportable_tests_per_pack
+							or ws_line.gross_tests_per_pack
+							or ws_line.tests_per_pack
+							or 1
+						)
+					),
 					"cogs_per_unit": ws_line.cogs_per_pack,
 					"agreed_test_price": ws_line.price_per_test or 0,
 					"bg_consumption_ml_day": ws_line.bg_consumption_ml_day,
@@ -217,7 +255,11 @@ def make_contract_kit(prefix, contract_type="RRA", **overrides):
 	# price_per_test (CPT), analyzer_landed_cost, target, breach, grace.
 	ws_kwargs = {
 		k: overrides.pop(k)
-		for k in ("monthly_test_volume", "price_per_test", "analyzer_landed_cost")
+		for k in (
+			"monthly_test_volume",
+			"price_per_test",
+			"analyzer_landed_cost",
+		)
 		if k in overrides
 	}
 	analyzer = make_analyzer(prefix)
@@ -264,6 +306,9 @@ def make_si(ctx, qty, rate, posting_date, ttype, counts=1):
 	frappe.clear_document_cache("Instrument Placement Contract", contract.name)
 
 	# Site mandates SO links on SI items — every fixture SI ships with its order.
+	internal = ttype in ("Shortfall Penalty", "Ownership Transfer") or (
+		contract.contract_type == "CPT" and ttype == "Contract Reagent Sale"
+	)
 	so = frappe.get_doc(
 		{
 			"doctype": "Sales Order",
@@ -282,7 +327,9 @@ def make_si(ctx, qty, rate, posting_date, ttype, counts=1):
 				}
 			],
 		}
-	).insert()
+	)
+	so.flags.allow_internal_placement_type = internal
+	so.insert()
 	so.submit()
 	si = frappe.get_doc(
 		{
@@ -304,7 +351,9 @@ def make_si(ctx, qty, rate, posting_date, ttype, counts=1):
 				}
 			],
 		}
-	).insert()
+	)
+	si.flags.allow_internal_placement_type = internal
+	si.insert()
 	si.submit()
 	return si
 

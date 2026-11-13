@@ -1,0 +1,201 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "deployment",
+  "contract",
+  "asset",
+  "serial_no",
+  "customer",
+  "customer_site",
+  "acceptance_date",
+  "accepted_by",
+  "customer_representative",
+  "customer_signed",
+  "attachment",
+  "checklist",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "NBSDACC-.YYYY./.####",
+   "default": "NBSDACC-.YYYY./.####",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "deployment",
+   "fieldtype": "Link",
+   "label": "Analyzer Deployment",
+   "options": "Analyzer Deployment",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "contract",
+   "fieldtype": "Link",
+   "label": "Contract",
+   "options": "Instrument Placement Contract",
+   "read_only": 1
+  },
+  {
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "label": "Asset",
+   "options": "Asset",
+   "read_only": 1
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Data",
+   "label": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "customer_site",
+   "fieldtype": "Link",
+   "label": "Customer Site",
+   "options": "Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "acceptance_date",
+   "fieldtype": "Date",
+   "label": "Acceptance Date",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "accepted_by",
+   "fieldtype": "Link",
+   "label": "Accepted By",
+   "options": "User"
+  },
+  {
+   "fieldname": "customer_representative",
+   "fieldtype": "Data",
+   "label": "Customer Representative"
+  },
+  {
+   "fieldname": "customer_signed",
+   "fieldtype": "Check",
+   "label": "Customer Signed",
+   "default": "0"
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Signed Acceptance"
+  },
+  {
+   "fieldname": "checklist",
+   "fieldtype": "Table",
+   "label": "Acceptance Checklist",
+   "options": "Deployment Acceptance Checklist"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Deployment Acceptance",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 0,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-12 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "Deployment Acceptance",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1
+  },
+  {
+   "role": "Placement Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1
+  },
+  {
+   "role": "Placement Director",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1,
+   "share": 1
+  },
+  {
+   "role": "Field Engineer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "report": 1
+  },
+  {
+   "role": "Auditor",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "export": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "naming_series:"
+}
