@@ -8,6 +8,7 @@ from frappe.model.document import Document
 
 from nbs_customization.utils.placement.dates import validate_not_future
 from nbs_customization.utils.placement.permissions import PLACEMENT_MANAGERS, require_roles
+from nbs_customization.utils.placement.pricing_terms import allocated_test_volumes
 
 
 class ContractAmendment(Document):
@@ -146,12 +147,15 @@ class ContractAmendment(Document):
 
 
 def _apply_declared_volume(contract, total_volume):
-	"""Treat the amendment value as a total and split it by each line's share."""
+	"""Treat the amendment value as a total and split it by each test's share."""
 	lines = list(contract.contract_reagent_lines)
+	allocations = allocated_test_volumes(lines, total_volume)
 	shares = [line.monthly_test_volume or 0 for line in lines]
 	total_contract_volume = sum(shares)
 	for line, share in zip(lines, shares, strict=True):
-		if total_contract_volume > 0:
+		if allocations:
+			volume = allocations.get(line.test_parameter, 0)
+		elif total_contract_volume > 0:
 			volume = total_volume * share / total_contract_volume
 		else:
 			volume = total_volume / len(lines)

@@ -7,6 +7,7 @@ from frappe.utils import add_days, today
 
 from nbs_customization.controllers.placement.amendment import mark_effective
 from nbs_customization.nbs_customization.doctype.contract_amendment.contract_amendment import (
+	_apply_declared_volume,
 	_remap_lines_from_worksheet,
 )
 from nbs_customization.nbs_customization.doctype.instrument_pricing_worksheet.instrument_pricing_worksheet import (
@@ -66,6 +67,15 @@ class TestContractAmendment(IntegrationTestCase):
 			frappe.db.get_value("Contract Amendment", am.name, "status"),
 			"Effective",
 		)
+
+	def test_declared_volume_distributes_per_test_not_per_component(self):
+		lines = [
+			frappe._dict(item_code="R1", test_parameter="T", monthly_test_volume=100),
+			frappe._dict(item_code="R2", test_parameter="T", monthly_test_volume=100),
+		]
+		contract = frappe._dict(contract_reagent_lines=lines)
+		_apply_declared_volume(contract, 200)
+		self.assertEqual([line.monthly_test_volume for line in lines], [200, 200])
 
 	def test_apply_volume_updates_lines(self):
 		ctx = make_contract_kit("_TST-AMD1")

@@ -239,6 +239,18 @@ function _add_cost_basis_button(frm) {
 	);
 }
 
+function _current_monthly_test_count(frm) {
+	const volumes = {};
+	(frm.doc.reagent_lines || []).forEach((row) => {
+		if (!row.test_parameter) return;
+		const volume = row.monthly_test_volume || 0;
+		if (!(row.test_parameter in volumes) || volume > volumes[row.test_parameter]) {
+			volumes[row.test_parameter] = volume;
+		}
+	});
+	return Object.values(volumes).reduce((total, volume) => total + volume, 0);
+}
+
 function _load_cost_basis(frm) {
 	frappe.call({
 		method: "nbs_customization.utils.placement.spec_lines.get_analyzer_cost_basis",
@@ -246,7 +258,7 @@ function _load_cost_basis(frm) {
 			analyzer_item: frm.doc.analyzer_pid,
 			term_months: frm.doc.term_months,
 			operational_days_per_month: frm.doc.operational_days_per_month || 0,
-			monthly_test_volume: frm.doc.total_monthly_tests || 0,
+			monthly_test_volume: _current_monthly_test_count(frm),
 			posting_date: frm.doc.posting_date,
 		},
 		freeze: true,
