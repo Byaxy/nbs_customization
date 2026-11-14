@@ -7,6 +7,8 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "source_reference",
+  "source_type",
   "item_code",
   "description",
   "uom",
@@ -15,7 +17,9 @@
   "contract_price",
   "price_uplift",
   "qty_required_total",
-  "cogs_per_unit"
+  "cogs_per_unit",
+  "delivered_qty",
+  "remaining_qty"
  ],
  "fields": [
   {
@@ -47,47 +51,70 @@
    "fieldname": "column_break_aoln",
    "fieldtype": "Column Break"
   },
-   {
-    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
-    "fieldname": "standard_price",
-    "fieldtype": "Currency",
-    "in_list_view": 1,
-    "label": "Standard Price",
-    "non_negative": 1,
-    "read_only": 1
-   },
-   {
-    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
-    "fieldname": "contract_price",
-    "fieldtype": "Currency",
-    "in_list_view": 1,
-    "label": "Contract Price",
-    "non_negative": 1,
-    "read_only": 1,
-    "reqd": 1
-   },
+  {
+   "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+   "fieldname": "standard_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Standard Price",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+   "fieldname": "contract_price",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Contract Price",
+   "non_negative": 1,
+   "read_only": 1,
+   "reqd": 1
+  },
   {
    "fieldname": "price_uplift",
    "fieldtype": "Currency",
    "label": "Price Uplift",
    "read_only": 1
   },
-   {
-    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
-    "fieldname": "qty_required_total",
-    "fieldtype": "Float",
-    "label": "Total Qty Required Over Term",
-    "non_negative": 1,
-    "read_only": 1
-   },
-   {
-    "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
-    "fieldname": "cogs_per_unit",
-    "fieldtype": "Currency",
-    "label": "COGS per Pack/Unit",
-    "non_negative": 1,
-    "read_only": 1
-   }
+  {
+   "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+   "fieldname": "qty_required_total",
+   "fieldtype": "Float",
+   "label": "Total Qty Required Over Term",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "description": "Mirror of the linked worksheet. Change the worksheet, not this line.",
+   "fieldname": "cogs_per_unit",
+   "fieldtype": "Currency",
+   "label": "COGS per Pack/Unit",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_type",
+   "fieldtype": "Data",
+   "label": "Source Type",
+   "default": "Analyzer Consumable"
+  },
+  {
+   "fieldname": "source_reference",
+   "fieldtype": "Data",
+   "label": "Source Reference"
+  },
+  {
+   "fieldname": "delivered_qty",
+   "fieldtype": "Float",
+   "label": "Delivered Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remaining_qty",
+   "fieldtype": "Float",
+   "label": "Remaining Qty",
+   "read_only": 1
+  }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,

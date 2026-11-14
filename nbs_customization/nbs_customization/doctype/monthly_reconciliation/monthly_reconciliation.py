@@ -3,8 +3,9 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import add_days, getdate
+from frappe.utils import add_days, getdate, today
 
+from nbs_customization.utils.placement.dates import validate_not_future
 from nbs_customization.utils.placement.periods import (
 	period_end,
 	period_start,
@@ -21,6 +22,11 @@ from nbs_customization.utils.placement.recovery import recompute_contract_recove
 
 class MonthlyReconciliation(Document):
 	def validate(self):
+		if not self.posting_date:
+			self.posting_date = posting_date_for_period(self.period) if self.period else today()
+		validate_not_future(self.posting_date, frappe._("Posting Date"))
+		if self.period_start and getdate(self.period_start) > getdate(today()):
+			frappe.throw(frappe._("Cannot create a statement for a future period."))
 		self._validate_contract()
 		self._update_contract_breach_count()
 		self._update_contract_recovery()
@@ -61,6 +67,8 @@ class MonthlyReconciliation(Document):
 @frappe.whitelist()
 def generate_monthly_reconciliation(contract_name, period):
 	validate_period(period)
+	if getdate(period_start(period)) > getdate(today()):
+		frappe.throw(frappe._("Cannot generate a statement for a future period."))
 	require_roles(*FINANCE_MANAGERS)
 	require_contract_access(contract_name, "write")
 	contract = frappe.get_doc("Instrument Placement Contract", contract_name)
@@ -92,6 +100,7 @@ def generate_monthly_reconciliation(contract_name, period):
 				"period": period,
 				"period_start": period_start(period),
 				"period_end": period_end(period),
+				"posting_date": posting_date_for_period(period),
 			}
 		)
 		mrc.insert(ignore_permissions=True)
@@ -223,7 +232,7 @@ def create_penalty_invoice(reconciliation_name):
 
 	contract = frappe.get_doc("Instrument Placement Contract", mrc.contract)
 	penalty_amount = _resolve_penalty_amount(contract, mrc.shortfall_value)
-	posting_date = posting_date_for_period(mrc.period)
+	posting_date = mrc.posting_date or posting_date_for_period(mrc.period)
 	company = contract.company or frappe.db.get_single_value("Global Defaults", "default_company")
 	if not company:
 		frappe.throw(frappe._("Set a default Company before creating a penalty invoice."))
@@ -247,6 +256,7 @@ def create_penalty_invoice(reconciliation_name):
 			],
 		}
 	)
+	penalty_order.flags.allow_internal_placement_type = True
 	penalty_order.insert(ignore_permissions=True)
 	penalty_order.submit()
 	si = frappe.get_doc(
@@ -270,6 +280,7 @@ def create_penalty_invoice(reconciliation_name):
 			],
 		}
 	)
+	si.flags.allow_internal_placement_type = True
 	si.insert(ignore_permissions=True)
 	si.submit()
 

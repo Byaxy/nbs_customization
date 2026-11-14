@@ -4,10 +4,18 @@
 import frappe
 from erpnext import get_company_currency
 from erpnext.setup.utils import get_exchange_rate
-from frappe.utils import flt
+from frappe.utils import flt, getdate, today
 
 from nbs_customization.utils.placement.recovery import RECOVERABLE_TRANSACTION_TYPES
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
+
+PUBLIC_TYPES_BY_CONTRACT = {
+	"RRA": {"Contract Reagent Sale", "Contract Consumable Replenishment"},
+	"RLO": {"Contract Reagent Sale", "Contract Consumable Replenishment"},
+	"CPT": {"Contract Free Issue", "Contract Consumable Free Issue"},
+}
+
+INTERNAL_TYPES = {"Shortfall Penalty", "Ownership Transfer"}
 
 
 def validate_placement_transaction(doc, method=None):
@@ -16,7 +24,9 @@ def validate_placement_transaction(doc, method=None):
 
 	contract_name = doc.custom_instrument_placement_contract
 	contract = frappe.get_cached_doc("Instrument Placement Contract", contract_name)
-	return_source_contract = _get_return_source_contract(doc)
+	_validate_transaction_date(doc)
+	return_source = _get_return_source(doc)
+	return_source_contract = return_source.custom_instrument_placement_contract if return_source else None
 
 	if return_source_contract and return_source_contract != contract_name:
 		frappe.throw(
@@ -43,10 +53,27 @@ def validate_placement_transaction(doc, method=None):
 		)
 
 	ttype = doc.get("custom_placement_transaction_type")
+	if not ttype and return_source:
+		ttype = return_source.custom_placement_transaction_type
+		doc.custom_placement_transaction_type = ttype
 	if not ttype:
 		frappe.throw(
 			frappe._("Placement Transaction Type is required when a Placement Contract is selected.")
 		)
+
+	internal_return = bool(
+		doc.get("is_return")
+		and return_source
+		and return_source.docstatus == 1
+		and return_source_contract == contract_name
+		and return_source.custom_placement_transaction_type == ttype
+		and (
+			ttype in INTERNAL_TYPES or (contract.contract_type == "CPT" and ttype == "Contract Reagent Sale")
+		)
+	)
+	_validate_document_transaction_type(doc, contract, ttype, internal_return)
+	if not internal_return and not doc.flags.allow_internal_placement_type:
+		_validate_contract_item_membership(doc, contract)
 
 	# Spec membership governs stock reagents/consumables only. Service fees and
 	# the analyzer asset itself are not spec lines.
@@ -61,11 +88,58 @@ def validate_placement_transaction(doc, method=None):
 			contract.analyzer_pid, [c for c in codes if c in stock_codes], throw=True
 		)
 
-	_validate_transaction_type_consistency(ttype, contract.contract_type)
+	if not internal_return and not doc.flags.allow_internal_placement_type:
+		_validate_transaction_type_consistency(ttype, contract.contract_type)
 	_validate_contract_rates(doc, contract, ttype)
 
 	if doc.doctype == "Sales Invoice":
 		doc.custom_counts_toward_recovery = 1 if ttype in RECOVERABLE_TRANSACTION_TYPES else 0
+
+
+def _validate_transaction_date(doc):
+	field = "transaction_date" if doc.doctype == "Sales Order" else "posting_date"
+	value = doc.get(field)
+	if value and getdate(value) > getdate(today()):
+		frappe.throw(
+			frappe._("{0} cannot be a future date.").format(frappe.bold(doc.meta.get_label(field))),
+			title=frappe._("Future Date Not Allowed"),
+		)
+
+
+def _validate_document_transaction_type(doc, contract, ttype, internal_return=False):
+	internal = bool(doc.flags.allow_internal_placement_type or internal_return)
+	if ttype in INTERNAL_TYPES:
+		if internal:
+			return
+		frappe.throw(frappe._("Transaction type '{0}' is internal-only.").format(frappe.bold(ttype)))
+	if contract.contract_type == "CPT" and ttype == "Contract Reagent Sale":
+		if internal:
+			return
+		frappe.throw(
+			frappe._("CPT fee invoices are generated internally; manual Sales Orders cannot use this type.")
+		)
+	allowed = PUBLIC_TYPES_BY_CONTRACT.get(contract.contract_type, set())
+	if ttype not in allowed:
+		frappe.throw(
+			frappe._("Transaction type '{0}' is not valid for {1} contracts.").format(
+				frappe.bold(ttype), frappe.bold(contract.contract_type)
+			)
+		)
+
+
+def _validate_contract_item_membership(doc, contract):
+	allowed = {
+		line.item_code
+		for line in list(contract.contract_reagent_lines) + list(contract.contract_consumable_lines)
+		if line.item_code
+	}
+	for line in doc.get("items", []):
+		if line.item_code and line.item_code not in allowed:
+			frappe.throw(
+				frappe._("Item {0} is not a reagent or consumable on Contract {1}.").format(
+					frappe.bold(line.item_code), frappe.bold(contract.name)
+				)
+			)
 
 
 def _validate_transaction_type_consistency(ttype, contract_type):
@@ -145,21 +219,22 @@ def _contract_rate_in_company_currency(contract, rate, doc):
 	return rate * exchange_rate
 
 
-def _get_return_source_contract(doc):
+def _get_return_source(doc):
 	if not doc.get("is_return"):
 		return None
 	source_name = doc.get("return_against")
 	if not source_name:
 		return None
-	source = frappe.db.get_value(
+	return frappe.db.get_value(
 		doc.doctype,
 		source_name,
-		["docstatus", "custom_instrument_placement_contract"],
+		[
+			"docstatus",
+			"custom_instrument_placement_contract",
+			"custom_placement_transaction_type",
+		],
 		as_dict=True,
 	)
-	if not source or source.docstatus != 1:
-		return None
-	return source.custom_instrument_placement_contract
 
 
 def validate_free_issue_zero_rates(doc, method=None):

@@ -7,6 +7,7 @@ from frappe.utils import add_days, today
 
 from nbs_customization.controllers.placement.amendment import mark_effective
 from nbs_customization.nbs_customization.doctype.contract_amendment.contract_amendment import (
+	_apply_declared_volume,
 	_remap_lines_from_worksheet,
 )
 from nbs_customization.nbs_customization.doctype.instrument_pricing_worksheet.instrument_pricing_worksheet import (
@@ -66,6 +67,15 @@ class TestContractAmendment(IntegrationTestCase):
 			frappe.db.get_value("Contract Amendment", am.name, "status"),
 			"Effective",
 		)
+
+	def test_declared_volume_distributes_per_test_not_per_component(self):
+		lines = [
+			frappe._dict(item_code="R1", test_parameter="T", monthly_test_volume=100),
+			frappe._dict(item_code="R2", test_parameter="T", monthly_test_volume=100),
+		]
+		contract = frappe._dict(contract_reagent_lines=lines)
+		_apply_declared_volume(contract, 200)
+		self.assertEqual([line.monthly_test_volume for line in lines], [200, 200])
 
 	def test_apply_volume_updates_lines(self):
 		ctx = make_contract_kit("_TST-AMD1")
@@ -145,6 +155,46 @@ class TestContractAmendment(IntegrationTestCase):
 		am2.apply_to_contract()
 		ct.reload()
 		self.assertEqual(ct.total_recovery_target, 77777)
+
+	def test_apply_worksheet_refreshes_all_pricing_mirrors(self):
+		ctx = make_contract_kit("_TST-AMD15")
+		ws2 = make_worksheet(
+			"_TST-AMD15W",
+			ctx["analyzer"],
+			ctx["reagent"],
+			ctx["analyzer"],
+			ctx["customer"],
+			analyzer_landed_cost=9000,
+		)
+		am = self._amendment(ctx, new_pricing_worksheet=ws2.name)
+		am.apply_to_contract()
+		ct = frappe.get_doc("Instrument Placement Contract", ctx["contract"].name)
+		ws2.reload()
+		for field in (
+			"term_months",
+			"analyzer_standard_selling_price",
+			"annual_service_maintenance_rate_pct",
+			"total_maintenance_cost",
+			"standard_sale_base",
+			"total_test_reagent_value",
+			"total_consumable_value",
+			"net_revenue_target",
+			"wht_rate_pct",
+			"wht_amount",
+			"total_outright_sale_value",
+			"outright_gap_amount",
+			"outright_gap_pct",
+			"benchmark_tolerance_pct",
+			"benchmark_status",
+			"product_only_standard_sale_base",
+			"product_only_outright_value",
+			"product_only_contract_value",
+			"product_only_gap_pct",
+		):
+			self.assertEqual(ct.get(field), ws2.get(field), field)
+		self.assertEqual(ct.contract_gross_test_revenue, ws2.total_gross_test_revenue_over_term)
+		self.assertEqual(ct.contract_charged_value, ws2.contract_charged_value)
+		self.assertEqual(ct.revenue_share_pct, 0)
 
 	def test_mark_effective_delegates(self):
 		ctx = make_contract_kit("_TST-AMD3")

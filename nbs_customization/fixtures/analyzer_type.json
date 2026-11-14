@@ -1,0 +1,14 @@
+[
+ {
+  "description": "Clinical chemistry analyzer",
+  "doctype": "Analyzer Type",
+  "name": "Chemistry",
+  "title": "Chemistry"
+ },
+ {
+  "description": "Haematology / blood analyzer",
+  "doctype": "Analyzer Type",
+  "name": "Haematology",
+  "title": "Haematology"
+ }
+]

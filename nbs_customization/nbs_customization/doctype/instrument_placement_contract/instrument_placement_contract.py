@@ -8,12 +8,15 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
+from nbs_customization.utils.placement.dates import validate_not_future
 from nbs_customization.utils.placement.permissions import (
 	FINANCE_MANAGERS,
 	PLACEMENT_MANAGERS,
 	require_contract_access,
 	require_roles,
 )
+from nbs_customization.utils.placement.pricing_terms import test_revenue, unique_test_terms
+from nbs_customization.utils.placement.progress import apply_progress
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery as _recompute
 from nbs_customization.utils.placement.valid_items import validate_items_belong_to_analyzer
 
@@ -21,21 +24,27 @@ from nbs_customization.utils.placement.valid_items import validate_items_belong_
 class InstrumentPlacementContract(Document):
 	def validate(self):
 		self._set_default_company()
+		validate_not_future(self.posting_date, _("Posting Date"))
 		self._validate_contract_lines()
 		self._validate_asset_link()
 		self._compute_duration()
 		self._compute_min_monthly_value()
 		self._compute_cpt_fields()
+		self._compute_benchmark()
 		self._validate_pricing_worksheet_link()
 		self._validate_commercial_terms(strict=False)
 		self._assert_matches_worksheet()
+		apply_progress(self)
 
 	def before_submit(self):
 		require_roles(*PLACEMENT_MANAGERS)
+		if self.benchmark_status == "Below Tolerance":
+			frappe.throw(_("Contract charged value is below the outright benchmark tolerance."))
 		self._require_contract_lines()
 		self._require_pricing_worksheet()
 		self._require_asset()
 		self._validate_commercial_terms(strict=True)
+		self._validate_price_staleness()
 		if not self.contract_price_list:
 			self.contract_price_list = _create_contract_price_list(self).name
 
@@ -106,13 +115,13 @@ class InstrumentPlacementContract(Document):
 					frappe.bold(self.asset), frappe.bold(linked)
 				)
 			)
-		spec = frappe.db.get_value("Asset", self.asset, "custom_instrument_specification")
-		if spec:
-			spec_item = frappe.db.get_value("Instrument Specification", spec, "item")
-			if spec_item and spec_item != self.analyzer_pid:
+		profile = frappe.db.get_value("Asset", self.asset, "custom_analyzer_profile")
+		if profile:
+			profile_item = frappe.db.get_value("Analyzer Profile", profile, "analyzer_item")
+			if profile_item and profile_item != self.analyzer_pid:
 				frappe.throw(
 					frappe._("Asset {0} is for analyzer {1}, not {2}.").format(
-						frappe.bold(self.asset), frappe.bold(spec_item), frappe.bold(self.analyzer_pid)
+						frappe.bold(self.asset), frappe.bold(profile_item), frappe.bold(self.analyzer_pid)
 					)
 				)
 			return
@@ -129,6 +138,30 @@ class InstrumentPlacementContract(Document):
 					)
 				)
 
+	def _validate_price_staleness(self):
+		if not self.pricing_worksheet:
+			return
+		ws = frappe.get_doc("Instrument Pricing Worksheet", self.pricing_worksheet)
+		if ws.docstatus != 1:
+			return
+		from nbs_customization.utils.pricing import get_current_selling_price
+
+		current = flt(get_current_selling_price(ws.analyzer_pid))
+		if current and abs(current - flt(ws.analyzer_standard_selling_price)) > 0.01:
+			frappe.throw(
+				_("Analyzer Standard Selling price changed after worksheet {0}. Recalculate it.").format(
+					frappe.bold(ws.name)
+				)
+			)
+		for line in ws.reagent_lines:
+			current_price = flt(get_current_selling_price(line.item_code))
+			if current_price and abs(current_price - flt(line.standard_selling_price_per_pack)) > 0.01:
+				frappe.throw(
+					_(
+						"Reagent {0} Standard Selling price changed after worksheet {1}. Recalculate it."
+					).format(frappe.bold(line.item_code), frappe.bold(ws.name))
+				)
+
 	def _compute_duration(self):
 		if self.start_date and self.end_date:
 			start = frappe.utils.getdate(self.start_date)
@@ -137,6 +170,8 @@ class InstrumentPlacementContract(Document):
 			if end.day > start.day:
 				delta += 1
 			self.contract_duration_months = max(delta, 0)
+			if not self.term_months:
+				self.term_months = self.contract_duration_months
 
 	def _compute_min_monthly_value(self):
 		total = 0
@@ -149,14 +184,53 @@ class InstrumentPlacementContract(Document):
 		if self.contract_type != "CPT":
 			return
 		pct = (self.revenue_share_pct or 0) / 100
+		terms = unique_test_terms(self.contract_reagent_lines, "agreed_test_price")
 		total_gross = 0
+		seen_tests = set()
 		for line in self.contract_reagent_lines:
-			gross = (line.monthly_test_volume or 0) * (line.agreed_test_price or 0)
+			if line.test_parameter in seen_tests:
+				line.fixed_monthly_gross_revenue = 0
+				line.fixed_monthly_share_amount = 0
+				continue
+			term = terms.get(line.test_parameter) or {"volume": 0, "price": 0}
+			gross = term["volume"] * term["price"]
 			line.fixed_monthly_gross_revenue = gross
 			line.fixed_monthly_share_amount = gross * pct
 			total_gross += gross
+			seen_tests.add(line.test_parameter)
 		self.fixed_monthly_gross_revenue = total_gross
 		self.fixed_monthly_share_amount = total_gross * pct
+
+	def _compute_benchmark(self):
+		term_months = flt(self.term_months or self.contract_duration_months)
+		if self.contract_type == "CPT":
+			self.contract_gross_test_revenue = test_revenue(
+				self.contract_reagent_lines, term_months, "agreed_test_price"
+			)
+			self.contract_charged_value = (
+				flt(self.revenue_share_pct) / 100 * flt(self.contract_gross_test_revenue)
+			)
+		else:
+			self.contract_charged_value = sum(
+				flt(line.contract_price) * flt(line.qty_required_total)
+				for line in self.contract_reagent_lines
+			)
+		self.outright_gap_amount = flt(self.contract_charged_value) - flt(self.total_outright_sale_value)
+		self.outright_gap_pct = (
+			flt(self.outright_gap_amount) / flt(self.total_outright_sale_value) * 100
+			if flt(self.total_outright_sale_value)
+			else 0
+		)
+		self.benchmark_tolerance_pct = flt(self.benchmark_tolerance_pct) or 5
+		self.benchmark_status = _benchmark_status(self.outright_gap_pct, self.benchmark_tolerance_pct)
+		self.product_only_contract_value = flt(self.contract_charged_value) - flt(self.total_maintenance_cost)
+		self.product_only_gap_pct = (
+			(flt(self.product_only_contract_value) - flt(self.product_only_outright_value))
+			/ flt(self.product_only_outright_value)
+			* 100
+			if flt(self.product_only_outright_value)
+			else 0
+		)
 
 	def _validate_commercial_terms(self, strict=False):
 		if self.start_date and self.end_date and self.end_date < self.start_date:
@@ -201,41 +275,66 @@ class InstrumentPlacementContract(Document):
 			return
 		if self.docstatus != 2:
 			self._backfill_legacy_mirror_fields(ws)
-		if self.contract_type == "CPT" and not _close(self.revenue_share_pct, ws.required_revenue_share_pct):
-			frappe.throw(
-				_("Revenue Share % {0} does not match worksheet {1} ({2}).").format(
-					frappe.bold(self.revenue_share_pct or 0),
-					frappe.bold(ws.name),
-					frappe.bold(ws.required_revenue_share_pct or 0),
-				)
-			)
-		for field in ("avg_samples_per_day", "operational_days_per_month"):
+		new_pricing_fields = {
+			"term_months",
+			"analyzer_standard_selling_price",
+			"annual_service_maintenance_rate_pct",
+			"total_maintenance_cost",
+			"standard_sale_base",
+			"total_test_reagent_value",
+			"total_consumable_value",
+			"net_revenue_target",
+			"wht_rate_pct",
+			"wht_amount",
+			"total_outright_sale_value",
+			"product_only_standard_sale_base",
+			"product_only_outright_value",
+			"benchmark_tolerance_pct",
+		}
+		for field in (
+			"avg_samples_per_day",
+			"operational_days_per_month",
+			"term_months",
+			"analyzer_standard_selling_price",
+			"annual_service_maintenance_rate_pct",
+			"total_maintenance_cost",
+			"standard_sale_base",
+			"total_test_reagent_value",
+			"total_consumable_value",
+			"net_revenue_target",
+			"wht_rate_pct",
+			"wht_amount",
+			"total_outright_sale_value",
+			"product_only_standard_sale_base",
+			"product_only_outright_value",
+			"benchmark_tolerance_pct",
+		):
+			if not ws.get("term_months") and field in new_pricing_fields:
+				continue
 			if not _close(self.get(field), ws.get(field)):
 				frappe.throw(
 					_("{0} does not match worksheet {1}. Change the worksheet, not the contract.").format(
 						frappe.bold(self.meta.get_label(field)), frappe.bold(ws.name)
 					)
 				)
-		ws_reagent_keys = [(line.item_code, line.test_parameter) for line in ws.reagent_lines]
+		ws_reagent_keys = [_contract_line_key(line) for line in ws.reagent_lines]
 		if len(ws_reagent_keys) != len(set(ws_reagent_keys)):
 			frappe.throw(_("Worksheet {0} has duplicate reagent lines.").format(frappe.bold(ws.name)))
-		ct_reagent_keys = [(line.item_code, line.test_parameter) for line in self.contract_reagent_lines]
+		ct_reagent_keys = [_contract_line_key(line) for line in self.contract_reagent_lines]
 		if len(ct_reagent_keys) != len(set(ct_reagent_keys)):
 			frappe.throw(_("Contract has duplicate reagent lines."))
-		expected = {(line.item_code, line.test_parameter): line for line in ws.reagent_lines}
-		actual = {(line.item_code, line.test_parameter) for line in self.contract_reagent_lines}
+		expected = {_contract_line_key(line): line for line in ws.reagent_lines}
+		actual = {_contract_line_key(line) for line in self.contract_reagent_lines}
 		if actual != set(expected):
 			frappe.throw(
 				_("Contract reagent lines do not match worksheet {0} lines.").format(frappe.bold(ws.name))
 			)
 		for line in self.contract_reagent_lines:
-			src = expected[(line.item_code, line.test_parameter)]
+			src = expected[_contract_line_key(line)]
 			pairs = [
 				("standard_price", src.cogs_per_pack),
-				("contract_price", src.selling_price_per_pack),
 				("qty_required_total", src.packs_needed),
 				("cogs_per_unit", src.cogs_per_pack),
-				("agreed_test_price", src.price_per_test or 0),
 				("pack_volume_ml", src.pack_volume_ml),
 				("bg_consumption_ml_day", src.bg_consumption_ml_day),
 				("bg_consumption_ml_month", src.bg_consumption_ml_month),
@@ -249,9 +348,8 @@ class InstrumentPlacementContract(Document):
 							line.idx, frappe.bold(line.item_code), frappe.bold(field), frappe.bold(ws.name)
 						)
 					)
-			want_min = (
-				ceil(flt(src.monthly_test_volume) / flt(src.tests_per_pack)) if flt(src.tests_per_pack) else 0
-			)
+			tests_per_pack = src.reportable_tests_per_pack or src.gross_tests_per_pack or src.tests_per_pack
+			want_min = ceil(flt(src.monthly_test_volume) / flt(tests_per_pack)) if flt(tests_per_pack) else 0
 			if flt(line.monthly_test_volume) != flt(src.monthly_test_volume) or flt(
 				line.min_monthly_qty
 			) != flt(want_min):
@@ -260,20 +358,20 @@ class InstrumentPlacementContract(Document):
 						line.idx, frappe.bold(line.item_code), frappe.bold(ws.name)
 					)
 				)
-		ws_cons_keys = [line.item_code for line in ws.consumable_lines]
+		ws_cons_keys = [_consumable_key(line) for line in ws.consumable_lines]
 		if len(ws_cons_keys) != len(set(ws_cons_keys)):
 			frappe.throw(_("Worksheet {0} has duplicate consumable lines.").format(frappe.bold(ws.name)))
-		ct_cons_keys = [line.item_code for line in self.contract_consumable_lines]
+		ct_cons_keys = [_consumable_key(line) for line in self.contract_consumable_lines]
 		if len(ct_cons_keys) != len(set(ct_cons_keys)):
 			frappe.throw(_("Contract has duplicate consumable lines."))
-		expected_cons = {line.item_code: line for line in ws.consumable_lines}
-		actual_cons = {line.item_code for line in self.contract_consumable_lines}
+		expected_cons = {_consumable_key(line): line for line in ws.consumable_lines}
+		actual_cons = {_consumable_key(line) for line in self.contract_consumable_lines}
 		if actual_cons != set(expected_cons):
 			frappe.throw(
 				_("Contract consumable lines do not match worksheet {0} lines.").format(frappe.bold(ws.name))
 			)
 		for line in self.contract_consumable_lines:
-			src = expected_cons[line.item_code]
+			src = expected_cons[_consumable_key(line)]
 			for field, want in [
 				("standard_price", src.cogs_per_unit),
 				("contract_price", 0),
@@ -290,9 +388,18 @@ class InstrumentPlacementContract(Document):
 	def _backfill_legacy_mirror_fields(self, ws):
 		# pack_volume_ml postdates some drafts; fill blanks from the
 		# worksheet so the next save enforces rather than rejects them.
-		by_key = {(l.item_code, l.test_parameter): l for l in ws.reagent_lines}
+		by_key = {(l.item_code, l.test_parameter, l.component_role or ""): l for l in ws.reagent_lines}
+		by_item_test = {}
+		for ws_line in ws.reagent_lines:
+			by_item_test.setdefault((ws_line.item_code, ws_line.test_parameter), []).append(ws_line)
 		for line in self.contract_reagent_lines:
-			src = by_key.get((line.item_code, line.test_parameter))
+			key = (line.item_code, line.test_parameter, line.component_role or "")
+			src = by_key.get(key)
+			if not src and not line.component_role:
+				matches = by_item_test.get((line.item_code, line.test_parameter), [])
+				if len(matches) == 1:
+					src = matches[0]
+					line.component_role = src.component_role or ""
 			if src and not line.pack_volume_ml and src.pack_volume_ml:
 				line.pack_volume_ml = src.pack_volume_ml
 
@@ -321,6 +428,7 @@ class InstrumentPlacementContract(Document):
 			analyzer_pid=self.analyzer_pid,
 			warehouse=warehouse,
 			serial_no=serial_no,
+			company=self.company,
 		)
 
 		self.db_set("asset", asset_name)
@@ -448,6 +556,27 @@ class InstrumentPlacementContract(Document):
 def _close(a, b, tol=0.01):
 	"""Numeric equality within print rounding."""
 	return abs(flt(a) - flt(b)) <= tol
+
+
+def _contract_line_key(line):
+	return (line.item_code, line.test_parameter, line.get("component_role") or "")
+
+
+def _consumable_key(line):
+	return (
+		line.item_code,
+		line.get("source_type") or "Analyzer Consumable",
+		line.get("source_reference") or "",
+	)
+
+
+def _benchmark_status(gap_pct, tolerance):
+	tol = flt(tolerance) or 5
+	if gap_pct < -tol:
+		return "Below Tolerance"
+	if gap_pct < 0:
+		return "Within Tolerance"
+	return "At or Above Outright"
 
 
 def _create_contract_price_list(contract):

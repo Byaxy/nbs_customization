@@ -17,6 +17,7 @@
   "active_amendment",
   "asset",
   "period",
+  "posting_date",
   "calculation_section",
   "declared_volume",
   "revenue_share_pct",
@@ -264,6 +265,13 @@
    "label": "Active Amendment",
    "options": "Contract Amendment",
    "read_only": 1
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "default": "Today",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,

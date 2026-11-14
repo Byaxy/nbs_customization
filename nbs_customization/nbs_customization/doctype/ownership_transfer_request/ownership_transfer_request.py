@@ -257,6 +257,7 @@ def _create_transfer_invoice(otr, contract):
 		}
 	)
 	order.flags.ignore_permissions = True
+	order.flags.allow_internal_placement_type = True
 	order.insert(ignore_permissions=True)
 	order.submit()
 
@@ -279,6 +280,7 @@ def _create_transfer_invoice(otr, contract):
 	si.items[0].sales_order = order.name
 	si.items[0].so_detail = order.items[0].name
 	si.flags.ignore_permissions = True
+	si.flags.allow_internal_placement_type = True
 	si.insert(ignore_permissions=True)
 	si.submit()
 	return si

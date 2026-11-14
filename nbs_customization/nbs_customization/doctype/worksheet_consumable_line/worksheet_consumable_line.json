@@ -6,19 +6,25 @@
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
-  "field_order": [
-   "item_code",
-   "description",
-   "column_break_letc",
-   "consumption_qty",
-   "consumption_frequency",
-   "services_per_year",
-   "cogs_per_unit",
-   "section_break_lqts",
-   "total_units_over_term",
-   "column_break_brts",
-   "total_cost_line"
-  ],
+ "field_order": [
+  "is_auto",
+  "source_reference",
+  "source_type",
+  "item_code",
+  "description",
+  "column_break_letc",
+  "consumption_qty",
+  "consumption_frequency",
+  "services_per_year",
+  "cogs_per_unit",
+  "standard_selling_price_per_unit",
+  "section_break_lqts",
+  "quantity_over_term",
+  "total_units_over_term",
+  "column_break_brts",
+  "total_cost_line",
+  "total_value_line"
+ ],
  "fields": [
   {
    "fieldname": "item_code",
@@ -48,26 +54,33 @@
    "label": "Consumption Qty",
    "non_negative": 1
   },
-   {
-    "default": "Per Month",
-    "fieldname": "consumption_frequency",
-    "fieldtype": "Select",
-    "in_list_view": 1,
-    "label": "Consumption Frequency",
-    "options": "Per Month\nPer Service Interval\nPer Year"
-   },
-   {
-    "depends_on": "eval:doc.consumption_frequency==\"Per Service Interval\";",
-    "fieldname": "services_per_year",
-    "fieldtype": "Float",
-    "label": "No. of Services per Year",
-    "mandatory_depends_on": "eval:doc.consumption_frequency==\"Per Service Interval\";",
-    "non_negative": 1
-   },
+  {
+   "default": "Per Month",
+   "fieldname": "consumption_frequency",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Consumption Frequency",
+   "options": "Per Month\nPer Service Interval\nPer Year\nComputed Over Term"
+  },
+  {
+   "depends_on": "eval:doc.consumption_frequency==\"Per Service Interval\";",
+   "fieldname": "services_per_year",
+   "fieldtype": "Float",
+   "label": "No. of Services per Year",
+   "mandatory_depends_on": "eval:doc.consumption_frequency==\"Per Service Interval\";",
+   "non_negative": 1
+  },
   {
    "fieldname": "cogs_per_unit",
    "fieldtype": "Currency",
    "label": "COGS per Unit",
+   "non_negative": 1,
+   "permlevel": 1
+  },
+  {
+   "fieldname": "standard_selling_price_per_unit",
+   "fieldtype": "Currency",
+   "label": "Standard Selling Price per Unit",
    "non_negative": 1
   },
   {
@@ -82,14 +95,48 @@
    "read_only": 1
   },
   {
+   "fieldname": "column_break_brts",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "total_cost_line",
    "fieldtype": "Currency",
    "label": "Total Cost (This Line)",
    "read_only": 1
   },
   {
-   "fieldname": "column_break_brts",
-   "fieldtype": "Column Break"
+   "fieldname": "total_value_line",
+   "fieldtype": "Currency",
+   "label": "Total Value (This Line)",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source_type",
+   "fieldtype": "Select",
+   "label": "Source Type",
+   "default": "Analyzer Consumable",
+   "options": "Analyzer Consumable\nCalibration Material\nMaintenance Part",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "source_reference",
+   "fieldtype": "Data",
+   "label": "Source Reference"
+  },
+  {
+   "fieldname": "is_auto",
+   "fieldtype": "Check",
+   "label": "Auto Loaded",
+   "default": "0",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quantity_over_term",
+   "fieldtype": "Float",
+   "label": "Quantity Over Term",
+   "read_only": 1,
+   "in_list_view": 1
   }
  ],
  "grid_page_length": 50,

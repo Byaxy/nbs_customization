@@ -16,6 +16,7 @@ from nbs_customization.tests.placement_fixtures import (
 	ensure_stock,
 	skip_test_record_bootstrap,
 )
+from nbs_customization.utils.placement.periods import period_end, period_start
 
 
 class TestRevenueShareStatement(IntegrationTestCase):
@@ -35,7 +36,7 @@ class TestRevenueShareStatement(IntegrationTestCase):
 			price_per_test=600,
 			analyzer_landed_cost=199000,
 		)
-		ensure_stock(ctx["reagent"].name, qty=50)
+		ensure_stock(ctx["reagent"].name, qty=50, posting_date="2025-01-01")
 		return ctx
 
 	def test_statement_math_and_free_issue_dn(self):
@@ -75,6 +76,40 @@ class TestRevenueShareStatement(IntegrationTestCase):
 		self.assertEqual(si.grand_total, 12000)
 		ct = frappe.get_doc("Instrument Placement Contract", ctx["contract"].name)
 		self.assertEqual(ct.cumulative_invoiced, 12000)
+
+	def test_statement_posting_date_controls_generated_documents(self):
+		from nbs_customization.setup import create_revenue_share_fee_item
+
+		create_revenue_share_fee_item()
+		ctx = self._cpt("_TST-RSS9")
+		posting_date = "2026-07-15"
+		frappe.get_doc(
+			{
+				"doctype": "Revenue Share Statement",
+				"contract": ctx["contract"].name,
+				"period": "2026-07",
+				"period_start": period_start("2026-07"),
+				"period_end": period_end("2026-07"),
+				"posting_date": posting_date,
+			}
+		).insert()
+		name = generate_revenue_share_statement(ctx["contract"].name, "2026-07")
+		rss = frappe.get_doc("Revenue Share Statement", name)
+
+		dn = frappe.get_doc("Delivery Note", rss.waybill_kit_dispatch)
+		self.assertEqual(str(dn.posting_date), posting_date)
+		si = frappe.get_doc("Sales Invoice", rss.sales_invoice)
+		self.assertEqual(str(si.posting_date), posting_date)
+		orders = frappe.get_all(
+			"Sales Order",
+			filters={
+				"custom_instrument_placement_contract": ctx["contract"].name,
+				"custom_placement_transaction_type": "Contract Free Issue",
+			},
+			fields=["transaction_date"],
+		)
+		self.assertTrue(orders)
+		self.assertEqual(str(orders[0].transaction_date), posting_date)
 
 	def test_amendment_volume_overrides(self):
 		ctx = self._cpt("_TST-RSS3")

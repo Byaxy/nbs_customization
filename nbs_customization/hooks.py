@@ -330,11 +330,11 @@ fixtures = [
 					"Payment Entry-check_bank",
 					"Item-custom_section_break_oapcm",
 					"Item-custom_is_placement_item",
-					"Item-custom_instrument_specification",
+					"Item-custom_analyzer_profile",
 					"Item-custom_reagent_specification",
 					"Asset-custom_current_placement_contract",
 					"Asset-custom_current_deployment_status",
-					"Asset-custom_instrument_specification",
+					"Asset-custom_analyzer_profile",
 					"Asset-custom_serial_no",
 					"Sales Order-custom_instrument_placement_contract",
 					"Sales Order-custom_placement_transaction_type",
@@ -351,6 +351,9 @@ fixtures = [
 	},
 	{
 		"dt": "Carrier",
+	},
+	{
+		"dt": "Analyzer Type",
 	},
 ]
 
@@ -371,6 +374,30 @@ doctype_js = {
 doctype_list_js = {"Expense": "public/js/expense_list.js"}
 
 doc_events = {
+	"Analyzer Profile": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Test Panel": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Test Parameter": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Reagent Specification": {
+		"after_insert": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
+	"Item Price": {
+		"on_update": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
+	},
 	"Quotation": {
 		"validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
 		"before_test_insert": "nbs_customization.controllers.validations.sales.prepare_quotation_test_record",
@@ -445,7 +472,10 @@ doc_events = {
 		"before_insert": "nbs_customization.controllers.batch.before_insert",
 	},
 	"Payment Entry": {
-		"validate": "nbs_customization.controllers.payment_entry.validate_check_payment_entry",
+		"validate": [
+			"nbs_customization.controllers.payment_entry.validate_check_payment_entry",
+			"nbs_customization.controllers.placement.payment_entry.validate_placement_date",
+		],
 		"on_submit": "nbs_customization.controllers.placement.payment_entry.on_submit",
 		"on_cancel": "nbs_customization.controllers.placement.payment_entry.on_cancel",
 	},

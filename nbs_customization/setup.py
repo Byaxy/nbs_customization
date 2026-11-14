@@ -59,17 +59,13 @@ NBS_SIDEBAR_PLACEMENTS = {
 	],
 	"Stock": [
 		("Item Pricing Settings", "Item Pricing Settings", "DocType", "settings", "Delivery Note"),
+		("Placement Settings", "Placement Settings", "DocType", "settings", "Item Pricing Settings"),
 		("Item Type", "Item Type", "DocType", "package", "Unit of Measure (UOM)"),
-		("Instrument Specification", "Instrument Specification", "DocType", "clipboard-check", "Item Type"),
-		(
-			"Reagent Specification",
-			"Reagent Specification",
-			"DocType",
-			"file-text",
-			"Instrument Specification",
-		),
-		("Test Panel Group", "Test Panel Group", "DocType", "table", "Reagent Specification"),
-		("Test Parameter", "Test Parameter", "DocType", "sliders-horizontal", "Test Panel Group"),
+		("Analyzer Type", "Analyzer Type", "DocType", "list", "Item Type"),
+		("Analyzer Profile", "Analyzer Profile", "DocType", "clipboard-check", "Analyzer Type"),
+		("Reagent Specification", "Reagent Specification", "DocType", "file-text", "Analyzer Profile"),
+		("Test Parameter", "Test Parameter", "DocType", "sliders-horizontal", "Reagent Specification"),
+		("Test Panel", "Test Panel", "DocType", "table", "Test Parameter"),
 	],
 	"Assets": [
 		(
@@ -88,6 +84,13 @@ NBS_SIDEBAR_PLACEMENTS = {
 		),
 		("Analyzer Deployment", "Analyzer Deployment", "DocType", "monitor", "Contract Amendment"),
 		(
+			"Deployment Acceptance",
+			"Deployment Acceptance",
+			"DocType",
+			"clipboard-check",
+			"Analyzer Deployment",
+		),
+		(
 			"Ownership Transfer Request",
 			"Ownership Transfer Request",
 			"DocType",
@@ -95,7 +98,6 @@ NBS_SIDEBAR_PLACEMENTS = {
 			"Analyzer Deployment",
 		),
 		("Repossession Request", "Repossession Request", "DocType", "move", "Ownership Transfer Request"),
-		("Analyzer Type", "Analyzer Type", "DocType", "package", "Location"),
 	],
 	"Accounts": [
 		("Expense", "Expense", "DocType", "receipt-text", "Journal Entry"),
@@ -134,7 +136,27 @@ NBS_SIDEBAR_PLACEMENTS = {
 
 # Labels of removed items, kept so their rows are cleaned from site layers on
 # the next migrate. Add here (never delete) whenever a spec item is retired.
-NBS_RETIRED_LABELS = {"Commission Recipient"}
+NBS_RETIRED_LABELS = {
+	"Commission Recipient",
+	"Test Panel Group",
+	"Instrument Specification",
+	"Analyzer Test Application",
+	"Analyzer Assay Group",
+	"Analyzer Calibration Rule",
+	"Analyzer Consumable Requirement",
+	"Analyzer Maintenance Part",
+	"Instrument Test Method",
+	"Instrument Consumable Requirement",
+	"Worksheet Assay Group",
+	"Worksheet Test Price",
+	"Contract Assay Group",
+	"Contract Test Price",
+	"Worksheet Volume Line",
+	"Worksheet Assay Run",
+	"Worksheet Fee Allocation",
+	"Contract Fee Allocation",
+	"Contract Volume Declaration",
+}
 
 # Every label this app owns per module, including retired rows and section
 # headers, so renames/removals clean up after themselves. Admin/user rows are
@@ -722,6 +744,10 @@ def after_migrate():
 	from nbs_customization.placement_contract_templates import ensure_placement_contract_templates
 
 	ensure_placement_contract_templates()
+
+	from nbs_customization.utils.placement.analyzer_menu import clear_analyzer_menu_cache
+
+	clear_analyzer_menu_cache()
 
 
 def _ensure_placement_roles():

@@ -15,14 +15,12 @@ class TestValidItems(FrappeTestCase):
 		self.analyzer = frappe.get_doc(
 			{"doctype": "Item", "item_code": "_TST Analyzer Valid Items", "item_group": "Products"}
 		).insert(ignore_if_duplicate=True)
-
 		self.reagent_a = frappe.get_doc(
 			{"doctype": "Item", "item_code": "_TST Reagent A", "item_group": "Products"}
 		).insert(ignore_if_duplicate=True)
 		self.reagent_b = frappe.get_doc(
 			{"doctype": "Item", "item_code": "_TST Reagent B", "item_group": "Products"}
 		).insert(ignore_if_duplicate=True)
-
 		self.cleaning = frappe.get_doc(
 			{"doctype": "Item", "item_code": "_TST Cleaning Soln", "item_group": "Products"}
 		).insert(ignore_if_duplicate=True)
@@ -56,28 +54,30 @@ class TestValidItems(FrappeTestCase):
 				"parameter_code": "TVAL",
 			}
 		).insert(ignore_if_duplicate=True)
-		self.param2 = frappe.get_doc(
-			{
-				"doctype": "Test Parameter",
-				"parameter_name": "_TST Param Valid Items 2",
-				"parameter_code": "TVL2",
-			}
-		).insert(ignore_if_duplicate=True)
 
 		frappe.get_doc(
 			{
-				"doctype": "Instrument Specification",
-				"item": self.analyzer.item_code,
-				"supported_test_methods": [
-					{"test_parameter": self.param.name, "required_reagent": self.reagent_a.item_code},
-					{"test_parameter": self.param2.name, "required_reagent": self.reagent_b.item_code},
-				],
-				"required_consumables": [
+				"doctype": "Analyzer Profile",
+				"analyzer_item": self.analyzer.item_code,
+				"reagents": [
 					{
-						"consumable_item": self.cleaning.item_code,
-						"consumption_qty": 1,
-						"consumption_frequency": "Per Month",
+						"test_parameter": self.param.name,
+						"reagent_item": self.reagent_a.item_code,
+						"component_role": "Single",
 					},
+					{
+						"test_parameter": self.param.name,
+						"reagent_item": self.reagent_b.item_code,
+						"component_role": "Single",
+					},
+				],
+				"consumables": [
+					{
+						"item": self.cleaning.item_code,
+						"role": "Wash",
+						"consumption_basis": "Per Month",
+						"qty": 1,
+					}
 				],
 			}
 		).insert()
@@ -96,18 +96,16 @@ class TestValidItems(FrappeTestCase):
 		unlisted = frappe.get_doc(
 			{"doctype": "Item", "item_code": "_TST Unlisted Reagent", "item_group": "Products"}
 		).insert(ignore_if_duplicate=True)
-
-		result = validate_items_belong_to_analyzer(self.analyzer.item_code, [unlisted.item_code], throw=False)
-		self.assertFalse(result)
+		self.assertFalse(
+			validate_items_belong_to_analyzer(self.analyzer.item_code, [unlisted.item_code], throw=False)
+		)
 
 	def test_raises_on_unlisted_item(self):
 		unlisted = frappe.get_doc(
 			{"doctype": "Item", "item_code": "_TST Raise Reagent", "item_group": "Products"}
 		).insert(ignore_if_duplicate=True)
-
 		with self.assertRaises(frappe.ValidationError):
 			validate_items_belong_to_analyzer(self.analyzer.item_code, [unlisted.item_code], throw=True)
 
-	def test_empty_when_no_spec(self):
-		items = get_reagent_items_for_analyzer("Non Existent Item")
-		self.assertEqual(items, [])
+	def test_empty_when_no_profile(self):
+		self.assertEqual(get_reagent_items_for_analyzer("Non Existent Item"), [])

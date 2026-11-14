@@ -11,7 +11,7 @@ from nbs_customization.setup import (
 	create_revenue_share_fee_item,
 	create_shortfall_penalty_item,
 )
-from nbs_customization.tests.placement_contracts import make_worksheet
+from nbs_customization.tests.placement_contracts import make_worksheet, worksheet_pricing_mirror
 from nbs_customization.tests.placement_fixtures import (
 	COMPANY,
 	SITE_LOCATION,
@@ -57,10 +57,12 @@ def _draft_contract(prefix, analyzer, reagent, param, customer, site, worksheet)
 			"grace_period_days": 30,
 			"avg_samples_per_day": worksheet.avg_samples_per_day,
 			"operational_days_per_month": worksheet.operational_days_per_month,
+			**worksheet_pricing_mirror(worksheet),
 			"contract_reagent_lines": [
 				{
 					"item_code": reagent.name,
 					"test_parameter": param["param"].name,
+					"component_role": ws_line.component_role or "",
 					"pack_volume_ml": ws_line.pack_volume_ml,
 					"contract_price": ws_line.selling_price_per_pack,
 					"standard_price": ws_line.cogs_per_pack,
@@ -218,7 +220,7 @@ class TestPlacementSetup(IntegrationTestCase):
 			decommission_analyzer(asset_name)
 		dep1.deployment_status = "Permanently Retrieved"
 		dep1.flags.allow_permanent_retrieval = True
-		dep1.retrieval_date = frappe.utils.add_days(frappe.utils.today(), 1)
+		dep1.retrieval_date = frappe.utils.today()
 		dep1.save()
 
 		ws2 = make_worksheet("_TST-SET3B", analyzer, reagent, analyzer, customer)
@@ -236,7 +238,7 @@ class TestPlacementSetup(IntegrationTestCase):
 				"customer_site": site.name,
 				"asset_location": "Block 1",
 				"asset_storage_location": "Field 1",
-				"deployment_date": frappe.utils.add_days(frappe.utils.today(), 2),
+				"deployment_date": frappe.utils.today(),
 				"deployment_status": "Under Service",
 			}
 		).insert()
@@ -248,7 +250,7 @@ class TestPlacementSetup(IntegrationTestCase):
 		)
 		dep2.deployment_status = "Permanently Retrieved"
 		dep2.flags.allow_permanent_retrieval = True
-		dep2.retrieval_date = frappe.utils.add_days(frappe.utils.today(), 3)
+		dep2.retrieval_date = frappe.utils.today()
 		dep2.save()
 		frappe.db.set_value("Instrument Placement Contract", ct2.name, "contract_status", "Closed")
 		decommission_analyzer(asset_name)

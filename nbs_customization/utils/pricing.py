@@ -108,21 +108,22 @@ def get_standard_rate(tiers, source_tier):
 	return flt(tiers.get("rate_30"), 2)
 
 
-def get_current_selling_price(item_code):
-	"""Live Standard Selling rate for item_code; 0 when no active Item Price exists."""
+def get_current_selling_price(item_code, on_date=None):
+	"""Standard Selling rate for item_code on *on_date*; 0 when none is active."""
 	if not item_code:
 		return 0.0
+	on_date = on_date or today()
 	rates = frappe.get_all(
 		"Item Price",
 		filters={
 			"item_code": item_code,
 			"price_list": STANDARD_SELLING,
 			"selling": 1,
-			"valid_from": ["<=", today()],
+			"valid_from": ["<=", on_date],
 		},
 		or_filters=[
 			["valid_upto", "is", "not set"],
-			["valid_upto", ">=", today()],
+			["valid_upto", ">=", on_date],
 		],
 		order_by="valid_from desc, modified desc",
 		limit=1,

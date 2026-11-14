@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe.utils import getdate, today
 
 from nbs_customization.utils.placement.recovery import recompute_contract_recovery
 
@@ -19,6 +20,14 @@ def get_placement_contracts_from_references(doc):
 		if contract:
 			contracts.add(contract)
 	return list(contracts)
+
+
+def validate_placement_date(doc, method=None):
+	if getdate(doc.posting_date) > getdate(today()) and get_placement_contracts_from_references(doc):
+		frappe.throw(
+			frappe._("Posting Date cannot be a future date."),
+			title=frappe._("Future Date Not Allowed"),
+		)
 
 
 def on_submit(doc, method=None):

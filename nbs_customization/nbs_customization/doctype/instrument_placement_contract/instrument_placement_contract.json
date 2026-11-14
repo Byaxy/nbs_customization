@@ -6,37 +6,60 @@
  "creation": "2026-07-10 14:33:43.358492",
  "doctype": "DocType",
  "engine": "InnoDB",
-  "field_order": [
-   "section_break_khtr",
-   "naming_series",
-   "company",
-   "customer",
+ "field_order": [
+  "section_break_khtr",
+  "naming_series",
+  "company",
+  "customer",
   "customer_name",
   "contract_title",
+  "posting_date",
   "column_break_dpxb",
   "contract_type",
   "customer_site",
   "section_break_cnlq",
   "pricing_worksheet",
+  "benchmark_section",
+  "analyzer_standard_selling_price",
+  "annual_service_maintenance_rate_pct",
+  "total_maintenance_cost",
+  "standard_sale_base",
+  "total_test_reagent_value",
+  "total_consumable_value",
+  "contract_gross_test_revenue",
+  "contract_charged_value",
+  "total_outright_sale_value",
+  "net_revenue_target",
+  "wht_rate_pct",
+  "wht_amount",
+  "outright_gap_amount",
+  "outright_gap_pct",
+  "benchmark_tolerance_pct",
+  "benchmark_status",
+  "product_only_standard_sale_base",
+  "product_only_outright_value",
+  "product_only_contract_value",
+  "product_only_gap_pct",
   "start_date",
   "end_date",
   "column_break_uudr",
-   "contract_price_list",
-   "contract_duration_months",
-   "avg_samples_per_day",
-   "column_break_volbasis",
-   "operational_days_per_month",
-   "contract_status",
-   "termination_date",
-   "termination_reason",
-   "section_break_rvnv",
+  "contract_price_list",
+  "contract_duration_months",
+  "term_months",
+  "avg_samples_per_day",
+  "column_break_volbasis",
+  "operational_days_per_month",
+  "contract_status",
+  "termination_date",
+  "termination_reason",
+  "section_break_rvnv",
   "asset",
   "analyzer_pid",
   "analyzer_description",
   "column_break_gmvt",
-   "serial_no",
-   "section_break_osor",
-   "recovery_tracking_section",
+  "serial_no",
+  "section_break_osor",
+  "recovery_tracking_section",
   "total_recovery_target",
   "cumulative_collected",
   "recovery_pct_invoiced",
@@ -63,33 +86,38 @@
   "contract_lines_section",
   "contract_reagent_lines",
   "contract_consumable_line_section",
-   "contract_consumable_lines",
-   "contract_terms_section",
-    "contract_template",
-    "contract_terms",
-    "admin_section",
+  "contract_consumable_lines",
+  "contract_terms_section",
+  "contract_template",
+  "contract_terms",
+  "admin_section",
   "approved_by",
   "column_break_ijqj",
   "approval_date",
   "section_break_qswe",
   "notes",
   "section_break_ikas",
-  "amended_from"
+  "amended_from",
+  "wht_category",
+  "wht_rate_date",
+  "price_snapshot_date",
+  "billing_denominator",
+  "inclusions_checklist",
+  "true_up_rule",
+  "escalation_terms",
+  "uptime_commitment_pct",
+  "progress_section",
+  "progress_reagent_required",
+  "progress_reagent_delivered",
+  "progress_reagent_remaining",
+  "progress_consumable_required",
+  "progress_consumable_delivered",
+  "progress_consumable_remaining"
  ],
  "fields": [
   {
-   "fieldname": "section_break_ikas",
+   "fieldname": "section_break_khtr",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Instrument Placement Contract",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
   },
   {
    "fieldname": "naming_series",
@@ -106,8 +134,19 @@
    "reqd": 1
   },
   {
-   "fieldname": "section_break_khtr",
-   "fieldtype": "Section Break"
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "read_only": 1
   },
   {
    "fieldname": "contract_title",
@@ -127,65 +166,10 @@
    "reqd": 1
   },
   {
-   "fieldname": "customer",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Customer",
-   "options": "Customer",
-   "reqd": 1
-  },
-  {
-   "fetch_from": "customer.customer_name",
-   "fieldname": "customer_name",
-   "fieldtype": "Data",
-   "label": "Customer Name",
-   "read_only": 1
-  },
-  {
    "fieldname": "customer_site",
    "fieldtype": "Link",
    "label": "Customer Site",
    "options": "Address",
-   "reqd": 1
-  },
-  {
-   "fieldname": "section_break_rvnv",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "asset",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Asset",
-   "options": "Asset"
-  },
-  {
-   "fieldname": "column_break_gmvt",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fetch_from": "asset.custom_serial_no",
-   "fetch_if_empty": 1,
-   "fieldname": "serial_no",
-   "fieldtype": "Data",
-   "label": "Serial No",
-   "read_only": 1
-  },
-  {
-    "fieldname": "analyzer_pid",
-    "fieldtype": "Link",
-    "label": "Analyzer PID",
-    "options": "Item",
-    "read_only": 1,
-    "reqd": 1
-  },
-  {
-   "fetch_from": "analyzer_pid.description",
-   "fetch_if_empty": 1,
-   "fieldname": "analyzer_description",
-   "fieldtype": "Small Text",
-   "label": "Analyzer Description",
-   "read_only": 1,
    "reqd": 1
   },
   {
@@ -200,14 +184,137 @@
    "options": "Instrument Pricing Worksheet"
   },
   {
-   "fieldname": "column_break_uudr",
-   "fieldtype": "Column Break"
+   "fieldname": "benchmark_section",
+   "fieldtype": "Section Break",
+   "label": "Contract vs Outright Sale incl. Service"
   },
   {
-   "fieldname": "contract_price_list",
-   "fieldtype": "Link",
-   "label": "Contract Price List",
-   "options": "Price List",
+   "fieldname": "analyzer_standard_selling_price",
+   "fieldtype": "Currency",
+   "label": "Analyzer Standard Selling Price",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "annual_service_maintenance_rate_pct",
+   "fieldtype": "Percent",
+   "label": "Annual Maintenance and Service Rate %",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "total_maintenance_cost",
+   "fieldtype": "Currency",
+   "label": "Total Maintenance and Service Cost",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "standard_sale_base",
+   "fieldtype": "Currency",
+   "label": "Standard Sale Base",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_test_reagent_value",
+   "fieldtype": "Currency",
+   "label": "Total Test Reagent Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_consumable_value",
+   "fieldtype": "Currency",
+   "label": "Total Consumable Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_gross_test_revenue",
+   "fieldtype": "Currency",
+   "label": "Contract Gross Test Revenue",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_charged_value",
+   "fieldtype": "Currency",
+   "label": "Contract Charged Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_outright_sale_value",
+   "fieldtype": "Currency",
+   "label": "Total Outright Sale Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "net_revenue_target",
+   "fieldtype": "Currency",
+   "label": "Net Revenue Target (Before WHT)",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "wht_rate_pct",
+   "fieldtype": "Percent",
+   "label": "Withholding Tax Rate %",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "wht_amount",
+   "fieldtype": "Currency",
+   "label": "Withholding Tax Amount",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "outright_gap_amount",
+   "fieldtype": "Currency",
+   "label": "Outright Gap Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "outright_gap_pct",
+   "fieldtype": "Percent",
+   "label": "Outright Gap %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "benchmark_tolerance_pct",
+   "fieldtype": "Percent",
+   "label": "Benchmark Tolerance %",
+   "default": "5",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "benchmark_status",
+   "fieldtype": "Select",
+   "label": "Benchmark Status",
+   "options": "Below Tolerance\nWithin Tolerance\nAt or Above Outright",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_only_standard_sale_base",
+   "fieldtype": "Currency",
+   "label": "Product-Only Standard Sale Base",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_only_outright_value",
+   "fieldtype": "Currency",
+   "label": "Product-Only Outright Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_only_contract_value",
+   "fieldtype": "Currency",
+   "label": "Product-Only Contract Value",
+   "read_only": 1
+  },
+  {
+   "fieldname": "product_only_gap_pct",
+   "fieldtype": "Percent",
+   "label": "Product-Only Gap %",
    "read_only": 1
   },
   {
@@ -222,32 +329,50 @@
    "label": "Contract End Date",
    "reqd": 1
   },
-   {
-    "fieldname": "contract_duration_months",
-    "fieldtype": "Int",
-    "label": "Contract Duration (Months)",
-    "read_only": 1
-   },
-   {
-    "description": "Mirror of the linked worksheet volume basis (matrix preamble).",
-    "fieldname": "avg_samples_per_day",
-    "fieldtype": "Float",
-    "label": "Average Samples / Day",
-    "non_negative": 1,
-    "read_only": 1
-   },
-   {
-    "fieldname": "column_break_volbasis",
-    "fieldtype": "Column Break"
-   },
-   {
-    "description": "Mirror of the linked worksheet volume basis (matrix preamble).",
-    "fieldname": "operational_days_per_month",
-    "fieldtype": "Int",
-    "label": "Operational Days / Month",
-    "non_negative": 1,
-    "read_only": 1
-   },
+  {
+   "fieldname": "column_break_uudr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_price_list",
+   "fieldtype": "Link",
+   "label": "Contract Price List",
+   "options": "Price List",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contract_duration_months",
+   "fieldtype": "Int",
+   "label": "Contract Duration (Months)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "term_months",
+   "fieldtype": "Int",
+   "label": "Contract Term (Months)",
+   "read_only": 1,
+   "non_negative": 1
+  },
+  {
+   "description": "Mirror of the linked worksheet volume basis (matrix preamble).",
+   "fieldname": "avg_samples_per_day",
+   "fieldtype": "Float",
+   "label": "Average Samples / Day",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_volbasis",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Mirror of the linked worksheet volume basis (matrix preamble).",
+   "fieldname": "operational_days_per_month",
+   "fieldtype": "Int",
+   "label": "Operational Days / Month",
+   "non_negative": 1,
+   "read_only": 1
+  },
   {
    "allow_on_submit": 1,
    "default": "Draft",
@@ -272,12 +397,52 @@
    "label": "Termination Reason",
    "read_only": 1
   },
-   {
-    "fieldname": "section_break_osor",
-    "fieldtype": "Section Break"
-   },
-   {
-    "fieldname": "recovery_tracking_section",
+  {
+   "fieldname": "section_break_rvnv",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "asset",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Asset",
+   "options": "Asset"
+  },
+  {
+   "fieldname": "analyzer_pid",
+   "fieldtype": "Link",
+   "label": "Analyzer PID",
+   "options": "Item",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "analyzer_pid.description",
+   "fetch_if_empty": 1,
+   "fieldname": "analyzer_description",
+   "fieldtype": "Small Text",
+   "label": "Analyzer Description",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_gmvt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "asset.custom_serial_no",
+   "fetch_if_empty": 1,
+   "fieldname": "serial_no",
+   "fieldtype": "Data",
+   "label": "Serial No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_osor",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "recovery_tracking_section",
    "fieldtype": "Section Break",
    "label": "Recovery Tracking"
   },
@@ -289,9 +454,16 @@
   },
   {
    "allow_on_submit": 1,
-   "fieldname": "cumulative_invoiced",
+   "fieldname": "cumulative_collected",
    "fieldtype": "Currency",
-   "label": "Cumulative Amount Invoiced",
+   "label": "Cumulative Amount Collected",
+   "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "recovery_pct_invoiced",
+   "fieldtype": "Percent",
+   "label": "Recovery Percentage (Invoiced)",
    "read_only": 1
   },
   {
@@ -300,9 +472,9 @@
   },
   {
    "allow_on_submit": 1,
-   "fieldname": "cumulative_collected",
+   "fieldname": "cumulative_invoiced",
    "fieldtype": "Currency",
-   "label": "Cumulative Amount Collected",
+   "label": "Cumulative Amount Invoiced",
    "read_only": 1
   },
   {
@@ -310,13 +482,6 @@
    "fieldname": "outstanding_on_contract",
    "fieldtype": "Currency",
    "label": "Outstanding on Contract",
-   "read_only": 1
-  },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "recovery_pct_invoiced",
-   "fieldtype": "Percent",
-   "label": "Recovery Percentage (Invoiced)",
    "read_only": 1
   },
   {
@@ -332,38 +497,19 @@
    "fieldtype": "Section Break",
    "label": "RRA / RLO Terms"
   },
-   {
-    "fieldname": "min_monthly_value",
-    "fieldtype": "Currency",
-    "label": "Minimum Monthly Purchase Value",
-    "non_negative": 1,
-    "read_only": 1
-   },
   {
-   "fieldname": "column_break_zcpc",
-   "fieldtype": "Column Break"
-  },
-   {
-    "description": "Shortfalls within this many days of period-end stay in Grace Period without incrementing the breach count.",
-    "fieldname": "grace_period_days",
-    "fieldtype": "Int",
-    "label": "Grace Period (Days)",
-    "non_negative": 1
-   },
-   {
-    "description": "Auto-repossession triggers after this many consecutive shortfall months (default 3).",
-    "fieldname": "breach_threshold",
-    "fieldtype": "Int",
-    "label": "Breach Threshold (Consecutive Months)",
-    "non_negative": 1
-   },
-  {
-   "allow_on_submit": 1,
-   "fieldname": "consecutive_breach_count",
-   "fieldtype": "Int",
-   "label": "Consecutive Breach Count",
+   "fieldname": "min_monthly_value",
+   "fieldtype": "Currency",
+   "label": "Minimum Monthly Purchase Value",
    "non_negative": 1,
    "read_only": 1
+  },
+  {
+   "description": "Auto-repossession triggers after this many consecutive shortfall months (default 3).",
+   "fieldname": "breach_threshold",
+   "fieldtype": "Int",
+   "label": "Breach Threshold (Consecutive Months)",
+   "non_negative": 1
   },
   {
    "default": "None",
@@ -373,11 +519,36 @@
    "options": "None\nFixed Amount\nPercentage of Shortfall"
   },
   {
+   "fieldname": "column_break_zcpc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Shortfalls within this many days of period-end stay in Grace Period without incrementing the breach count.",
+   "fieldname": "grace_period_days",
+   "fieldtype": "Int",
+   "label": "Grace Period (Days)",
+   "non_negative": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "consecutive_breach_count",
+   "fieldtype": "Int",
+   "label": "Consecutive Breach Count",
+   "non_negative": 1,
+   "read_only": 1
+  },
+  {
    "depends_on": "eval:doc.shortfall_penalty_type!=\"None\";",
    "fieldname": "penalty_value",
    "fieldtype": "Float",
    "label": "Penalty Value",
    "non_negative": 1
+  },
+  {
+   "depends_on": "eval:doc.contract_type==\"RLO\";",
+   "fieldname": "rlo_ownership_transfer_secction",
+   "fieldtype": "Section Break",
+   "label": "RLO \u2014 Ownership Transfer"
   },
   {
    "allow_on_submit": 1,
@@ -393,20 +564,6 @@
    "fieldtype": "Date",
    "label": "Estimated Transfer Date"
   },
-   {
-    "description": "Mirror of the linked worksheet calculation. Change the worksheet, not this field.",
-    "fieldname": "revenue_share_pct",
-    "fieldtype": "Percent",
-    "label": "Required Revenue Share %",
-    "non_negative": 1,
-    "read_only": 1
-   },
-  {
-   "depends_on": "eval:doc.contract_type==\"RLO\";",
-   "fieldname": "rlo_ownership_transfer_secction",
-   "fieldtype": "Section Break",
-   "label": "RLO \u2014 Ownership Transfer"
-  },
   {
    "depends_on": "eval:doc.contract_type==\"CPT\";",
    "fieldname": "cpt_revenue_share_terms_section",
@@ -414,14 +571,22 @@
    "label": "CPT \u2014 Revenue Share Terms"
   },
   {
-   "fieldname": "column_break_mevk",
-   "fieldtype": "Column Break"
+   "description": "Mirror of the linked worksheet calculation. Change the worksheet, not this field.",
+   "fieldname": "revenue_share_pct",
+   "fieldtype": "Percent",
+   "label": "Required Revenue Share %",
+   "non_negative": 1,
+   "read_only": 1
   },
   {
    "fieldname": "fixed_monthly_gross_revenue",
    "fieldtype": "Currency",
    "label": "Fixed Monthly Gross Revenue",
    "read_only": 1
+  },
+  {
+   "fieldname": "column_break_mevk",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "fixed_monthly_share_amount",
@@ -434,27 +599,43 @@
    "fieldtype": "Section Break",
    "label": "Contract Test Reagent Lines"
   },
-   {
-    "fieldname": "contract_terms_section",
-    "fieldtype": "Section Break",
-    "label": "Contract Terms"
-   },
-   {
-    "fieldname": "contract_template",
-    "fieldtype": "Link",
-    "label": "Contract Template",
-    "options": "Contract Template"
-   },
-   {
-    "fieldname": "contract_terms",
-    "fieldtype": "Text Editor",
-    "label": "Contract Terms"
-   },
-   {
-    "fieldname": "admin_section",
-    "fieldtype": "Section Break",
-    "label": "Admin"
-   },
+  {
+   "fieldname": "contract_reagent_lines",
+   "fieldtype": "Table",
+   "options": "Contract Test Reagent Line",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contract_consumable_line_section",
+   "fieldtype": "Section Break",
+   "label": "Contract Consumable Lines"
+  },
+  {
+   "fieldname": "contract_consumable_lines",
+   "fieldtype": "Table",
+   "options": "Contract Consumable Line"
+  },
+  {
+   "fieldname": "contract_terms_section",
+   "fieldtype": "Section Break",
+   "label": "Contract Terms"
+  },
+  {
+   "fieldname": "contract_template",
+   "fieldtype": "Link",
+   "label": "Contract Template",
+   "options": "Contract Template"
+  },
+  {
+   "fieldname": "contract_terms",
+   "fieldtype": "Text Editor",
+   "label": "Contract Terms"
+  },
+  {
+   "fieldname": "admin_section",
+   "fieldtype": "Section Break",
+   "label": "Admin"
+  },
   {
    "fieldname": "approved_by",
    "fieldtype": "Link",
@@ -480,21 +661,114 @@
    "fieldtype": "Small Text",
    "label": "Notes"
   },
-   {
-    "fieldname": "contract_reagent_lines",
-   "fieldtype": "Table",
-   "options": "Contract Test Reagent Line",
-   "reqd": 1
+  {
+   "fieldname": "section_break_ikas",
+   "fieldtype": "Section Break"
   },
   {
-   "fieldname": "contract_consumable_line_section",
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Instrument Placement Contract",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "wht_category",
+   "fieldtype": "Link",
+   "label": "WHT Category",
+   "options": "Tax Withholding Category",
+   "read_only": 1
+  },
+  {
+   "fieldname": "wht_rate_date",
+   "fieldtype": "Date",
+   "label": "WHT Rate Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "price_snapshot_date",
+   "fieldtype": "Date",
+   "label": "Price Snapshot Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "billing_denominator",
+   "fieldtype": "Select",
+   "label": "Billing Denominator",
+   "options": "\nPacks Delivered\nTests Declared\nReportable Results"
+  },
+  {
+   "fieldname": "inclusions_checklist",
+   "fieldtype": "Small Text",
+   "label": "Inclusions Checklist"
+  },
+  {
+   "fieldname": "true_up_rule",
+   "fieldtype": "Select",
+   "label": "True-Up Rule",
+   "options": "\nNone\nMonthly Retrospective\nQuarterly Retrospective\nIncremental Only"
+  },
+  {
+   "fieldname": "escalation_terms",
+   "fieldtype": "Small Text",
+   "label": "Escalation Terms"
+  },
+  {
+   "fieldname": "uptime_commitment_pct",
+   "fieldtype": "Percent",
+   "label": "Uptime Commitment %"
+  },
+  {
+   "fieldname": "progress_section",
    "fieldtype": "Section Break",
-   "label": "Contract Consumable Lines"
+   "label": "Delivery Progress",
+   "collapsible": 1
   },
   {
-   "fieldname": "contract_consumable_lines",
-   "fieldtype": "Table",
-   "options": "Contract Consumable Line"
+   "fieldname": "progress_reagent_required",
+   "fieldtype": "Float",
+   "label": "Reagent Packs Required",
+   "read_only": 1
+  },
+  {
+   "fieldname": "progress_reagent_delivered",
+   "fieldtype": "Float",
+   "label": "Reagent Packs Delivered",
+   "read_only": 1
+  },
+  {
+   "fieldname": "progress_reagent_remaining",
+   "fieldtype": "Float",
+   "label": "Reagent Packs Remaining",
+   "read_only": 1
+  },
+  {
+   "fieldname": "progress_consumable_required",
+   "fieldtype": "Float",
+   "label": "Consumables Required",
+   "read_only": 1
+  },
+  {
+   "fieldname": "progress_consumable_delivered",
+   "fieldtype": "Float",
+   "label": "Consumables Delivered",
+   "read_only": 1
+  },
+  {
+   "fieldname": "progress_consumable_remaining",
+   "fieldtype": "Float",
+   "label": "Consumables Remaining",
+   "read_only": 1
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "default": "Today",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
@@ -564,6 +838,43 @@
    "read": 1,
    "report": 1,
    "role": "Auditor"
+  },
+  {
+   "role": "Placement Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1,
+   "delete": 1
+  },
+  {
+   "role": "Placement Director",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1,
+   "share": 1,
+   "print": 1,
+   "email": 1,
+   "delete": 1
+  },
+  {
+   "role": "Field Engineer",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
   }
  ],
  "row_format": "Dynamic",

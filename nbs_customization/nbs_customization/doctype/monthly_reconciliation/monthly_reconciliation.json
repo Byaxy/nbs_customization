@@ -16,6 +16,7 @@
   "contract_type",
   "asset",
   "period",
+  "posting_date",
   "purchase_performance_section",
   "minimum_value_required",
   "total_actual_value",
@@ -259,6 +260,13 @@
    "fieldname": "notes",
    "fieldtype": "Small Text",
    "label": "Notes"
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "default": "Today",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
