@@ -37,6 +37,21 @@ def ensure_test_item(name="_Test Item"):
 	)
 
 
+def ensure_test_supplier_group():
+	# ERPNext rejects group-type supplier groups, so the double needs a leaf.
+	name = "_Test Supplier Group"
+	if not frappe.db.exists("Supplier Group", name):
+		frappe.get_doc(
+			{
+				"doctype": "Supplier Group",
+				"supplier_group_name": name,
+				"parent_supplier_group": "All Supplier Groups",
+				"is_group": 0,
+			}
+		).insert(ignore_permissions=True)
+	return name
+
+
 def ensure_test_supplier():
 	# Supplier autoname reads the global supp_master_name default (Naming Series
 	# on this site) — flip it inside the test transaction (rolled back) so the
@@ -50,7 +65,7 @@ def ensure_test_supplier():
 			{
 				"doctype": "Supplier",
 				"supplier_name": "_Test Supplier",
-				"supplier_group": "All Supplier Groups",
+				"supplier_group": ensure_test_supplier_group(),
 				"supplier_type": "Company",
 			}
 		)
