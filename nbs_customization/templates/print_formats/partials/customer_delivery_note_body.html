@@ -1,4 +1,4 @@
-{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature -%}
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature, sales_invoice_numbers -%}
 
 <div class="nbs-body">
 	{# 1. "DELIVERY NOTE" heading #}
@@ -35,7 +35,7 @@
 					color: #000;
 				"
 			>
-				Sales Order #
+				Sales Invoice #
 			</td>
 			<td style="width: 10%"></td>
 			<td
@@ -78,7 +78,7 @@
 					word-break: break-all;
 				"
 			>
-				{{ doc.sales_order or "N/A" }}
+				{{ sales_invoice_numbers(doc.sales_order) }}
 			</td>
 			<td style="width: 10%"></td>
 			<td

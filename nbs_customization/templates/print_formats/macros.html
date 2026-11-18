@@ -619,3 +619,50 @@ pdf_proforma_title(doc) %}
 	</tr>
 </table>
 {% endmacro %}
+
+{% macro sales_invoice_numbers(sales_order=None, delivery_note=None) -%}
+	{%- set invoices = [] -%}
+	{%- if delivery_note -%}
+		{%- set invoices = frappe.db.sql(
+			"""select si.name
+			from `tabSales Invoice` si
+			join `tabSales Invoice Item` sii on sii.parent = si.name
+			where si.docstatus = 1 and sii.delivery_note = %s
+			group by si.name
+			order by min(si.creation) asc, si.name asc""",
+			(delivery_note,),
+			pluck=True,
+		) -%}
+		{%- if not invoices -%}
+			{%- set invoices = frappe.db.sql(
+				"""select si.name
+				from `tabSales Invoice` si
+				join `tabDelivery Note Item` dni on dni.against_sales_invoice = si.name
+				where si.docstatus = 1 and dni.parent = %s
+				group by si.name
+				order by min(si.creation) asc, si.name asc""",
+				(delivery_note,),
+				pluck=True,
+			) -%}
+		{%- endif -%}
+	{%- endif -%}
+	{%- if not invoices and sales_order -%}
+		{%- set invoices = frappe.db.sql(
+			"""select si.name
+			from `tabSales Invoice` si
+			join `tabSales Invoice Item` sii on sii.parent = si.name
+			where si.docstatus = 1 and sii.sales_order = %s
+			group by si.name
+			order by min(si.creation) asc, si.name asc""",
+			(sales_order,),
+			pluck=True,
+		) -%}
+	{%- endif -%}
+	{%- if invoices -%}
+		{%- for invoice in invoices -%}
+			{{ invoice }}{% if not loop.last %}<br />{% endif %}
+		{%- endfor -%}
+	{%- else -%}
+		N/A
+	{%- endif -%}
+{%- endmacro %}

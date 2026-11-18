@@ -1,4 +1,4 @@
-{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature -%}
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature, sales_invoice_numbers -%}
 
 <div class="nbs-body">
 	{# 1. "PROMISSORY NOTE" heading #}
@@ -23,7 +23,7 @@
 					<tr>
 						<td
 							style="
-								width: 40%;
+								width: 35%;
 								text-align: center;
 								background-color: #819ac2;
 								padding: 2px 3px !important;
@@ -36,7 +36,7 @@
 						</td>
 						<td
 							style="
-								width: 60%;
+								width: 65%;
 								text-align: center;
 								background-color: #819ac2;
 								padding: 2px 3px !important;
@@ -45,13 +45,13 @@
 								color: #000;
 							"
 						>
-							Sales Order #
+							Sales Invoice #
 						</td>
 					</tr>
 					<tr>
 						<td
 							style="
-								width: 40%;
+								width: 35%;
 								text-align: center;
 								padding: 4px 6px !important;
 								font-size: 12px;
@@ -63,15 +63,17 @@
 						</td>
 						<td
 							style="
-								width: 60%;
+								width: 65%;
 								text-align: center;
 								padding: 4px 6px !important;
 								font-size: 12px;
 								font-weight: bold;
 								color: #000;
+								line-height: 1.35;
+								white-space: nowrap;
 							"
 						>
-							{{ doc.sales_order }}
+							{{ sales_invoice_numbers(doc.sales_order) }}
 						</td>
 					</tr>
 				</table>
