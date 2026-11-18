@@ -619,3 +619,21 @@ pdf_proforma_title(doc) %}
 	</tr>
 </table>
 {% endmacro %}
+
+{% macro sales_invoice_for_sales_order(sales_order) -%}
+	{%- if not sales_order -%}
+		N/A
+	{%- else -%}
+		{%- set invoices = frappe.db.sql(
+			"""select si.name
+			from `tabSales Invoice` si
+			join `tabSales Invoice Item` sii on sii.parent = si.name
+			where si.docstatus = 1 and sii.sales_order = %s
+			order by si.creation asc, si.name asc
+			limit 1""",
+			(sales_order,),
+			pluck=True,
+		) -%}
+		{{- invoices[0] if invoices else "N/A" -}}
+	{%- endif -%}
+{%- endmacro %}

@@ -1,4 +1,4 @@
-{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature2, officer_signature -%}
+{%- from "nbs_customization/templates/print_formats/macros.html" import pdf_address, pdf_signature2, officer_signature, sales_invoice_for_sales_order -%}
 
 <div class="nbs-body">
 	{# 1. "Waybill" heading #}
@@ -35,7 +35,7 @@
 					color: #000;
 				"
 			>
-				Sales Order #
+				Sales Invoice #
 			</td>
 			<td style="width: 10%"></td>
 			<td
@@ -79,7 +79,7 @@
 					word-break: break-all;
 				"
 			>
-				{{ doc.custom_sales_order or "N/A" }}
+				{{ sales_invoice_for_sales_order(doc.custom_sales_order or (doc.items[0].against_sales_order if doc.items else None)) }}
 			</td>
 			<td style="width: 10%"></td>
 			<td
