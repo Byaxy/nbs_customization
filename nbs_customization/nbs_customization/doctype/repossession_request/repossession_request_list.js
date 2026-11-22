@@ -5,7 +5,7 @@ frappe.listview_settings["Repossession Request"] = {
 			"Pending Approval": [__("Pending Approval"), "orange"],
 			Approved: [__("Approved"), "blue"],
 			"Analyzer Retrieved": [__("Analyzer Retrieved"), "green"],
-			Closed: [__("Closed"), "darkgray"],
+			Closed: [__("Closed"), "gray"],
 		};
 		return map[doc.status] || [__("Unknown"), "gray"];
 	},

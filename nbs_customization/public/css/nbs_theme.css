@@ -10,19 +10,25 @@
 	--nbs-danger-hover: #b91c1c;
 	--nbs-accent-color: #00fdff;
 	--nbs-accent-soft: rgba(0, 253, 255, 0.55);
+	--nbs-sidebar-separator: #00fdff;
+	--nbs-sidebar-rule: rgba(0, 253, 255, 0.4);
+	--nbs-sidebar-rule: color-mix(in srgb, var(--nbs-sidebar-separator) 40%, transparent);
+	--nbs-page-head-rule: rgba(0, 253, 255, 0.4);
+	--nbs-page-head-rule: color-mix(in srgb, var(--nbs-accent-color) 40%, transparent);
 
 	/* Sidebar */
-	--nbs-sidebar-bg: #e8e9e9;
-	--nbs-sidebar-text: #001b52;
-	--nbs-sidebar-active-bg: #001b52;
-	--nbs-sidebar-active-text: #00fdff;
+	--nbs-sidebar-bg: #001b52;
+	--nbs-sidebar-text: #ffffff;
+	--nbs-sidebar-active-bg: var(--nbs-accent-color);
+	--nbs-sidebar-active-text: var(--nbs-primary);
+	--nbs-dock-bg: #00133d;
 
 	/* Navbar */
 	--nbs-navbar-bg: #001b52;
 	--nbs-navbar-text: #ffffff;
 	--nbs-navbar-icon: #ffffff;
-	--nbs-page-head-bg: #e8e9e9;
-	--nbs-page-head-text: #001b52;
+	--nbs-page-head-bg: #001b52;
+	--nbs-page-head-text: #ffffff;
 
 	/* Tables & lists */
 	--nbs-table-header-bg: #001b52;
@@ -242,11 +248,124 @@ body.desktop-page .desktop-avatar .avatar-frame {
    ============================================================ */
 .page-head {
 	background-color: var(--nbs-page-head-bg) !important;
+	border-bottom: 1px solid var(--nbs-page-head-rule) !important;
 	margin-left: -24px !important;
 	padding-left: 24px !important;
 }
+
+.page-head .navbar-breadcrumbs a,
+.page-head .navbar-breadcrumbs .es-breadcrumbs__label,
 .navbar-breadcrumbs li:last-child > a {
 	color: var(--nbs-page-head-text) !important;
+}
+
+.page-head .es-button[data-variant="ghost"] {
+	color: #ffffff !important;
+	--bt-fg: #ffffff;
+}
+
+.page-head .es-button[data-variant="ghost"]:hover,
+.page-head .es-button[data-variant="ghost"]:focus {
+	background-color: rgba(255, 255, 255, 0.12) !important;
+	color: #ffffff !important;
+}
+
+.page-head .es-button[data-variant="ghost"] svg,
+.page-head .es-button[data-variant="ghost"] svg use {
+	color: #ffffff !important;
+	stroke: #ffffff !important;
+}
+
+/* Secondary page-head buttons stay white on the primary bar. */
+.page-head .es-button:not([data-variant="solid"]):not([data-variant="ghost"]):not([data-theme="red"]):not([data-label="Cancel"]),
+.page-head .btn-default {
+	background-color: #ffffff !important;
+	border-color: rgba(0, 27, 82, 0.14) !important;
+	color: var(--nbs-primary) !important;
+	--bt-fill-bg: #ffffff;
+	--bt-fill-bg-hover: #eef6ff;
+	--bt-fill-bg-active: #e0f2fe;
+	--bt-border: rgba(0, 27, 82, 0.14);
+	--bt-border-hover: rgba(0, 27, 82, 0.28);
+}
+
+.page-head .es-button:not([data-variant="solid"]):not([data-variant="ghost"]):not([data-theme="red"]):not([data-label="Cancel"]):hover,
+.page-head .btn-default:hover,
+.page-head .btn-default:focus {
+	background-color: #eef6ff !important;
+	border-color: rgba(0, 27, 82, 0.28) !important;
+	color: var(--nbs-primary) !important;
+}
+
+/* Solid page-head groups other than the main CTA stay white. */
+.page-head .es-button[data-variant="solid"]:not(.primary-action):not(.primary-action-menu):not([data-theme="red"]):not([data-label="Cancel"]) {
+	background-color: #ffffff !important;
+	border-color: rgba(0, 27, 82, 0.14) !important;
+	color: var(--nbs-primary) !important;
+	--bt-solid-bg: #ffffff;
+	--bt-solid-bg-hover: #eef6ff;
+	--bt-solid-bg-active: #e0f2fe;
+	--bt-solid-fg: var(--nbs-primary);
+}
+
+.page-head .es-button[data-variant="solid"]:not(.primary-action):not(.primary-action-menu):not([data-theme="red"]):not([data-label="Cancel"]):hover,
+.page-head .es-button[data-variant="solid"]:not(.primary-action):not(.primary-action-menu):not([data-theme="red"]):not([data-label="Cancel"]):focus {
+	background-color: #eef6ff !important;
+	border-color: rgba(0, 27, 82, 0.28) !important;
+	color: var(--nbs-primary) !important;
+}
+
+/* Main page-head CTA: primary fill, white ink, white outline. */
+.page-head .es-button.primary-action,
+.page-head .es-button.primary-action-menu,
+.page-head .btn-primary:not(.btn-danger):not(.btn-red):not([data-theme="red"]):not([data-label="Cancel"]) {
+	background-color: var(--nbs-btn-primary-bg) !important;
+	border-color: rgba(255, 255, 255, 0.85) !important;
+	color: #ffffff !important;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85);
+	--bt-solid-bg: var(--nbs-btn-primary-bg);
+	--bt-solid-bg-hover: var(--nbs-btn-primary-hover);
+	--bt-solid-bg-active: var(--nbs-primary-hover);
+	--bt-solid-fg: #ffffff;
+}
+
+/* One outline around the split CTA; the segments stay borderless. */
+.page-head .es-segmented-button.primary-action-group {
+	border-radius: 8px;
+	box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85);
+}
+
+.page-head .primary-action-group .es-button.primary-action,
+.page-head .primary-action-group .es-button.primary-action-menu {
+	border-color: transparent !important;
+	box-shadow: none !important;
+}
+
+.page-head .es-button.primary-action:hover,
+.page-head .es-button.primary-action:focus,
+.page-head .es-button.primary-action-menu:hover,
+.page-head .es-button.primary-action-menu:focus,
+.page-head .btn-primary:not(.btn-danger):not(.btn-red):not([data-theme="red"]):not([data-label="Cancel"]):hover,
+.page-head .btn-primary:not(.btn-danger):not(.btn-red):not([data-theme="red"]):not([data-label="Cancel"]):focus {
+	background-color: var(--nbs-btn-primary-hover) !important;
+	border-color: rgba(255, 255, 255, 0.85) !important;
+	color: #ffffff !important;
+}
+
+.page-head .es-button.primary-action:active,
+.page-head .es-button.primary-action-menu:active,
+.page-head .btn-primary:not(.btn-danger):not(.btn-red):not([data-theme="red"]):not([data-label="Cancel"]):active {
+	background-color: var(--nbs-btn-primary-hover) !important;
+	transform: translateY(0) !important;
+}
+
+.page-head .es-button.primary-action svg,
+.page-head .es-button.primary-action-menu svg,
+.page-head .btn-primary:not(.btn-danger):not(.btn-red) span,
+.page-head .btn-primary:not(.btn-danger):not(.btn-red) svg,
+.page-head .btn-primary:not(.btn-danger):not(.btn-red) svg use {
+	color: #ffffff !important;
+	stroke: #ffffff !important;
 }
 
 /* ============================================================
@@ -271,7 +390,7 @@ body.desktop-page .desktop-avatar .avatar-frame {
 
 .body-sidebar {
 	background-color: var(--nbs-sidebar-bg) !important;
-	border-right: 1px solid rgba(255, 255, 255, 0.07) !important;
+	border-right: 1px solid var(--nbs-sidebar-rule) !important;
 }
 
 .body-sidebar .header-title,
@@ -279,24 +398,25 @@ body.desktop-page .desktop-avatar .avatar-frame {
 	color: var(--nbs-sidebar-text) !important;
 }
 
-/* Module header as a white card: the "current place" indicator. Hover and
-   menu-open keep the white surface and only deepen the shadow. Scoped to
-   .sidebar-header so the dock's app mark and the user chip stay flat. */
+/* Module header sits on a slightly lighter primary surface. The soft accent
+   hairline carries the "current place" cue without adding a white card. */
 .body-sidebar .sidebar-header.shell-header {
-	background-color: #ffffff;
-	box-shadow: var(--elevation-sm);
-	transition: box-shadow 0.18s ease;
+	background-color: #0a2559;
+	background-color: color-mix(in srgb, var(--nbs-primary) 88%, #ffffff);
+	box-shadow: inset 0 -1px 0 var(--nbs-sidebar-rule), var(--elevation-sm);
+	transition: background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .body-sidebar .sidebar-header.shell-header:hover,
 .body-sidebar .sidebar-header.shell-header.hover,
 .body-sidebar .sidebar-header.shell-header.active-sidebar {
-	background-color: #ffffff !important;
-	box-shadow: var(--elevation-base);
+	background-color: #0d2b66 !important;
+	background-color: color-mix(in srgb, var(--nbs-primary) 80%, #ffffff) !important;
+	box-shadow: inset 0 -1px 0 var(--nbs-sidebar-rule), var(--elevation-base);
 }
 
 .body-sidebar .sidebar-header.shell-header .header-title {
-	color: var(--nbs-sidebar-text) !important;
+	color: #ffffff !important;
 }
 
 .body-sidebar .standard-sidebar-item .item-anchor {
@@ -312,7 +432,7 @@ body.desktop-page .desktop-avatar .avatar-frame {
 .body-sidebar .standard-sidebar-item svg use {
 	color: var(--nbs-sidebar-text) !important;
 	stroke: var(--nbs-sidebar-text) !important;
-	opacity: 0.75;
+	opacity: 0.85;
 }
 
 .body-sidebar .standard-sidebar-item:not(.active-sidebar) .item-anchor:hover {
@@ -342,6 +462,15 @@ body.desktop-page .desktop-avatar .avatar-frame {
 	opacity: 1;
 }
 
+.body-sidebar .standard-sidebar-item .item-anchor:focus-visible {
+	outline: 2px solid var(--nbs-accent-color);
+	outline-offset: 2px;
+}
+
+.body-sidebar .standard-sidebar-item.active-sidebar .item-anchor:focus-visible {
+	outline-color: var(--nbs-primary);
+}
+
 /* Bottom area user button — suppress item hover bg, but allow dropdown to show */
 .body-sidebar-bottom .standard-sidebar-item .item-anchor:hover {
 	background: transparent !important;
@@ -363,7 +492,7 @@ body.desktop-page .desktop-avatar .avatar-frame {
 
 .body-sidebar .sidebar-label,
 .body-sidebar .list-sidebar-label {
-	color: rgba(0, 0, 0, 0.45) !important;
+	color: rgba(255, 255, 255, 0.62) !important;
 	font-size: 11px;
 	text-transform: uppercase;
 	letter-spacing: 0.08em;
@@ -372,23 +501,42 @@ body.desktop-page .desktop-avatar .avatar-frame {
 
 /* ============================================================
    4B. DOCK (module rail)
-   Floating tray rides over the sidebar, so it keeps the default
-   surface unless retokened: --dock-bg binds --desk-sidebar-bg,
-   which this theme does not recolor. Active/hover mirror the
-   sidebar's active item (primary bg + accent ink). Tooltips are
+   Darker primary tray beside the primary sidebar. Idle glyphs
+   are white; hover and active invert to accent bg + primary ink.
+   Separators use the soft accent hairline. Tooltips are
    .es-tooltip--plain, a class only the dock uses.
    ============================================================ */
 
 .dock {
-	--dock-bg: #dde0e0;
-	--dock-ink: var(--nbs-sidebar-text);
-	--dock-ink-strong: var(--nbs-sidebar-text);
-	--dock-rule: rgba(0, 27, 82, 0.14);
+	--dock-bg: var(--nbs-dock-bg);
+	--dock-ink: #ffffff;
+	--dock-ink-hover: #ffffff;
+	--dock-ink-active: var(--nbs-primary);
+	--dock-ink-strong: #ffffff;
+	--dock-rule: var(--nbs-sidebar-rule);
 }
 
-/* Pinned mode: navy-tinted divider between dock and sidebar */
+/* Pinned mode: soft accent divider between dock and sidebar */
 body.dock-pinned .dock {
-	border-right: 1px solid rgba(0, 27, 82, 0.14);
+	border-right: 1px solid var(--nbs-sidebar-rule) !important;
+}
+
+/* Logo band and utility band dividers */
+.dock .dock-logo,
+.dock .dock-utilities {
+	border-bottom-color: var(--nbs-sidebar-rule) !important;
+}
+
+/* Resting tiles are white; duotone glyphs keep a soft white light tone. */
+.dock .dock-item {
+	color: #ffffff !important;
+	--duotone-light: rgba(255, 255, 255, 0.55);
+	--duotone-dark: #ffffff;
+}
+
+.dock .dock-logo,
+.dock .dock-logo .shell-header {
+	color: #ffffff !important;
 }
 
 .dock .dock-item:hover,
@@ -396,21 +544,17 @@ body.dock-pinned .dock {
 .dock .dock-logo .shell-header:hover {
 	background-color: var(--nbs-sidebar-active-bg) !important;
 	color: var(--nbs-sidebar-active-text) !important;
-}
-
-/* Duotone module glyphs fill from --duotone-light/--duotone-dark (the only
-   properties that reach inside <use>), so currentColor rules pass them by.
-   Tint both tones accent on hover/active, mirroring the sidebar treatment.
-   Resting tiles keep the shipped gray pair. */
-.dock .dock-item:hover,
-.dock .dock-item--duotone.active {
-	--duotone-light: var(--nbs-accent-soft);
-	--duotone-dark: var(--nbs-accent-color);
+	--duotone-light: color-mix(in srgb, var(--nbs-primary) 55%, transparent);
+	--duotone-dark: var(--nbs-primary);
 }
 
 .dock .dock-item:focus-visible {
-	outline: 2px solid var(--nbs-sidebar-active-text);
+	outline: 2px solid var(--nbs-accent-color);
 	outline-offset: 2px;
+}
+
+.dock .dock-item.active:focus-visible {
+	outline-color: var(--nbs-primary);
 }
 
 /* Dock tooltip bubble: primary bg, white text for contrast */
@@ -622,6 +766,23 @@ body.dock-pinned .dock {
 	--bt-border-hover: var(--nbs-btn-danger-hover);
 }
 
+/* Destructive confirmations: Yes proceeds with primary, No stays red. */
+.es-button.btn-modal-primary[data-theme="red"] {
+	--bt-solid-bg: var(--nbs-btn-primary-bg);
+	--bt-solid-bg-hover: var(--nbs-btn-primary-hover);
+	--bt-solid-bg-active: var(--nbs-primary-hover);
+	--bt-solid-fg: #ffffff;
+	--bt-fill-bg: var(--nbs-btn-primary-bg);
+	--bt-fill-bg-hover: var(--nbs-btn-primary-hover);
+	--bt-fill-bg-active: var(--nbs-primary-hover);
+	--bt-fg: #ffffff;
+	--bt-border: var(--nbs-btn-primary-bg);
+	--bt-border-hover: var(--nbs-btn-primary-hover);
+	background-color: var(--nbs-btn-primary-bg) !important;
+	border-color: var(--nbs-btn-primary-bg) !important;
+	color: #ffffff !important;
+}
+
 /* Child-table footer actions: brand-filled like the old Add Row */
 .es-button.grid-add-row,
 .es-button.grid-add-multiple-rows {
@@ -671,16 +832,16 @@ header.level.list-row-head.text-muted > div.level-right {
    The repeating unit is .list-row-container inside .list-view-main */
 .list-row-container:nth-child(even),
 .list-row-container:nth-child(even) .list-row {
-	background-color: var(--nbs-table-even-bg) !important;
+	background-color: var(--nbs-table-row-hover-bg) !important;
 }
 .list-row-container:nth-child(even) .level-right {
-	background-color: var(--nbs-table-even-bg) !important;
+	background-color: var(--nbs-table-row-hover-bg) !important;
 }
 
 /* Fallback for genuine <table> views (Report Builder, Query Report) */
 .table tbody tr:nth-child(even),
 .dataTable tbody tr:nth-child(even) {
-	background-color: var(--nbs-table-even-bg) !important;
+	background-color: var(--nbs-table-row-hover-bg) !important;
 }
 
 /* Row hover */
@@ -709,7 +870,7 @@ header.level.list-row-head.text-muted > div.level-right {
 
 /* Even rows */
 .datatable .dt-row:not(.dt-row-header):not([data-is-total-row="1"]):nth-child(even) .dt-cell {
-	background-color: var(--nbs-table-even-bg) !important;
+	background-color: var(--nbs-table-row-hover-bg) !important;
 }
 
 /* Row hover */
@@ -781,7 +942,7 @@ header.level.list-row-head.text-muted > div.level-right {
 .form-grid .grid-body .rows .grid-row:nth-child(even) .data-row .col,
 .form-grid .grid-body .rows .grid-row:nth-child(even) .data-row .row-check,
 .form-grid .grid-body .rows .grid-row:nth-child(even) .data-row .row-index {
-	background-color: var(--nbs-table-even-bg) !important;
+	background-color: var(--nbs-table-row-hover-bg) !important;
 }
 
 /* Add Row Button */
@@ -799,6 +960,81 @@ header.level.list-row-head.text-muted > div.level-right {
 	color: var(--nbs-btn-primary-text) !important;
 	transform: translateY(-1px);
 	box-shadow: 0 4px 10px rgba(0, 27, 82, 0.28);
+}
+
+/* ============================================================
+   8B. STATUS BADGES
+   ============================================================ */
+
+/* Status surfaces use the badge's solid theme pair. Scoped to status
+   placements so tags, counts, and other badges stay subtle. */
+.list-row-col[data-fieldname="status_field"] .es-badge,
+.page-indicator-pill,
+.side-panel-indicator .es-badge,
+.embedded-list .es-badge[data-theme],
+.datatable .es-badge.filterable {
+	background-color: var(--c-solid-bg) !important;
+	color: var(--c-solid-fg) !important;
+	border-color: transparent !important;
+}
+
+/* Legacy indicator-pill markup still emitted by some app templates. */
+.indicator-pill.green,
+.indicator-pill-right.green {
+	background-color: var(--surface-green-7) !important;
+}
+
+.indicator-pill.amber,
+.indicator-pill.orange,
+.indicator-pill.yellow,
+.indicator-pill-right.amber,
+.indicator-pill-right.orange,
+.indicator-pill-right.yellow {
+	background-color: var(--surface-amber-7) !important;
+}
+
+.indicator-pill.red,
+.indicator-pill-right.red {
+	background-color: var(--surface-red-7) !important;
+}
+
+.indicator-pill.blue,
+.indicator-pill.cyan,
+.indicator-pill.light-blue,
+.indicator-pill-right.blue,
+.indicator-pill-right.cyan,
+.indicator-pill-right.light-blue {
+	background-color: var(--surface-blue-7) !important;
+}
+
+.indicator-pill.violet,
+.indicator-pill.purple,
+.indicator-pill.pink,
+.indicator-pill-right.violet,
+.indicator-pill-right.purple,
+.indicator-pill-right.pink {
+	background-color: var(--surface-violet-7) !important;
+}
+
+.indicator-pill.gray,
+.indicator-pill.grey,
+.indicator-pill.darkgrey,
+.indicator-pill.darkgray,
+.indicator-pill-right.gray,
+.indicator-pill-right.grey,
+.indicator-pill-right.darkgrey,
+.indicator-pill-right.darkgray {
+	background-color: var(--surface-gray-10) !important;
+}
+
+.indicator-pill:is(.green, .amber, .orange, .yellow, .red, .blue, .cyan, .light-blue, .violet, .purple, .pink, .gray, .grey, .darkgrey, .darkgray),
+.indicator-pill-right:is(.green, .amber, .orange, .yellow, .red, .blue, .cyan, .light-blue, .violet, .purple, .pink, .gray, .grey, .darkgrey, .darkgray) {
+	color: #ffffff !important;
+}
+
+.indicator-pill:not(.no-indicator-dot):is(.green, .amber, .orange, .yellow, .red, .blue, .cyan, .light-blue, .violet, .purple, .pink, .gray, .grey, .darkgrey, .darkgray)::before,
+.indicator-pill-right:is(.green, .amber, .orange, .yellow, .red, .blue, .cyan, .light-blue, .violet, .purple, .pink, .gray, .grey, .darkgrey, .darkgray)::after {
+	background-color: currentColor !important;
 }
 
 /* ============================================================
