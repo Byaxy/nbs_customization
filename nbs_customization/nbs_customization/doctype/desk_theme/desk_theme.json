@@ -14,10 +14,12 @@
   "danger_hover",
   "sidebar_tab",
   "sidebar_background",
+  "dock_background",
   "active_item_background",
   "column_break_loyc",
   "sidebar_text_color",
   "active_item_text",
+  "sidebar_separator_color",
   "navigation_bar_tab",
   "navbar_background",
   "navbar_icon_color",
@@ -68,6 +70,12 @@
    "fieldname": "sidebar_background",
    "fieldtype": "Color",
    "label": "Sidebar Background"
+  },
+  {
+   "description": "Surface behind the module rail.",
+   "fieldname": "dock_background",
+   "fieldtype": "Color",
+   "label": "Dock Background"
   },
   {
    "fieldname": "navigation_bar_tab",
@@ -131,6 +139,12 @@
    "fieldname": "active_item_text",
    "fieldtype": "Color",
    "label": "Active Item Text"
+  },
+  {
+   "description": "Base color; rendered at 40% opacity.",
+   "fieldname": "sidebar_separator_color",
+   "fieldtype": "Color",
+   "label": "Sidebar Separator"
   },
   {
    "fieldname": "navbar_background",

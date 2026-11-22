@@ -14,7 +14,7 @@ frappe.ui.form.on("Desk Theme", {
 					if (window.NBSTheme) {
 						window.NBSTheme.applyAndReload();
 					} else {
-						localStorage.removeItem("nbs_theme_v1");
+						localStorage.removeItem("nbs_theme_v5");
 						window.location.reload();
 					}
 				});
@@ -35,7 +35,7 @@ frappe.ui.form.on("Desk Theme", {
 									message: __("Theme reset to NBS defaults."),
 									indicator: "green",
 								});
-								localStorage.removeItem("nbs_theme_v1");
+								localStorage.removeItem("nbs_theme_v5");
 								// Give the server a moment to commit, then reload
 								setTimeout(() => window.location.reload(), 500);
 							})

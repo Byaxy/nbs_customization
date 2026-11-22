@@ -14,7 +14,7 @@ frappe.ui.form.on("Instrument Pricing Worksheet", {
 
 	update_indicators(frm) {
 		const STATUSES = {
-			Draft: "orange",
+			Draft: "gray",
 			Approved: "green",
 			"Applied to Contract": "purple",
 			Cancelled: "red",

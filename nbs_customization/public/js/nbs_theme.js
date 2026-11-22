@@ -90,7 +90,7 @@
 // ---------------------------------------------------------------------------
 class NBSTheme {
 	constructor() {
-		this.CACHE_KEY = "nbs_theme_v1";
+		this.CACHE_KEY = "nbs_theme_v5";
 		this.CSS_VAR_MAP = {
 			// Brand
 			"--nbs-primary": "primaryColor",
@@ -101,9 +101,11 @@ class NBSTheme {
 
 			// Sidebar
 			"--nbs-sidebar-bg": "sidebarBg",
+			"--nbs-dock-bg": "dockBg",
 			"--nbs-sidebar-text": "sidebarText",
 			"--nbs-sidebar-active-bg": "sidebarActiveItemBg",
 			"--nbs-sidebar-active-text": "sidebarActiveText",
+			"--nbs-sidebar-separator": "sidebarSeparatorColor",
 
 			// Navbar
 			"--nbs-navbar-bg": "navbarBg",

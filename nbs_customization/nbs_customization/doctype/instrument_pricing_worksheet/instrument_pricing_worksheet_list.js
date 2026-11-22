@@ -1,7 +1,7 @@
 frappe.listview_settings["Instrument Pricing Worksheet"] = {
 	get_indicator: function (doc) {
 		const STATUSES = {
-			Draft: [__("Draft"), "orange"],
+			Draft: [__("Draft"), "gray"],
 			Approved: [__("Approved"), "green"],
 			"Applied to Contract": [__("Applied to Contract"), "purple"],
 			Cancelled: [__("Cancelled"), "red"],
