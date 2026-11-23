@@ -1,13 +1,17 @@
 [
  {
   "description": "Clinical chemistry analyzer",
+  "docstatus": 0,
   "doctype": "Analyzer Type",
+  "modified": "2026-11-23 21:49:39.907453",
   "name": "Chemistry",
   "title": "Chemistry"
  },
  {
   "description": "Haematology / blood analyzer",
+  "docstatus": 0,
   "doctype": "Analyzer Type",
+  "modified": "2026-11-23 21:49:39.952729",
   "name": "Haematology",
   "title": "Haematology"
  }

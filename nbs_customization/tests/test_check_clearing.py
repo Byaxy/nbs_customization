@@ -1,6 +1,8 @@
 # Copyright (c) 2026, Charles Byakutaga/NBS and contributors
 # For license information, please see license.txt
 
+import json
+
 import frappe
 from frappe import _
 from frappe.tests import IntegrationTestCase
@@ -109,6 +111,17 @@ def _account_balance(account, voucher_no=None):
 		sql += " and voucher_no = %s"
 		params.append(voucher_no)
 	return flt(frappe.db.sql(sql, params)[0][0])
+
+
+def _section_owners(meta):
+	"""Map each fieldname to the Section/Tab Break it renders under."""
+	section = None
+	owner = {}
+	for df in meta.fields:
+		if df.fieldtype in ("Section Break", "Tab Break"):
+			section = df.fieldname
+		owner[df.fieldname] = section
+	return owner
 
 
 class TestCheckClearing(IntegrationTestCase):
@@ -353,3 +366,91 @@ class TestCheckClearing(IntegrationTestCase):
 			frappe.db.get_value("Account", inward, "parent_account"), "Accounts Receivable - _TC"
 		)
 		self.assertEqual(frappe.db.get_value("Account", outward, "parent_account"), "Accounts Payable - _TC")
+
+	def test_cheque_fields_render_outside_tds_section(self):
+		"""Regression: a stale field_order override used to push reference and
+		cheque fields into the Tax Withholding section, hiding them by default."""
+		meta = frappe.get_meta("Payment Entry")
+		owner = _section_owners(meta)
+
+		self.assertEqual(owner.get("reference_no"), "payment_accounts_section")
+		self.assertEqual(owner.get("reference_date"), "payment_accounts_section")
+		self.assertEqual(owner.get("check_bank"), "cheque_details_section")
+		self.assertNotEqual(owner.get("reference_no"), "section_tax_withholding_entry")
+
+		cheque_section = meta.get_field("cheque_details_section")
+		self.assertIsNotNone(cheque_section)
+		self.assertIn("is_check", cheque_section.depends_on or "")
+
+	def test_stale_field_order_override_is_repaired(self):
+		"""The upgrade repair must remove the legacy layout override, not just
+		coincide with correct metadata on a clean site."""
+		from nbs_customization.patches.v1.fix_payment_entry_field_order import execute
+
+		meta = frappe.get_meta("Payment Entry")
+		order = [df.fieldname for df in meta.fields]
+		order.remove("reference_no")
+		order.insert(order.index("section_tax_withholding_entry") + 1, "reference_no")
+
+		override = frappe.get_doc(
+			{
+				"doctype": "Property Setter",
+				"doctype_or_field": "DocType",
+				"doc_type": "Payment Entry",
+				"property": "field_order",
+				"value": json.dumps(order),
+				"is_system_generated": 0,
+			}
+		)
+		override.flags.ignore_permissions = True
+		override.flags.ignore_validate = True
+		override.insert()
+		self.addCleanup(frappe.clear_cache, doctype="Payment Entry")
+
+		frappe.clear_cache(doctype="Payment Entry")
+		self.assertEqual(
+			_section_owners(frappe.get_meta("Payment Entry")).get("reference_no"),
+			"section_tax_withholding_entry",
+		)
+
+		execute()
+		frappe.clear_cache(doctype="Payment Entry")
+
+		self.assertFalse(
+			frappe.db.exists(
+				"Property Setter",
+				{
+					"doc_type": "Payment Entry",
+					"property": "field_order",
+					"field_name": ("is", "not set"),
+				},
+			)
+		)
+		owner = _section_owners(frappe.get_meta("Payment Entry"))
+		self.assertEqual(owner.get("reference_no"), "payment_accounts_section")
+		self.assertEqual(owner.get("check_bank"), "cheque_details_section")
+
+		execute()  # idempotent re-run must not raise
+
+	def test_check_pe_requires_reference_and_bank(self):
+		from erpnext.accounts.party import get_party_account
+
+		party = _make_party("Customer", "_Test Check Clearing Customer")
+		mop = frappe.get_doc("Mode of Payment", "Check")
+		doc = frappe.get_doc(
+			{
+				"doctype": "Payment Entry",
+				"payment_type": "Receive",
+				"posting_date": today(),
+				"company": COMPANY,
+				"mode_of_payment": "Check",
+				"party_type": "Customer",
+				"party": party,
+				"paid_from": get_party_account("Customer", party, COMPANY),
+				"paid_to": mop.clearing_account_inward,
+				"paid_amount": 100,
+				"received_amount": 100,
+			}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			doc.insert()

@@ -300,9 +300,20 @@ class NBSTheme {
 // 3. INITIALISE
 // ---------------------------------------------------------------------------
 
+// Keep the status decorator available when the running desk still has an older
+// hooks cache; the app_include_js entry covers fresh boots.
+function loadStatusDecorator() {
+	if (document.querySelector('script[src*="nbs_status.js"]')) return;
+
+	const script = document.createElement("script");
+	script.src = "/assets/nbs_customization/js/nbs_status.js";
+	document.head.appendChild(script);
+}
+
 function initNBSTheme() {
 	window.NBSTheme = new NBSTheme();
 	window.NBSTheme.init();
+	loadStatusDecorator();
 }
 
 // Guard against double-init
