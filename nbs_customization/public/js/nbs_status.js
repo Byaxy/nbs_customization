@@ -14,6 +14,7 @@
 		".list-row-col[data-fieldname$='_status'] .es-badge",
 		".list-row-col[data-fieldname='status'] .es-badge",
 		".list-row-col[data-fieldname='custom_waybill_type'] .es-badge",
+		".list-row-col[data-fieldname='payment_type'] .es-badge",
 		".page-indicator-pill",
 		".side-panel-indicator .es-badge",
 		".embedded-list .es-badge",
@@ -74,6 +75,11 @@
 		custom_waybill_type: {
 			"regular waybill": "green",
 			"loan conversion waybill": "blue",
+		},
+		payment_type: {
+			receive: "green",
+			pay: "red",
+			"internal transfer": "blue",
 		},
 	};
 
@@ -136,23 +142,68 @@
 		root.querySelectorAll?.(STATUS_BADGE_SELECTOR).forEach(decorate);
 	}
 
+	const pending_badges = new Set();
+	const schedule_frame =
+		window.requestAnimationFrame?.bind(window) || ((callback) => setTimeout(callback, 16));
+	let scheduled_frame = 0;
+
+	function findBadge(node) {
+		const el = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+		return el?.closest?.(STATUS_BADGE_SELECTOR);
+	}
+
+	function scheduleBadge(node) {
+		const badge = findBadge(node);
+		if (!badge) return;
+
+		pending_badges.add(badge);
+		if (scheduled_frame) return;
+
+		scheduled_frame = schedule_frame(() => {
+			scheduled_frame = 0;
+			pending_badges.forEach(decorate);
+			pending_badges.clear();
+		});
+	}
+
+	function scheduleBadgeTree(node) {
+		if (node.nodeType !== Node.ELEMENT_NODE) return;
+		scheduleBadge(node);
+		node.querySelectorAll?.(STATUS_BADGE_SELECTOR).forEach(scheduleBadge);
+	}
+
 	function setupObserver() {
 		if (!window.MutationObserver) return;
 
 		const observer = new MutationObserver((mutations) => {
 			mutations.forEach((mutation) => {
-				mutation.addedNodes.forEach((node) => {
-					if (node.nodeType !== Node.ELEMENT_NODE) return;
-					if (node.matches?.(STATUS_BADGE_SELECTOR)) {
-						decorate(node);
-					}
-					decorateAll(node);
-				});
+				if (mutation.type === "attributes") {
+					scheduleBadge(mutation.target);
+					return;
+				}
+
+				if (mutation.type === "characterData") {
+					scheduleBadge(mutation.target.parentElement);
+					return;
+				}
+
+				scheduleBadge(mutation.target);
+				mutation.addedNodes.forEach(scheduleBadgeTree);
 			});
 		});
 
-		observer.observe(document.body, { childList: true, subtree: true });
+		observer.observe(document.body, {
+			childList: true,
+			subtree: true,
+			characterData: true,
+			attributes: true,
+			attributeFilter: ["data-theme", "data-filter"],
+		});
 	}
+
+	window.NBSStatus = {
+		refresh: () => decorateAll(document),
+	};
 
 	function init() {
 		decorateAll();
