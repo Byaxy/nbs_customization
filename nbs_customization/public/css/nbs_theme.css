@@ -969,19 +969,67 @@ header.level.list-row-head.text-muted > div.level-right {
 /* Status surfaces use the badge's solid theme pair. Scoped to status
    placements so tags, counts, and other badges stay subtle. */
 .list-row-col[data-fieldname="status_field"] .es-badge,
+.list-row-col[data-fieldname$="_status"] .es-badge,
+.list-row-col[data-fieldname="status"] .es-badge,
+.list-row-col[data-fieldname="custom_waybill_type"] .es-badge,
 .page-indicator-pill,
 .side-panel-indicator .es-badge,
-.embedded-list .es-badge[data-theme],
+.embedded-list .es-badge,
 .datatable .es-badge.filterable {
-	background-color: var(--c-solid-bg) !important;
-	color: var(--c-solid-fg) !important;
+	background-color: var(--nbs-tone-bg, var(--c-solid-bg)) !important;
+	color: var(--nbs-tone-fg, var(--c-solid-fg)) !important;
 	border-color: transparent !important;
+}
+
+/* Amber statuses are a lighter fill with navy ink for contrast. */
+:is(
+	.list-row-col[data-fieldname="status_field"] .es-badge,
+	.list-row-col[data-fieldname$="_status"] .es-badge,
+	.list-row-col[data-fieldname="status"] .es-badge,
+	.page-indicator-pill,
+	.side-panel-indicator .es-badge,
+	.embedded-list .es-badge,
+	.datatable .es-badge.filterable
+)[data-theme="amber"] {
+	background-color: var(--nbs-tone-bg, var(--surface-amber-6)) !important;
+	color: var(--nbs-primary) !important;
+}
+
+/* Lifecycle and workflow overrides from nbs_status.js */
+[data-nbs-tone] {
+	--nbs-tone-fg: #ffffff;
+	border-color: transparent !important;
+}
+
+[data-nbs-tone="gray"] {
+	--nbs-tone-bg: var(--surface-gray-8);
+}
+
+[data-nbs-tone="red-dark"] {
+	--nbs-tone-bg: var(--surface-red-9);
+}
+
+[data-nbs-tone="red"] {
+	--nbs-tone-bg: var(--surface-red-7);
+}
+
+[data-nbs-tone="amber"] {
+	--nbs-tone-bg: var(--surface-amber-6);
+	--nbs-tone-fg: var(--nbs-primary);
+}
+
+[data-nbs-tone="blue"] {
+	--nbs-tone-bg: var(--surface-blue-7);
+}
+
+[data-nbs-tone="green"] {
+	--nbs-tone-bg: var(--surface-green-7);
 }
 
 /* Legacy indicator-pill markup still emitted by some app templates. */
 .indicator-pill.green,
 .indicator-pill-right.green {
-	background-color: var(--surface-green-7) !important;
+	background-color: var(--nbs-tone-bg, var(--surface-green-7)) !important;
 }
 
 .indicator-pill.amber,
@@ -990,12 +1038,12 @@ header.level.list-row-head.text-muted > div.level-right {
 .indicator-pill-right.amber,
 .indicator-pill-right.orange,
 .indicator-pill-right.yellow {
-	background-color: var(--surface-amber-7) !important;
+	background-color: var(--nbs-tone-bg, var(--surface-amber-6)) !important;
 }
 
 .indicator-pill.red,
 .indicator-pill-right.red {
-	background-color: var(--surface-red-7) !important;
+	background-color: var(--nbs-tone-bg, var(--surface-red-7)) !important;
 }
 
 .indicator-pill.blue,
@@ -1004,7 +1052,7 @@ header.level.list-row-head.text-muted > div.level-right {
 .indicator-pill-right.blue,
 .indicator-pill-right.cyan,
 .indicator-pill-right.light-blue {
-	background-color: var(--surface-blue-7) !important;
+	background-color: var(--nbs-tone-bg, var(--surface-blue-7)) !important;
 }
 
 .indicator-pill.violet,
@@ -1013,7 +1061,7 @@ header.level.list-row-head.text-muted > div.level-right {
 .indicator-pill-right.violet,
 .indicator-pill-right.purple,
 .indicator-pill-right.pink {
-	background-color: var(--surface-violet-7) !important;
+	background-color: var(--nbs-tone-bg, var(--surface-violet-7)) !important;
 }
 
 .indicator-pill.gray,
@@ -1024,12 +1072,17 @@ header.level.list-row-head.text-muted > div.level-right {
 .indicator-pill-right.grey,
 .indicator-pill-right.darkgrey,
 .indicator-pill-right.darkgray {
-	background-color: var(--surface-gray-10) !important;
+	background-color: var(--nbs-tone-bg, var(--surface-gray-8)) !important;
 }
 
 .indicator-pill:is(.green, .amber, .orange, .yellow, .red, .blue, .cyan, .light-blue, .violet, .purple, .pink, .gray, .grey, .darkgrey, .darkgray),
 .indicator-pill-right:is(.green, .amber, .orange, .yellow, .red, .blue, .cyan, .light-blue, .violet, .purple, .pink, .gray, .grey, .darkgrey, .darkgray) {
-	color: #ffffff !important;
+	color: var(--nbs-tone-fg, #ffffff) !important;
+}
+
+.indicator-pill:is(.amber, .orange, .yellow),
+.indicator-pill-right:is(.amber, .orange, .yellow) {
+	color: var(--nbs-tone-fg, var(--nbs-primary)) !important;
 }
 
 .indicator-pill:not(.no-indicator-dot):is(.green, .amber, .orange, .yellow, .red, .blue, .cyan, .light-blue, .violet, .purple, .pink, .gray, .grey, .darkgrey, .darkgray)::before,

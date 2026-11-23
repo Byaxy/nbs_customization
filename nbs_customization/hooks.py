@@ -39,6 +39,7 @@ app_include_js = [
 	"/assets/nbs_customization/js/nbs_logo_recolor.js",
 	"/assets/nbs_customization/js/nbs_desk_icons.js",
 	"/assets/nbs_customization/js/nbs_theme.js",
+	"/assets/nbs_customization/js/nbs_status.js",
 	"/assets/nbs_customization/js/list_view_row_number.js",
 	"/assets/nbs_customization/js/report_row_number.js",
 	"/assets/nbs_customization/js/payment_entry.js",
