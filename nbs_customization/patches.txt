@@ -29,3 +29,5 @@ nbs_customization.patches.v1.cleanup_reagent_spec_fields
 nbs_customization.patches.v1.drop_deployment_acceptance_attachment
 
 nbs_customization.patches.v1.backfill_placement_posting_dates
+
+nbs_customization.patches.v1.fix_payment_entry_field_order

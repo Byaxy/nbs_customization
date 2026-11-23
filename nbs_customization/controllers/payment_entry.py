@@ -15,9 +15,11 @@ from nbs_customization.controllers.check_clearing import (
 def validate_check_payment_entry(pe, method=None):
 	"""Force cheque Payment Entries onto the direction-correct clearing account."""
 	if pe.payment_type not in ("Receive", "Pay") or not pe.mode_of_payment:
+		pe.set("is_check", 0)
 		return
 	mop = get_check_mop(pe.mode_of_payment)
 	if not mop.get("is_check"):
+		pe.set("is_check", 0)
 		return
 	expected = (
 		mop.get("clearing_account_inward")
@@ -37,9 +39,15 @@ def validate_check_payment_entry(pe, method=None):
 	if not pe.clearing_destination_account and mop.get("default_clearing_destination"):
 		pe.clearing_destination_account = mop.get("default_clearing_destination")
 	if not pe.reference_no or not pe.reference_date:
-		frappe.throw(_("Cheque/Reference No and Reference Date are mandatory for Check payments."))
+		frappe.throw(
+			_("Cheque/Reference No and Reference Date are mandatory for Check payments."),
+			title=_("Missing Cheque Details"),
+		)
 	if not pe.check_bank:
-		frappe.throw(_("Check Bank is mandatory for Check payments."))
+		frappe.throw(
+			_("Check Bank is mandatory for Check payments."),
+			title=_("Missing Cheque Details"),
+		)
 
 
 @frappe.whitelist(methods=["POST"])

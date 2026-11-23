@@ -353,3 +353,46 @@ class TestCheckClearing(IntegrationTestCase):
 			frappe.db.get_value("Account", inward, "parent_account"), "Accounts Receivable - _TC"
 		)
 		self.assertEqual(frappe.db.get_value("Account", outward, "parent_account"), "Accounts Payable - _TC")
+
+	def test_cheque_fields_render_outside_tds_section(self):
+		"""Regression: a stale field_order override used to push reference and
+		cheque fields into the Tax Withholding section, hiding them by default."""
+		meta = frappe.get_meta("Payment Entry")
+		section = None
+		owner = {}
+		for df in meta.fields:
+			if df.fieldtype in ("Section Break", "Tab Break"):
+				section = df.fieldname
+			owner[df.fieldname] = section
+
+		self.assertEqual(owner.get("reference_no"), "payment_accounts_section")
+		self.assertEqual(owner.get("reference_date"), "payment_accounts_section")
+		self.assertEqual(owner.get("check_bank"), "cheque_details_section")
+		self.assertNotEqual(owner.get("reference_no"), "section_tax_withholding_entry")
+
+		cheque_section = meta.get_field("cheque_details_section")
+		self.assertIsNotNone(cheque_section)
+		self.assertIn("is_check", cheque_section.depends_on or "")
+
+	def test_check_pe_requires_reference_and_bank(self):
+		from erpnext.accounts.party import get_party_account
+
+		party = _make_party("Customer", "_Test Check Clearing Customer")
+		mop = frappe.get_doc("Mode of Payment", "Check")
+		doc = frappe.get_doc(
+			{
+				"doctype": "Payment Entry",
+				"payment_type": "Receive",
+				"posting_date": today(),
+				"company": COMPANY,
+				"mode_of_payment": "Check",
+				"party_type": "Customer",
+				"party": party,
+				"paid_from": get_party_account("Customer", party, COMPANY),
+				"paid_to": mop.clearing_account_inward,
+				"paid_amount": 100,
+				"received_amount": 100,
+			}
+		)
+		with self.assertRaises(frappe.ValidationError):
+			doc.insert()

@@ -328,6 +328,7 @@ fixtures = [
 					"Payment Entry-check_returned",
 					"Payment Entry-check_return_date",
 					"Payment Entry-check_bank",
+					"Payment Entry-cheque_details_section",
 					"Item-custom_section_break_oapcm",
 					"Item-custom_is_placement_item",
 					"Item-custom_analyzer_profile",

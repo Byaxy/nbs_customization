@@ -165,28 +165,41 @@ function clearing_dialog(frm) {
 	d.show();
 }
 
-function toggle_check_reference_required(frm) {
-	if (!frm.doc.mode_of_payment) {
-		if (frm.doc.is_check) frm.set_value("is_check", 0);
-		frm.set_df_property("reference_no", "reqd", 0);
-		frm.set_df_property("reference_date", "reqd", 0);
-		frm.set_df_property("check_bank", "reqd", 0);
-		frm.toggle_display("check_bank", false);
-		return;
+const REFERENCE_MANDATORY =
+	"eval:doc.is_check==1 || doc.paid_from_account_type == 'Bank' || doc.paid_to_account_type == 'Bank'";
+
+function ensure_reference_mandatory_rule(frm) {
+	// Core re-evaluates mandatory_depends_on on every layout refresh and
+	// overwrites a plain `reqd` flag, so extend the rule to cover cheque mode.
+	for (const fieldname of ["reference_no", "reference_date"]) {
+		const field = frm.get_field(fieldname);
+		if (field && field.df.mandatory_depends_on !== REFERENCE_MANDATORY) {
+			frm.set_df_property(fieldname, "mandatory_depends_on", REFERENCE_MANDATORY);
+		}
 	}
-	const requested_mode = frm.doc.mode_of_payment;
-	frappe.db.get_value("Mode of Payment", frm.doc.mode_of_payment, "is_check", (r) => {
-		// guard stale callback if user quickly switched modes
-		if (frm.doc.mode_of_payment !== requested_mode) return;
-		const is_check = !!(r && r.is_check);
-		if (frm.doc.is_check !== is_check) frm.set_value("is_check", is_check ? 1 : 0);
+}
+
+function toggle_check_reference_required(frm) {
+	ensure_reference_mandatory_rule(frm);
+	const apply = (is_check) => {
+		if (!!frm.doc.is_check !== !!is_check) frm.set_value("is_check", is_check ? 1 : 0);
 		frm.set_df_property("reference_no", "reqd", is_check);
 		frm.set_df_property("reference_date", "reqd", is_check);
 		frm.set_df_property("check_bank", "reqd", is_check);
 		frm.toggle_display("check_bank", is_check);
-		if (!is_check) {
-			frm.set_df_property("check_bank", "reqd", 0);
-		}
+	};
+	if (!frm.doc.mode_of_payment) {
+		apply(false);
+		return;
+	}
+	// Apply from the saved flag first so load/amend show the right state
+	// without waiting for the async lookup below.
+	apply(!!frm.doc.is_check);
+	const requested_mode = frm.doc.mode_of_payment;
+	frappe.db.get_value("Mode of Payment", frm.doc.mode_of_payment, "is_check", (r) => {
+		// guard stale callback if user quickly switched modes
+		if (frm.doc.mode_of_payment !== requested_mode) return;
+		apply(!!(r && r.is_check));
 	});
 }
 
