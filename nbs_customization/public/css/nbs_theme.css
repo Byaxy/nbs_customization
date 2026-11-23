@@ -972,6 +972,7 @@ header.level.list-row-head.text-muted > div.level-right {
 .list-row-col[data-fieldname$="_status"] .es-badge,
 .list-row-col[data-fieldname="status"] .es-badge,
 .list-row-col[data-fieldname="custom_waybill_type"] .es-badge,
+.list-row-col[data-fieldname="payment_type"] .es-badge,
 .page-indicator-pill,
 .side-panel-indicator .es-badge,
 .embedded-list .es-badge,
