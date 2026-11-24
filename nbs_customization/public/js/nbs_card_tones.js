@@ -139,7 +139,7 @@
 	const RULES = [
 		{
 			tone: "red",
-			test: /overdue|delayed|late|rejected|separation|separating|exit|relieving|shortage|absent|failed|error|non conformance|lost|cancelled/,
+			test: /overdue|delayed|\blate\b|rejected|separation|separating|exit|relieving|shortage|absent|failed|error|non conformance|lost|cancelled/,
 		},
 		{
 			tone: "amber",

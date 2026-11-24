@@ -65,11 +65,11 @@ const DASHBOARD_CARD_STYLE = `
 	color: rgba(255, 255, 255, 0.65) !important;
 }
 
-:is([data-testid="dashboard-cell"], [role="dialog"]) table tbody tr:nth-child(even):not(.sticky):not([height="99%"]) > td {
+:is([data-testid="dashboard-cell"], [role="dialog"]) table tbody tr:nth-child(even):not(.sticky):not([height="99%"]) > td:not(.nbs-rule-painted) {
 	background-color: var(--nbs-table-even-bg, #dbeafe) !important;
 }
 
-:is([data-testid="dashboard-cell"], [role="dialog"]) table tbody tr:hover:not(.sticky):not([height="99%"]) > td {
+:is([data-testid="dashboard-cell"], [role="dialog"]) table tbody tr:hover:not(.sticky):not([height="99%"]) > td:not(.nbs-rule-painted) {
 	background-color: var(--nbs-table-row-hover-bg, #dbeafe) !important;
 }
 
@@ -110,11 +110,11 @@ const DASHBOARD_CARD_STYLE = `
 }
 
 .nbs-badge-amber {
-	background: var(--nbs-amber, #f59e0b);
+	background: #b45309;
 }
 
 .nbs-badge-green {
-	background: #10b981;
+	background: #047857;
 }
 `;
 
@@ -223,15 +223,27 @@ class NBSWorkspaceTheme {
 			const shadow = island.shadowRoot;
 			if (!shadow) return;
 
+			this.observeShadow(shadow);
+
 			const cells = shadow.querySelectorAll('[data-testid="dashboard-cell"]');
 			if (!cells.length) return;
 
 			this.ensureShadowStyle(island, DASHBOARD_CARD_STYLE);
-			this.observeShadow(shadow);
 
 			cells.forEach((cell) => this.accentDashboardCard(cell));
+			this.markRulePaintedCells(shadow);
 			this.applyTableBadges(shadow);
 		});
+	}
+
+	markRulePaintedCells(shadow) {
+		shadow
+			.querySelectorAll(
+				':is([data-testid="dashboard-cell"], [role="dialog"]) table tbody td'
+			)
+			.forEach((cell) => {
+				cell.classList.toggle("nbs-rule-painted", Boolean(cell.style.backgroundColor));
+			});
 	}
 
 	applyTableBadges(shadow) {
@@ -268,7 +280,7 @@ class NBSWorkspaceTheme {
 
 		if (!flagged) {
 			cell.classList.remove("nbs-badge-cell");
-			badge?.remove();
+			if (badge) badge.replaceWith(document.createTextNode(badge.textContent));
 			return;
 		}
 

@@ -88,11 +88,17 @@ body[data-nbs-desk] .editor-js-container .links-widget-box .link-item {
 	text-underline-offset: 2px;
 }
 
-body[data-nbs-desk] .editor-js-container .links-widget-box .link-item:hover,
-body[data-nbs-desk] .editor-js-container .links-widget-box .link-item:focus-visible {
+body[data-nbs-desk] .editor-js-container .links-widget-box .link-item:hover {
 	color: var(--nbs-primary);
 	text-decoration-color: var(--nbs-primary);
-	outline: 0;
+}
+
+body[data-nbs-desk] .editor-js-container .links-widget-box .link-item:focus-visible {
+	color: var(--nbs-primary);
+	text-decoration: underline;
+	text-decoration-color: var(--nbs-primary);
+	outline: 2px solid var(--nbs-primary);
+	outline-offset: 2px;
 }
 
 /* Tables inside workspace widgets */
