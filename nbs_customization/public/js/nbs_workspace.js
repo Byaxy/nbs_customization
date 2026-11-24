@@ -130,6 +130,7 @@ class NBSWorkspaceTheme {
 	constructor() {
 		this.queued = false;
 		this.observedShadows = new WeakSet();
+		this.observedTables = new WeakSet();
 	}
 
 	init() {
@@ -237,6 +238,11 @@ class NBSWorkspaceTheme {
 	}
 
 	markRulePaintedCells(shadow) {
+		const tables = shadow.querySelectorAll(
+			':is([data-testid="dashboard-cell"], [role="dialog"]) table'
+		);
+
+		tables.forEach((table) => this.observeTable(table));
 		shadow
 			.querySelectorAll(
 				':is([data-testid="dashboard-cell"], [role="dialog"]) table tbody td'
@@ -244,6 +250,17 @@ class NBSWorkspaceTheme {
 			.forEach((cell) => {
 				cell.classList.toggle("nbs-rule-painted", Boolean(cell.style.backgroundColor));
 			});
+	}
+
+	observeTable(table) {
+		if (!window.MutationObserver || this.observedTables.has(table)) return;
+
+		this.observedTables.add(table);
+		new MutationObserver(() => this.schedule()).observe(table, {
+			attributes: true,
+			attributeFilter: ["style"],
+			subtree: true,
+		});
 	}
 
 	applyTableBadges(shadow) {
