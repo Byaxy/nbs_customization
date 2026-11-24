@@ -33,12 +33,15 @@ code_only_modules = {
 # include js, css files in header of desk.html
 app_include_css = [
 	"/assets/nbs_customization/css/nbs_theme.css",
+	"/assets/nbs_customization/css/nbs_workspace.css",
 	"/assets/nbs_customization/css/list_view_row_number.css",
 ]
 app_include_js = [
 	"/assets/nbs_customization/js/nbs_logo_recolor.js",
 	"/assets/nbs_customization/js/nbs_desk_icons.js",
 	"/assets/nbs_customization/js/nbs_theme.js",
+	"/assets/nbs_customization/js/nbs_card_tones.js",
+	"/assets/nbs_customization/js/nbs_workspace.js",
 	"/assets/nbs_customization/js/nbs_status.js",
 	"/assets/nbs_customization/js/list_view_row_number.js",
 	"/assets/nbs_customization/js/report_row_number.js",
