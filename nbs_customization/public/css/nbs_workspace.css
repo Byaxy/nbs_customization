@@ -1,0 +1,141 @@
+/* ============================================================
+   NBS WORKSPACE — Selling home and dashboard
+   Number cards take a coloured left accent. Other cards stay neutral.
+   Series colours and chart internals stay stock.
+   ============================================================ */
+
+:root {
+	--nbs-workspace-canvas: color-mix(in srgb, var(--nbs-primary) 4%, #ffffff);
+	--nbs-workspace-surface: #ffffff;
+	--nbs-workspace-line: color-mix(in srgb, var(--nbs-primary) 12%, #ffffff);
+	--nbs-workspace-line-strong: color-mix(in srgb, var(--nbs-primary) 22%, #ffffff);
+	--nbs-workspace-muted: color-mix(in srgb, var(--nbs-primary) 52%, #64748b);
+	--nbs-number-tint: 10%;
+}
+
+/* Canvas — only on the Selling workspace and dashboard routes. */
+body[data-nbs-desk] .layout-main-section {
+	background: var(--nbs-workspace-canvas);
+}
+
+body[data-nbs-desk="workspace"] .editor-js-container {
+	padding: 16px 24px 28px;
+}
+
+/* Cards */
+body[data-nbs-desk] .editor-js-container .widget {
+	background: var(--nbs-workspace-surface);
+	border: 1px solid var(--nbs-workspace-line);
+	border-radius: 10px;
+	padding: 16px 18px;
+	transition: border-color 150ms ease;
+}
+
+body[data-nbs-desk] .editor-js-container .widget:hover {
+	border-color: var(--nbs-workspace-line-strong);
+}
+
+/* Every card title takes the primary navy, in bold. */
+body[data-nbs-desk] .editor-js-container .widget .widget-head .widget-label .widget-title,
+body[data-nbs-desk]
+	.editor-js-container
+	.widget
+	.widget-head
+	.widget-label
+	.widget-title
+	.ellipsis {
+	color: var(--nbs-primary);
+	font-weight: 700;
+}
+
+/* Number cards — the only cards with a coloured left accent. */
+body[data-nbs-desk] .editor-js-container .number-widget-box {
+	background-color: color-mix(
+		in srgb,
+		var(--nbs-card-accent, var(--nbs-workspace-line-strong)) var(--nbs-number-tint, 10%),
+		#ffffff
+	);
+	border-left: 6px solid var(--nbs-card-accent, var(--nbs-workspace-line-strong));
+	padding: 16px 18px;
+}
+
+body[data-nbs-desk] .editor-js-container .number-widget-box:hover {
+	border-left-color: var(--nbs-card-accent, var(--nbs-workspace-line-strong));
+}
+
+body[data-nbs-desk] .editor-js-container .number-widget-box .widget-body .number {
+	color: var(--nbs-card-accent-ink, var(--nbs-card-accent, var(--nbs-primary)));
+}
+
+/* Chart widgets keep their plot, title, and neutral card shell. */
+body[data-nbs-desk] .editor-js-container .dashboard-widget-box {
+	padding: 12px 14px 14px;
+}
+
+body[data-nbs-desk] .editor-js-container .dashboard-widget-box .widget-head {
+	padding: 4px 4px 0;
+}
+
+/* Report / link cards */
+body[data-nbs-desk] .editor-js-container .links-widget-box {
+	background: var(--nbs-workspace-surface);
+	padding: 16px 18px 14px;
+}
+
+body[data-nbs-desk] .editor-js-container .links-widget-box .link-item {
+	color: var(--nbs-workspace-muted);
+	text-decoration-color: transparent;
+	text-underline-offset: 2px;
+}
+
+body[data-nbs-desk] .editor-js-container .links-widget-box .link-item:hover {
+	color: var(--nbs-primary);
+	text-decoration-color: var(--nbs-primary);
+}
+
+body[data-nbs-desk] .editor-js-container .links-widget-box .link-item:focus-visible {
+	color: var(--nbs-primary);
+	text-decoration: underline;
+	text-decoration-color: var(--nbs-primary);
+	outline: 2px solid var(--nbs-primary);
+	outline-offset: 2px;
+}
+
+/* Tables inside workspace widgets */
+body[data-nbs-desk] .editor-js-container .widget table thead th,
+body[data-nbs-desk] .editor-js-container .widget table thead td {
+	background-color: var(--nbs-table-header-bg, #001b52) !important;
+	color: var(--nbs-table-header-text, #ffffff) !important;
+	border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+body[data-nbs-desk] .editor-js-container .widget table thead th *,
+body[data-nbs-desk] .editor-js-container .widget table thead td * {
+	color: var(--nbs-table-header-text, #ffffff) !important;
+}
+
+body[data-nbs-desk]
+	.editor-js-container
+	.widget
+	table
+	tbody
+	tr:nth-child(even):not(.sticky):not([height="99%"])
+	> td {
+	background-color: var(--nbs-table-even-bg, #dbeafe) !important;
+}
+
+body[data-nbs-desk]
+	.editor-js-container
+	.widget
+	table
+	tbody
+	tr:hover:not(.sticky):not([height="99%"])
+	> td {
+	background-color: var(--nbs-table-row-hover-bg, #dbeafe) !important;
+}
+
+/* Shortcut and onboarding cards follow the same surface. */
+body[data-nbs-desk] .editor-js-container .shortcut-widget-box,
+body[data-nbs-desk] .editor-js-container .onboarding-widget-box {
+	background: var(--nbs-workspace-surface);
+}
