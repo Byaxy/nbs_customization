@@ -7,14 +7,16 @@ const NBS_UNIQUE_ITEM_DOCTYPES = {
 };
 
 function nbs_duplicate_item_rows(frm) {
-	const rows_by_item = {};
+	const rows_by_item = new Map();
 
 	(frm.doc.items || []).forEach((row) => {
 		if (!row.item_code) return;
-		(rows_by_item[row.item_code] = rows_by_item[row.item_code] || []).push(`#${row.idx}`);
+		const rows = rows_by_item.get(row.item_code) || [];
+		rows.push(`#${row.idx}`);
+		rows_by_item.set(row.item_code, rows);
 	});
 
-	return Object.entries(rows_by_item).filter(([, rows]) => rows.length > 1);
+	return [...rows_by_item.entries()].filter(([, rows]) => rows.length > 1);
 }
 
 function nbs_show_duplicate_items(duplicates, block_save) {

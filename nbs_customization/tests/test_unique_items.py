@@ -1,3 +1,6 @@
+import json
+import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 
 import frappe
@@ -6,6 +9,19 @@ from frappe.utils import today
 
 from nbs_customization.controllers.validations.sales import validate_unique_items
 from nbs_customization.tests.sales_doubles import COMPANY, ensure_test_item
+
+UNIQUE_ITEMS_JS = Path(__file__).resolve().parents[1] / "public/js/nbs_unique_items.js"
+
+
+def _run_js_duplicate_rows(items):
+	script = (
+		"global.frappe = { ui: { form: { on() {} } }, utils: { escape_html: (text) => text }, msgprint() {} };\n"
+		"global.__ = (text) => text;\n"
+		+ UNIQUE_ITEMS_JS.read_text()
+		+ f"\nconsole.log(JSON.stringify(nbs_duplicate_item_rows({{ doc: {{ items: {json.dumps(items)} }} }})));\n"
+	)
+	result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True)
+	return json.loads(result.stdout)
 
 
 def _make_supplier(name):
@@ -208,6 +224,20 @@ class TestUniqueItems(IntegrationTestCase):
 		self.assertIn(item_code, message)
 		self.assertIn("rows #1, #2", message)
 		self.assertIn("Combine the quantities", message)
+
+	def test_js_helper_handles_prototype_item_codes(self):
+		duplicates = _run_js_duplicate_rows(
+			[
+				{"item_code": "constructor", "idx": 1},
+				{"item_code": "toString", "idx": 2},
+				{"item_code": "toString", "idx": 3},
+				{"item_code": "__proto__", "idx": 4},
+				{"item_code": "__proto__", "idx": 5},
+				{"item_code": "hasOwnProperty", "idx": 6},
+			]
+		)
+
+		self.assertEqual(duplicates, [["toString", ["#2", "#3"]], ["__proto__", ["#4", "#5"]]])
 
 	def test_ignore_validate_flag_skips_check(self):
 		validate_unique_items(
