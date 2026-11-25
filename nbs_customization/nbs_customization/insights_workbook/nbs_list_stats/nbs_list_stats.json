@@ -1,0 +1,2914 @@
+{
+ "charts": {
+  "nbs-list-stats-commission-payout-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     }
+    ],
+    "number_columns": [
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(docstatus == 0, amount_to_pay), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "draft_amount",
+      "measure_name": "Draft Amount"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((docstatus == 1) & (payout_date >= month_start(today())), amount_to_pay), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "paid_this_month",
+      "measure_name": "Paid This Month"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((docstatus == 1) & (is_check == 1) & (check_cleared == 0) & (check_returned == 0), amount_to_pay), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "cheque_pending",
+      "measure_name": "Cheque Pending"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(check_returned == 1, amount_to_pay), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "returned",
+      "measure_name": "Returned Cheques"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-commission-payout-list-kpis",
+   "query": "nbs-list-stats-commission-payout-list-stats",
+   "sort_order": 0,
+   "title": "Commission Payout List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-expense-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(expense_date >= month_start(today()), amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "this_month_amount",
+      "measure_name": "This Month Amount"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((is_check == 1) & (check_cleared == 0) & (check_returned == 0), amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "pending_clearance",
+      "measure_name": "Pending Cheque Clearance"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(check_returned == 1, amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "returned",
+      "measure_name": "Returned Cheques"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(docstatus == 0)",
+       "type": "expression"
+      },
+      "id": "draft",
+      "measure_name": "Draft"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-expense-list-kpis",
+   "query": "nbs-list-stats-expense-list-stats",
+   "sort_order": 0,
+   "title": "Expense List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-loan-waybill-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(conversion_status == 'Pending')",
+       "type": "expression"
+      },
+      "id": "pending",
+      "measure_name": "Pending Conversion"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(conversion_status == 'Partially Converted')",
+       "type": "expression"
+      },
+      "id": "partial",
+      "measure_name": "Partially Converted"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((conversion_status == 'Fully Converted') & (conversion_date >= month_start(today())))",
+       "type": "expression"
+      },
+      "id": "fully_this_month",
+      "measure_name": "Fully Converted This Month"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(loan_date >= month_start(today()))",
+       "type": "expression"
+      },
+      "id": "this_month",
+      "measure_name": "This Month Waybills"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-loan-waybill-list-kpis",
+   "query": "nbs-list-stats-loan-waybill-list-stats",
+   "sort_order": 0,
+   "title": "Loan Waybill List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-promissory-note-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(promissory_note_status == 'Pending', total_amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "pending_value",
+      "measure_name": "Pending Value"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(promissory_note_status == 'Partially Fulfilled', total_amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "partial",
+      "measure_name": "Partially Fulfilled"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((promissory_note_status == 'Fulfilled') & (date >= month_start(today())), total_amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "fulfilled_this_month",
+      "measure_name": "Fulfilled This Month"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (promissory_note_status != 'Fulfilled'))",
+       "type": "expression"
+      },
+      "id": "active",
+      "measure_name": "Active Notes"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-promissory-note-list-kpis",
+   "query": "nbs-list-stats-promissory-note-list-stats",
+   "sort_order": 0,
+   "title": "Promissory Note List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-purchase-invoice-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(outstanding_amount > 0.005, outstanding_amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "outstanding",
+      "measure_name": "Outstanding"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((outstanding_amount > 0.005) & (due_date < today()), outstanding_amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "overdue",
+      "measure_name": "Overdue"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((status == 'Paid') & (posting_date >= month_start(today())), base_grand_total), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "paid_this_month",
+      "measure_name": "Paid This Month"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(docstatus == 0)",
+       "type": "expression"
+      },
+      "id": "draft",
+      "measure_name": "Draft"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-purchase-invoice-list-kpis",
+   "query": "nbs-list-stats-purchase-invoice-list-stats",
+   "sort_order": 0,
+   "title": "Purchase Invoice List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-purchase-order-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (status != 'Completed') & (status != 'Closed') & (status != 'Cancelled'))",
+       "type": "expression"
+      },
+      "id": "open_orders",
+      "measure_name": "Open Orders"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((docstatus == 1) & (status != 'Completed') & (status != 'Closed') & (status != 'Cancelled'), base_net_total), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "open_value",
+      "measure_name": "Open Value"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (per_received < 100) & (status != 'Closed') & (status != 'Cancelled'))",
+       "type": "expression"
+      },
+      "id": "to_receive",
+      "measure_name": "To Receive"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (per_billed < 100) & (status != 'Closed') & (status != 'Cancelled'))",
+       "type": "expression"
+      },
+      "id": "to_bill",
+      "measure_name": "To Bill"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-purchase-order-list-kpis",
+   "query": "nbs-list-stats-purchase-order-list-stats",
+   "sort_order": 0,
+   "title": "Purchase Order List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-quotation-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 1,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & ((status == 'Open') | (status == 'Partially Ordered')))",
+       "type": "expression"
+      },
+      "id": "open_quotations",
+      "measure_name": "Open"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((docstatus == 1) & ((status == 'Open') | (status == 'Partially Ordered')), base_net_total), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "open_value",
+      "measure_name": "Open Value"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (status == 'Open') & (valid_till >= today()) & (valid_till <= date_add(today(), 7, 'day')))",
+       "type": "expression"
+      },
+      "id": "expiring",
+      "measure_name": "Expiring"
+     },
+     {
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "count_if((status == 'Ordered') | (status == 'Partially Ordered')) / count_if(docstatus == 1)",
+       "type": "expression"
+      },
+      "format": "percent",
+      "id": "win_rate",
+      "measure_name": "Win Rate"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-quotation-list-kpis",
+   "query": "nbs-list-stats-quotation-list-stats",
+   "sort_order": 0,
+   "title": "Quotation List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-receipt-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(receipt_date >= month_start(today()), total_amount_received), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "received_this_month",
+      "measure_name": "Received This Month"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(receipt_date >= month_start(today()))",
+       "type": "expression"
+      },
+      "id": "receipts_this_month",
+      "measure_name": "Receipts This Month"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(docstatus == 0)",
+       "type": "expression"
+      },
+      "id": "draft",
+      "measure_name": "Draft"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (total_balance_due > 0))",
+       "type": "expression"
+      },
+      "id": "open_receipts",
+      "measure_name": "Open Receipts"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-receipt-list-kpis",
+   "query": "nbs-list-stats-receipt-list-stats",
+   "sort_order": 0,
+   "title": "Receipt List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-request-for-quotation-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(docstatus == 1)",
+       "type": "expression"
+      },
+      "id": "submitted",
+      "measure_name": "Submitted"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(docstatus == 0)",
+       "type": "expression"
+      },
+      "id": "draft",
+      "measure_name": "Draft"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(transaction_date >= month_start(today()))",
+       "type": "expression"
+      },
+      "id": "this_month",
+      "measure_name": "This Month"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(docstatus == 2)",
+       "type": "expression"
+      },
+      "id": "cancelled",
+      "measure_name": "Cancelled"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-request-for-quotation-list-kpis",
+   "query": "nbs-list-stats-request-for-quotation-list-stats",
+   "sort_order": 0,
+   "title": "Request for Quotation List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-commission-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     }
+    ],
+    "number_columns": [
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(payment_status == 'Pending', total_commission_payable), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "pending",
+      "measure_name": "Pending"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(payment_status == 'Partial', total_commission_payable), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "partial",
+      "measure_name": "Partial"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((payment_status == 'Paid') & (commission_date >= month_start(today())), total_commission_payable), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "paid_this_month",
+      "measure_name": "Paid This Month"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(commission_date >= month_start(today()), total_withholding_tax_amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "withholding",
+      "measure_name": "Withholding Tax"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-sales-commission-list-kpis",
+   "query": "nbs-list-stats-sales-commission-list-stats",
+   "sort_order": 0,
+   "title": "Sales Commission List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-invoice-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if(outstanding_amount > 0.005, outstanding_amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "outstanding",
+      "measure_name": "Outstanding"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((outstanding_amount > 0.005) & (due_date < today()), outstanding_amount), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "overdue",
+      "measure_name": "Overdue"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((status == 'Paid') & (posting_date >= month_start(today())), base_grand_total), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "paid_this_month",
+      "measure_name": "Paid This Month"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if(docstatus == 0)",
+       "type": "expression"
+      },
+      "id": "draft",
+      "measure_name": "Draft"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-sales-invoice-list-kpis",
+   "query": "nbs-list-stats-sales-invoice-list-stats",
+   "sort_order": 0,
+   "title": "Sales Invoice List KPIs",
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-order-list-kpis": {
+   "chart_type": "Number",
+   "config": {
+    "filters": {
+     "filters": [],
+     "logical_operator": "And"
+    },
+    "limit": 100,
+    "number_column_options": [
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 1,
+      "shorten": true
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     },
+     {
+      "decimals": 0,
+      "shorten": false
+     }
+    ],
+    "number_columns": [
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (status != 'Completed') & (status != 'Closed') & (status != 'Cancelled'))",
+       "type": "expression"
+      },
+      "id": "open_orders",
+      "measure_name": "Open Orders"
+     },
+     {
+      "currency_column": "Company:company:default_currency",
+      "data_type": "Decimal",
+      "expression": {
+       "expression": "if_null(sum_if((docstatus == 1) & (status != 'Completed') & (status != 'Closed') & (status != 'Cancelled'), base_net_total), 0)",
+       "type": "expression"
+      },
+      "format": "currency",
+      "id": "open_value",
+      "measure_name": "Open Value"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (per_delivered < 100) & (status != 'Closed') & (status != 'Cancelled'))",
+       "type": "expression"
+      },
+      "id": "to_deliver",
+      "measure_name": "To Deliver"
+     },
+     {
+      "data_type": "Integer",
+      "expression": {
+       "expression": "count_if((docstatus == 1) & (per_billed < 100) & (status != 'Closed') & (status != 'Cancelled'))",
+       "type": "expression"
+      },
+      "id": "to_bill",
+      "measure_name": "To Bill"
+     }
+    ],
+    "order_by": [],
+    "sparkline": false
+   },
+   "description": null,
+   "folder": null,
+   "info": null,
+   "name": "nbs-list-stats-sales-order-list-kpis",
+   "query": "nbs-list-stats-sales-order-list-stats",
+   "sort_order": 0,
+   "title": "Sales Order List KPIs",
+   "workbook": "nbs-list-stats"
+  }
+ },
+ "creation": "2026-11-25 15:29:44.836618",
+ "dashboards": {
+  "nbs-list-stats-commission-payout-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-commission-payout-list-stats": "`nbs-list-stats-commission-payout-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-commission-payout-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-draft_amount",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "draft_amount",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-commission-payout-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-paid_this_month",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "paid_this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-commission-payout-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-cheque_pending",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "cheque_pending",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-commission-payout-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-returned",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "returned",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-commission-payout-stats",
+   "title": "Commission Payout Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-expense-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-expense-list-stats": "`nbs-list-stats-expense-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-expense-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-this_month_amount",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "this_month_amount",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-expense-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-pending_clearance",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "pending_clearance",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-expense-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-returned",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "returned",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-expense-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-draft",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "draft",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-expense-stats",
+   "title": "Expense Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-loan-waybill-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-loan-waybill-list-stats": "`nbs-list-stats-loan-waybill-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-loan-waybill-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-pending",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "pending",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-loan-waybill-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-partial",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "partial",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-loan-waybill-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-fully_this_month",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "fully_this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-loan-waybill-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-this_month",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "this_month",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-loan-waybill-stats",
+   "title": "Loan Waybill Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-promissory-note-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-promissory-note-list-stats": "`nbs-list-stats-promissory-note-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-promissory-note-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-pending_value",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "pending_value",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-promissory-note-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-partial",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "partial",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-promissory-note-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-fulfilled_this_month",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "fulfilled_this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-promissory-note-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-active",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "active",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-promissory-note-stats",
+   "title": "Promissory Note Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-purchase-invoice-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-purchase-invoice-list-stats": "`nbs-list-stats-purchase-invoice-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-purchase-invoice-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-outstanding",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "outstanding",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-purchase-invoice-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-overdue",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "overdue",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-purchase-invoice-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-paid_this_month",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "paid_this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-purchase-invoice-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-draft",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "draft",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-purchase-invoice-stats",
+   "title": "Purchase Invoice Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-purchase-order-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-purchase-order-list-stats": "`nbs-list-stats-purchase-order-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-purchase-order-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-open_orders",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "open_orders",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-purchase-order-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-open_value",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "open_value",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-purchase-order-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-to_receive",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "to_receive",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-purchase-order-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-to_bill",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "to_bill",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-purchase-order-stats",
+   "title": "Purchase Order Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-quotation-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-quotation-list-stats": "`nbs-list-stats-quotation-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-quotation-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-open_quotations",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "open_quotations",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-quotation-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-open_value",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "open_value",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-quotation-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-expiring",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "expiring",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-quotation-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-win_rate",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "win_rate",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-quotation-stats",
+   "title": "Quotation Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-receipt-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-receipt-list-stats": "`nbs-list-stats-receipt-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-receipt-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-received_this_month",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "received_this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-receipt-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-receipts_this_month",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "receipts_this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-receipt-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-draft",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "draft",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-receipt-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-open_receipts",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "open_receipts",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-receipt-stats",
+   "title": "Receipt Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-request-for-quotation-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-request-for-quotation-list-stats": "`nbs-list-stats-request-for-quotation-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-request-for-quotation-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-submitted",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "submitted",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-request-for-quotation-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-draft",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "draft",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-request-for-quotation-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-this_month",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-request-for-quotation-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-cancelled",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "cancelled",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-request-for-quotation-stats",
+   "title": "Request for Quotation Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-commission-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-sales-commission-list-stats": "`nbs-list-stats-sales-commission-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-sales-commission-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-pending",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "pending",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-commission-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-partial",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "partial",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-commission-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-paid_this_month",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "paid_this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-commission-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-withholding",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "withholding",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-sales-commission-stats",
+   "title": "Sales Commission Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-invoice-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-sales-invoice-list-stats": "`nbs-list-stats-sales-invoice-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-sales-invoice-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-outstanding",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "outstanding",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-invoice-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-overdue",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "overdue",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-invoice-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-paid_this_month",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "paid_this_month",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-invoice-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-draft",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "draft",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-sales-invoice-stats",
+   "title": "Sales Invoice Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-order-stats": {
+   "items": [
+    {
+     "default_operator": "=",
+     "default_user_key": "Company",
+     "filter_name": "Company",
+     "filter_type": "String",
+     "layout": {
+      "h": 2,
+      "i": "filter-company",
+      "w": 4,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 2,
+       "w": 10,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "links": {
+      "nbs-list-stats-sales-order-list-stats": "`nbs-list-stats-sales-order-list-stats`.`company`"
+     },
+     "type": "filter"
+    },
+    {
+     "chart": "nbs-list-stats-sales-order-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-open_orders",
+      "w": 5,
+      "x": 0,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 0
+      }
+     },
+     "reading": "open_orders",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-order-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-open_value",
+      "w": 5,
+      "x": 5,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 5
+      }
+     },
+     "reading": "open_value",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-order-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-to_deliver",
+      "w": 5,
+      "x": 10,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 10
+      }
+     },
+     "reading": "to_deliver",
+     "type": "chart"
+    },
+    {
+     "chart": "nbs-list-stats-sales-order-list-kpis",
+     "layout": {
+      "h": 5,
+      "i": "kpi-to_bill",
+      "w": 5,
+      "x": 15,
+      "y": 0
+     },
+     "layouts": {
+      "sm": {
+       "h": 5,
+       "w": 20,
+       "x": 0,
+       "y": 15
+      }
+     },
+     "reading": "to_bill",
+     "type": "chart"
+    }
+   ],
+   "name": "nbs-list-stats-sales-order-stats",
+   "title": "Sales Order Stats",
+   "vertical_compact_layout": 1,
+   "visible_to_roles": [
+    {
+     "role": "Desk User"
+    }
+   ],
+   "workbook": "nbs-list-stats"
+  }
+ },
+ "docstatus": 0,
+ "doctype": "Insights Workbook",
+ "folders": [],
+ "idx": 0,
+ "is_standard": 1,
+ "modified": "2026-11-25 16:00:31.607300",
+ "modified_by": "Administrator",
+ "module": "NBS Customization",
+ "name": "nbs-list-stats",
+ "owner": "Administrator",
+ "queries": {
+  "nbs-list-stats-commission-payout-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-commission-payout-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabCommission Payout",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "amount_to_pay",
+      "payout_date",
+      "is_check",
+      "check_cleared",
+      "check_returned",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Commission Payout List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-expense-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-expense-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabExpense",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "amount",
+      "expense_date",
+      "is_check",
+      "check_cleared",
+      "check_returned",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Expense List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-loan-waybill-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-loan-waybill-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabLoan Waybill",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "conversion_status",
+      "conversion_date",
+      "loan_date",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Loan Waybill List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-promissory-note-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-promissory-note-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabPromissory Note",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "promissory_note_status",
+      "total_amount",
+      "date",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Promissory Note List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-purchase-invoice-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-purchase-invoice-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabPurchase Invoice",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "status",
+      "posting_date",
+      "due_date",
+      "outstanding_amount",
+      "paid_amount",
+      "base_grand_total",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Purchase Invoice List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-purchase-order-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-purchase-order-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabPurchase Order",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "status",
+      "base_net_total",
+      "per_received",
+      "per_billed",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Purchase Order List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-quotation-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-quotation-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabQuotation",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "status",
+      "base_net_total",
+      "valid_till",
+      "transaction_date",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Quotation List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-receipt-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-receipt-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabReceipt",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "receipt_date",
+      "total_amount_received",
+      "total_balance_due",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Receipt List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-request-for-quotation-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-request-for-quotation-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabRequest for Quotation",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "status",
+      "transaction_date",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Request for Quotation List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-commission-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-sales-commission-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabSales Commission",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "payment_status",
+      "total_commission_payable",
+      "total_withholding_tax_amount",
+      "commission_date",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Sales Commission List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-invoice-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-sales-invoice-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabSales Invoice",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "status",
+      "posting_date",
+      "due_date",
+      "outstanding_amount",
+      "paid_amount",
+      "base_grand_total",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Sales Invoice List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
+  "nbs-list-stats-sales-order-list-stats": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-sales-order-list-stats",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabSales Order",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "filters": [
+      {
+       "expression": {
+        "expression": "docstatus < 2",
+        "type": "expression"
+       }
+      }
+     ],
+     "logical_operator": "And",
+     "type": "filter_group"
+    },
+    {
+     "column_names": [
+      "docstatus",
+      "status",
+      "base_net_total",
+      "per_delivered",
+      "per_billed",
+      "company"
+     ],
+     "type": "select"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Sales Order List Stats",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  }
+ },
+ "title": "NBS List Stats"
+}

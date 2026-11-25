@@ -118,6 +118,8 @@ const DASHBOARD_CARD_STYLE = `
 }
 `;
 
+window.NBSIslandStyle = DASHBOARD_CARD_STYLE;
+
 function normalize(value) {
 	return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
 }
@@ -136,6 +138,7 @@ class NBSWorkspaceTheme {
 	}
 
 	init() {
+		loadListStatsScript();
 		this.syncRoute();
 		this.apply();
 		this.observePage();
@@ -408,6 +411,14 @@ class NBSWorkspaceTheme {
 			characterData: true,
 		});
 	}
+}
+
+function loadListStatsScript() {
+	if (document.querySelector('script[src*="nbs_list_stats.js"]')) return;
+
+	const script = document.createElement("script");
+	script.src = "/assets/nbs_customization/js/nbs_list_stats.js";
+	document.head.appendChild(script);
 }
 
 function initNBSWorkspaceTheme() {
