@@ -1,0 +1,16 @@
+/* Compact Insights stats above list-view filters. */
+.nbs-list-stats {
+	height: 104px;
+	margin: 8px 0 12px;
+	overflow: hidden;
+}
+
+.nbs-list-stats .frappe-island {
+	height: 100%;
+}
+
+@media (max-width: 900px) {
+	.nbs-list-stats {
+		height: 192px;
+	}
+}

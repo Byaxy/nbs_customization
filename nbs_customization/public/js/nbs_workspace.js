@@ -118,6 +118,8 @@ const DASHBOARD_CARD_STYLE = `
 }
 `;
 
+window.NBSIslandStyle = DASHBOARD_CARD_STYLE;
+
 function normalize(value) {
 	return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
 }
@@ -129,11 +131,14 @@ function accentFor(title) {
 class NBSWorkspaceTheme {
 	constructor() {
 		this.queued = false;
+		this.partyNamesRequested = false;
+		this.partyNamesLoading = false;
 		this.observedShadows = new WeakSet();
 		this.observedTables = new WeakSet();
 	}
 
 	init() {
+		loadListStatsScript();
 		this.syncRoute();
 		this.apply();
 		this.observePage();
@@ -234,7 +239,39 @@ class NBSWorkspaceTheme {
 			cells.forEach((cell) => this.accentDashboardCard(cell));
 			this.markRulePaintedCells(shadow);
 			this.applyTableBadges(shadow);
+			this.requestPartyNames();
+			window.NBSPartyNames?.apply(shadow);
 		});
+	}
+
+	requestPartyNames() {
+		if (this.partyNamesRequested) return;
+
+		if (!window.NBSPartyNames) {
+			this.loadPartyNamesScript();
+			return;
+		}
+
+		this.partyNamesRequested = true;
+		window.NBSPartyNames.load().then((loaded) => {
+			if (loaded) this.schedule();
+		});
+	}
+
+	loadPartyNamesScript() {
+		if (this.partyNamesLoading) return;
+
+		const script = document.createElement("script");
+		script.src = "/assets/nbs_customization/js/nbs_party_names.js";
+		script.onload = () => {
+			this.partyNamesLoading = false;
+			this.requestPartyNames();
+		};
+		script.onerror = () => {
+			this.partyNamesLoading = false;
+		};
+		this.partyNamesLoading = true;
+		document.head.appendChild(script);
 	}
 
 	markRulePaintedCells(shadow) {
@@ -374,6 +411,14 @@ class NBSWorkspaceTheme {
 			characterData: true,
 		});
 	}
+}
+
+function loadListStatsScript() {
+	if (document.querySelector('script[src*="nbs_list_stats.js"]')) return;
+
+	const script = document.createElement("script");
+	script.src = "/assets/nbs_customization/js/nbs_list_stats.js";
+	document.head.appendChild(script);
 }
 
 function initNBSWorkspaceTheme() {
