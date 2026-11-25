@@ -2,16 +2,29 @@ import frappe
 
 
 def validate_unique_items(doc, method=None):
-	seen_items = set()
+	flags = getattr(doc, "flags", None)
+	if flags and getattr(flags, "ignore_validate", False):
+		return
+
+	rows_by_item = {}
 
 	for row in doc.items:
-		if row.item_code in seen_items:
-			frappe.throw(
-				f"Item {row.item_code} appears multiple times "
-				f"(row #{row.idx}). Please combine quantities into one row."
-			)
+		if not row.item_code:
+			continue
+		rows_by_item.setdefault(row.item_code, []).append(f"#{row.idx}")
 
-		seen_items.add(row.item_code)
+	duplicates = [(item_code, rows) for item_code, rows in rows_by_item.items() if len(rows) > 1]
+	if not duplicates:
+		return
+
+	details = "".join(
+		f"<li>{frappe.bold(item_code)}: rows {', '.join(rows)}</li>" for item_code, rows in duplicates
+	)
+	frappe.throw(
+		frappe._("Each item must appear on only one row. Combine the quantities for:")
+		+ f"<ul>{details}</ul>",
+		title=frappe._("Duplicate Items"),
+	)
 
 
 def prepare_quotation_test_record(doc, method=None):

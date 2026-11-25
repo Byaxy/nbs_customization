@@ -50,6 +50,7 @@ app_include_js = [
 	"/assets/nbs_customization/js/report_row_number.js",
 	"/assets/nbs_customization/js/payment_entry.js",
 	"/assets/nbs_customization/js/bank_transaction.js",
+	"/assets/nbs_customization/js/nbs_unique_items.js",
 ]
 
 # include js, css files in header of web template
@@ -407,12 +408,12 @@ doc_events = {
 		"on_trash": "nbs_customization.utils.placement.analyzer_menu.clear_analyzer_menu_cache",
 	},
 	"Quotation": {
-		"validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
+		"before_validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
 		"before_test_insert": "nbs_customization.controllers.validations.sales.prepare_quotation_test_record",
 	},
 	"Sales Order": {
+		"before_validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
 		"validate": [
-			"nbs_customization.controllers.validations.sales.validate_unique_items",
 			"nbs_customization.controllers.placement.sales_validate.validate_placement_transaction",
 			"nbs_customization.controllers.placement.sales_validate.validate_free_issue_zero_rates",
 		],
@@ -451,7 +452,9 @@ doc_events = {
 		"validate": "nbs_customization.controllers.validations.stock.validate_unique_item_batch",
 		"before_cancel": "nbs_customization.controllers.stock_entry.before_cancel",
 	},
-	"Loan Waybill": {"validate": "nbs_customization.controllers.validations.sales.validate_unique_items"},
+	"Loan Waybill": {
+		"before_validate": "nbs_customization.controllers.validations.sales.validate_unique_items"
+	},
 	"Purchase Receipt": {
 		"before_save": "nbs_customization.controllers.purchase_receipt.before_save",
 		"before_submit": "nbs_customization.controllers.purchase_receipt.before_submit",
@@ -469,7 +472,11 @@ doc_events = {
 		"before_save": "nbs_customization.controllers.purchase_invoice.before_save",
 		"before_submit": "nbs_customization.controllers.purchase_invoice.before_submit",
 	},
+	"Purchase Order": {
+		"before_validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
+	},
 	"Request for Quotation": {
+		"before_validate": "nbs_customization.controllers.validations.sales.validate_unique_items",
 		"before_save": "nbs_customization.controllers.request_for_quotation.before_save",
 		"before_submit": "nbs_customization.controllers.request_for_quotation.before_submit",
 	},
