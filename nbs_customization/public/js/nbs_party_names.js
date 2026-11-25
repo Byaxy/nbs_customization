@@ -9,6 +9,7 @@
 
 (function () {
 	const CACHE = new Map();
+	const WRITTEN = new WeakMap();
 	let pattern = null;
 	let loading = null;
 
@@ -69,15 +70,23 @@
 		}
 
 		text.textContent = best;
+		if (text.firstChild?.nodeType === Node.TEXT_NODE) {
+			WRITTEN.set(text.firstChild, best);
+		}
 	}
 
 	function replace(node) {
 		if (!pattern || !node.nodeValue) return;
 
+		// A party name can contain its own ID. Do not expand a value we wrote.
+		if (WRITTEN.get(node) === node.nodeValue) return;
+
 		const next = node.nodeValue.replace(pattern, (id) => CACHE.get(id) || id);
 		if (next === node.nodeValue) return;
 
 		node.nodeValue = next;
+		WRITTEN.set(node, next);
+
 		const svgText = node.parentElement?.closest("text");
 		if (svgText) fitSvgLabel(svgText, next.trim());
 	}

@@ -214,7 +214,7 @@
      {
       "data_type": "Integer",
       "expression": {
-       "expression": "count_if((conversion_status == 'Fully Converted') & (conversion_date >= month_start(today())))",
+       "expression": "count_if((conversion_status == 'Fully Converted') & (last_conversion_date >= month_start(today())))",
        "type": "expression"
       },
       "id": "fully_this_month",
@@ -1003,7 +1003,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1023,9 +1023,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "paid_this_month",
@@ -1043,9 +1043,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "cheque_pending",
@@ -1063,9 +1063,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "returned",
@@ -1121,7 +1121,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1141,9 +1141,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "pending_clearance",
@@ -1161,9 +1161,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "returned",
@@ -1181,9 +1181,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "draft",
@@ -1239,7 +1239,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1259,9 +1259,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "partial",
@@ -1279,9 +1279,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "fully_this_month",
@@ -1299,9 +1299,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "this_month",
@@ -1357,7 +1357,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1377,9 +1377,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "partial",
@@ -1397,9 +1397,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "fulfilled_this_month",
@@ -1417,9 +1417,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "active",
@@ -1475,7 +1475,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1495,9 +1495,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "overdue",
@@ -1515,9 +1515,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "paid_this_month",
@@ -1535,9 +1535,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "draft",
@@ -1593,7 +1593,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1613,9 +1613,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "open_value",
@@ -1633,9 +1633,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "to_receive",
@@ -1653,9 +1653,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "to_bill",
@@ -1711,7 +1711,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1731,9 +1731,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "open_value",
@@ -1751,9 +1751,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "expiring",
@@ -1771,9 +1771,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "win_rate",
@@ -1829,7 +1829,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1849,9 +1849,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "receipts_this_month",
@@ -1869,9 +1869,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "draft",
@@ -1889,9 +1889,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "open_receipts",
@@ -1947,7 +1947,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -1967,9 +1967,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "draft",
@@ -1987,9 +1987,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "this_month",
@@ -2007,9 +2007,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "cancelled",
@@ -2049,6 +2049,7 @@
       }
      },
      "links": {
+      "nbs-list-stats-commission-payout-list-stats": "`nbs-list-stats-commission-payout-list-stats`.`company`",
       "nbs-list-stats-sales-commission-list-stats": "`nbs-list-stats-sales-commission-list-stats`.`company`"
      },
      "type": "filter"
@@ -2065,7 +2066,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -2085,16 +2086,16 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "partial",
      "type": "chart"
     },
     {
-     "chart": "nbs-list-stats-sales-commission-list-kpis",
+     "chart": "nbs-list-stats-commission-payout-list-kpis",
      "layout": {
       "h": 5,
       "i": "kpi-paid_this_month",
@@ -2105,9 +2106,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "paid_this_month",
@@ -2125,9 +2126,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "withholding",
@@ -2183,7 +2184,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -2203,9 +2204,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "overdue",
@@ -2223,9 +2224,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "paid_this_month",
@@ -2243,9 +2244,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "draft",
@@ -2301,7 +2302,7 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
        "y": 0
       }
@@ -2321,9 +2322,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 5
+       "w": 10,
+       "x": 10,
+       "y": 0
       }
      },
      "reading": "open_value",
@@ -2341,9 +2342,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
+       "w": 10,
        "x": 0,
-       "y": 10
+       "y": 5
       }
      },
      "reading": "to_deliver",
@@ -2361,9 +2362,9 @@
      "layouts": {
       "sm": {
        "h": 5,
-       "w": 20,
-       "x": 0,
-       "y": 15
+       "w": 10,
+       "x": 10,
+       "y": 5
       }
      },
      "reading": "to_bill",
@@ -2386,7 +2387,7 @@
  "folders": [],
  "idx": 0,
  "is_standard": 1,
- "modified": "2026-11-25 16:00:31.607300",
+ "modified": "2026-11-25 19:42:10.688244",
  "modified_by": "Administrator",
  "module": "NBS Customization",
  "name": "nbs-list-stats",
@@ -2482,6 +2483,47 @@
    "use_live_connection": 1,
    "workbook": "nbs-list-stats"
   },
+  "nbs-list-stats-loan-conversion-dates": {
+   "folder": null,
+   "is_builder_query": 1,
+   "is_native_query": 0,
+   "is_script_query": 0,
+   "name": "nbs-list-stats-loan-conversion-dates",
+   "operations": [
+    {
+     "table": {
+      "data_source": "Site DB",
+      "table_name": "tabLoan Conversion History",
+      "type": "table"
+     },
+     "type": "source"
+    },
+    {
+     "dimensions": [
+      {
+       "column_name": "parent",
+       "data_type": "String",
+       "dimension_name": "parent"
+      }
+     ],
+     "measures": [
+      {
+       "data_type": "Date",
+       "expression": {
+        "expression": "max(conversion_date)",
+        "type": "expression"
+       },
+       "measure_name": "last_conversion_date"
+      }
+     ],
+     "type": "summarize"
+    }
+   ],
+   "sort_order": 0,
+   "title": "Loan Conversion Dates",
+   "use_live_connection": 1,
+   "workbook": "nbs-list-stats"
+  },
   "nbs-list-stats-loan-waybill-list-stats": {
    "folder": null,
    "is_builder_query": 1,
@@ -2510,10 +2552,35 @@
      "type": "filter_group"
     },
     {
+     "join_condition": {
+      "left_column": {
+       "column_name": "name",
+       "type": "column"
+      },
+      "right_column": {
+       "column_name": "parent",
+       "type": "column"
+      }
+     },
+     "join_type": "left",
+     "select_columns": [
+      {
+       "column_name": "last_conversion_date",
+       "type": "column"
+      }
+     ],
+     "table": {
+      "query_name": "nbs-list-stats-loan-conversion-dates",
+      "type": "query",
+      "workbook": "nbs-list-stats"
+     },
+     "type": "join"
+    },
+    {
      "column_names": [
       "docstatus",
       "conversion_status",
-      "conversion_date",
+      "last_conversion_date",
       "loan_date",
       "company"
      ],

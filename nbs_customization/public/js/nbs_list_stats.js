@@ -142,19 +142,33 @@
 		retry_prepare();
 	}
 
-	function schedule_mount(doctype, dashboard) {
-		if (pending_mount === doctype) return;
+	function cancel_pending_mount() {
+		if (!pending_mount) return;
 
-		pending_mount = doctype;
+		if (pending_mount.idle !== undefined && window.cancelIdleCallback) {
+			cancelIdleCallback(pending_mount.idle);
+		}
+		if (pending_mount.timeout !== undefined) clearTimeout(pending_mount.timeout);
+		pending_mount = null;
+	}
+
+	function schedule_mount(doctype, dashboard) {
+		if (pending_mount?.doctype === doctype) return;
+
+		cancel_pending_mount();
+		const pending = { doctype };
+		pending_mount = pending;
+
 		const run = () => {
+			if (pending_mount !== pending) return;
 			pending_mount = null;
 			if (current_doctype() === doctype) mount(doctype, dashboard);
 		};
 
 		if (window.requestIdleCallback) {
-			requestIdleCallback(run, { timeout: 500 });
+			pending.idle = requestIdleCallback(run, { timeout: 500 });
 		} else {
-			setTimeout(run, 120);
+			pending.timeout = setTimeout(run, 120);
 		}
 	}
 
@@ -164,14 +178,15 @@
 		const section = visible_list_section();
 
 		if (!dashboard || !section || !frappe.ui?.mount_island) {
+			cancel_pending_mount();
 			unmount();
 			remove_stale_containers();
 			return;
 		}
 
 		if (mounted_for === doctype && container && section.contains(container)) return;
+		if (pending_mount?.doctype === doctype) return;
 
-		pending_mount = null;
 		unmount();
 		remove_stale_containers();
 		schedule_mount(doctype, dashboard);
