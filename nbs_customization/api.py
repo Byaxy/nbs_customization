@@ -137,3 +137,28 @@ def get_default_company():
 		pass
 
 	return {"company_name": "NBS"}
+
+
+# ---------------------------------------------------------------------------
+# Party display names
+# ---------------------------------------------------------------------------
+
+
+@frappe.whitelist()
+def get_party_names():
+	"""Current Customer and Supplier names, keyed by their document ID.
+
+	Dashboard and drill tables keep the ID that authorizes drill-down and record
+	links. The client uses this map to replace only the visible label.
+	"""
+	names = {}
+
+	for doctype, name_field in (("Customer", "customer_name"), ("Supplier", "supplier_name")):
+		if not frappe.has_permission(doctype, "read"):
+			continue
+
+		rows = frappe.get_list(doctype, fields=["name", name_field], limit_page_length=0)
+		for row in rows:
+			names[row["name"]] = (row.get(name_field) or "").strip() or row["name"]
+
+	return names

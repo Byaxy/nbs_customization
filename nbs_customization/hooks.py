@@ -41,6 +41,7 @@ app_include_js = [
 	"/assets/nbs_customization/js/nbs_desk_icons.js",
 	"/assets/nbs_customization/js/nbs_theme.js",
 	"/assets/nbs_customization/js/nbs_card_tones.js",
+	"/assets/nbs_customization/js/nbs_party_names.js",
 	"/assets/nbs_customization/js/nbs_workspace.js",
 	"/assets/nbs_customization/js/nbs_status.js",
 	"/assets/nbs_customization/js/list_view_row_number.js",
