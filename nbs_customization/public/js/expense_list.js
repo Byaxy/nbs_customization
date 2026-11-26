@@ -165,6 +165,9 @@ function open_row_dialog(parent_dialog, idx) {
 			save_row(d, parent_dialog, idx, values, true);
 		});
 	}
+	// Keep a focused Link from revalidating on blur and restoring the value the
+	// secondary button is about to clear.
+	d.get_secondary_btn().on("mousedown", (e) => e.preventDefault());
 	d.show();
 	// Field defaults are applied on show, so re-run the conditional pass afterwards.
 	if (d._sync_visibility) d._sync_visibility();
@@ -615,6 +618,10 @@ function clear_purchase_invoice(d) {
 	const f = d.fields_dict.purchase_invoice;
 	if (!f || !f.get_value()) return;
 	f.set_value("");
+	// Dialog controls keep the model in f.value; clear it now so a refresh or
+	// blur cannot re-render/validate the old value before the async clear lands.
+	f.value = "";
+	if (f.$input) f.$input.val("");
 	f.df.description = "";
 	f.refresh();
 }
@@ -623,6 +630,8 @@ function clear_category(d) {
 	const f = d.fields_dict.expense_category;
 	if (!f || !f.get_value()) return;
 	f.set_value("");
+	f.value = "";
+	if (f.$input) f.$input.val("");
 	f.refresh();
 }
 
@@ -630,6 +639,8 @@ function clear_shipment(d) {
 	const f = d.fields_dict.linked_shipment;
 	if (!f) return;
 	f.set_value("");
+	f.value = "";
+	if (f.$input) f.$input.val("");
 	f.df.description = "";
 	f.refresh();
 }
@@ -870,8 +881,8 @@ function reset_row_dialog(d) {
 	F.reference_date.set_value("");
 	F.notes.set_value("");
 	if (F.check_bank) F.check_bank.set_value("");
-	if (F.purchase_invoice) F.purchase_invoice.set_value("");
-	if (F.linked_shipment) F.linked_shipment.set_value("");
+	clear_purchase_invoice(d);
+	clear_shipment(d);
 	clear_po_controls(d);
 	if (d._sync_visibility) d._sync_visibility();
 	F.expense_description.$input.focus();
@@ -889,12 +900,12 @@ function clear_row_dialog(d) {
 		"reference_no",
 		"reference_date",
 		"check_bank",
-		"purchase_invoice",
-		"linked_shipment",
 		"notes",
 	].forEach((name) => {
 		if (F[name]) F[name].set_value("");
 	});
+	clear_purchase_invoice(d);
+	clear_shipment(d);
 	F.expense_date.set_value(frappe.datetime.get_today());
 	F.payment_type.set_value("Direct Payment");
 	F.is_accompanying.set_value(0);
