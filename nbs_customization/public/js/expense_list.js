@@ -152,8 +152,13 @@ function open_row_dialog(parent_dialog, idx) {
 	});
 	d._ctx = ctx;
 	wire_row_dialog(d, editing);
-	// "Add & Add Another" only makes sense when creating new rows.
-	if (!editing) {
+	if (editing) {
+		d.set_secondary_action_label(__("Cancel"));
+		d.set_secondary_action(() => d.hide());
+	} else {
+		d.set_secondary_action_label(__("Clear"));
+		d.set_secondary_action(() => clear_row_dialog(d));
+		// "Add & Add Another" only makes sense when creating new rows.
 		d.add_custom_action(__("Add & Add Another"), () => {
 			const values = d.get_values();
 			if (!values) return;
@@ -872,6 +877,36 @@ function reset_row_dialog(d) {
 	F.expense_description.$input.focus();
 }
 
+// Full reset to a fresh-row state; used by the "Clear" button on new rows.
+function clear_row_dialog(d) {
+	const F = d.fields_dict;
+	[
+		"expense_description",
+		"amount",
+		"payee",
+		"expense_category",
+		"mode_of_payment",
+		"reference_no",
+		"reference_date",
+		"check_bank",
+		"purchase_invoice",
+		"linked_shipment",
+		"notes",
+	].forEach((name) => {
+		if (F[name]) F[name].set_value("");
+	});
+	F.expense_date.set_value(frappe.datetime.get_today());
+	F.payment_type.set_value("Direct Payment");
+	F.is_accompanying.set_value(0);
+	F.expense_scope.set_value("Purchase Order");
+	d._resolved = null;
+	d._mop_req = null;
+	clear_po_controls(d);
+	clear_row_errors(d);
+	if (d._sync_visibility) d._sync_visibility();
+	F.expense_description.$input.focus();
+}
+
 // ------------------------------------------------------------------ //
 // Submit (payload identical to previous inline implementation)          //
 // ------------------------------------------------------------------ //
@@ -1118,10 +1153,10 @@ function row_html(r, i) {
 				<span class="nbs-row-actions">
 					<button class="btn btn-xs btn-default nbs-row-edit" data-idx="${i}" title="${__(
 		"Edit"
-	)}"><i class="fa fa-pencil"></i></button>
+	)}">${frappe.utils.icon("pencil", "xs")}</button>
 					<button class="btn btn-xs btn-default nbs-row-del" data-idx="${i}" title="${__(
 		"Delete"
-	)}"><i class="fa fa-trash text-danger"></i></button>
+	)}">${frappe.utils.icon("trash", "xs")}</button>
 				</span>
 			</td>
 		</tr>`;
@@ -1194,8 +1229,13 @@ function ensure_bulk_styles() {
 		.nbs-pill-blue { background: #e8efff; color: #2450c8; }
 		.nbs-pill-blue-light { background: #eef4ff; color: #16295e; margin-top: 4px; }
 		.nbs-c-idx { width: 36px; } .nbs-c-act { width: 76px; }
-		.nbs-row-actions { display: inline-flex; gap: 6px; opacity: 0; }
-		.nbs-exp-row:hover .nbs-row-actions, .nbs-exp-row:focus-within .nbs-row-actions { opacity: 1; }
+		.nbs-row-actions { display: inline-flex; gap: 6px; }
+		.btn.nbs-row-edit svg, .btn.nbs-row-edit svg use { stroke: #2450c8 !important; }
+		.btn.nbs-row-del svg, .btn.nbs-row-del svg use {
+			stroke: #e35b5b !important;
+			fill: #e35b5b !important;
+			color: #e35b5b !important;
+		}
 		.nbs-empty { text-align: center; padding: 56px 20px; }
 		.nbs-empty-icon { width: 48px; height: 48px; border-radius: 50%; background: #f1f2f4; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; color: #8a8f9e; margin-bottom: 12px; }
 		.nbs-empty-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
